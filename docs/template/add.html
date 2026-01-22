@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Add User - Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3b82f6",
+                        "primary-light": "#60a5fa",
+                        "primary-dark": "#1d4ed8",
+                        "secondary": "#8b5cf6",
+                        "accent": "#94a3b8",
+                        "background-light": "#ffffff",
+                        "background-lighter": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#f1f5f9",
+                        "surface-dark": "#1e293b",
+                        "surface-darker": "#020617",
+                        "border-light": "#e2e8f0",
+                        "border-dark": "#334155",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
+                        "danger": "#ef4444",
+                        "info": "#0ea5e9"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(0, 0, 0, 0.05)',
+                        'medium': '0 8px 30px rgba(0, 0, 0, 0.08)',
+                        'hard': '0 20px 60px rgba(0, 0, 0, 0.12)',
+                        'inner-light': 'inset 0 2px 4px rgba(255, 255, 255, 0.5)',
+                        'inner-dark': 'inset 0 2px 4px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-gentle': 'pulse-gentle 2s ease-in-out infinite',
+                        'slide-in': 'slide-in 0.3s ease-out forwards',
+                        'fade-in': 'fade-in 0.2s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'pulse-gentle': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.7 },
+                        },
+                        'slide-in': {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        },
+                        'fade-in': {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Custom styles for nested menu */
+        .submenu {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .submenu.open {
+            max-height: 500px;
+        }
+
+        .menu-arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .menu-arrow.rotated {
+            transform: rotate(90deg);
+        }
+
+        .menu-indent-1 {
+            margin-left: 1.5rem;
+        }
+
+        .menu-indent-2 {
+            margin-left: 3rem;
+        }
+
+        .menu-indent-3 {
+            margin-left: 4.5rem;
+        }
+
+        /* Profile dropdown */
+        .profile-dropdown {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .profile-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* Glass effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Card hover effects */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Mobile sidebar overlay styles */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar on mobile */
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100%;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-sidebar {
+                position: relative;
+                display: flex;
+                width: 18rem;
+                transform: none;
+                box-shadow: none;
+                z-index: auto;
+            }
+            
+            .mobile-sidebar:not(.active) {
+                transform: none !important;
+            }
+        }
+
+        .mobile-sidebar.active {
+            transform: translateX(0);
+        }
+
+        /* Prevent body scroll when sidebar is open */
+        body.sidebar-open {
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body class="bg-background-lighter text-slate-900 font-display overflow-hidden">
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay lg:hidden" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <div class="flex h-screen w-full">
+        <!-- Sidebar with 3-level menu (Dark) -->
+        <aside
+            class="mobile-sidebar hidden lg:flex flex-col h-full border-r border-border-dark bg-gradient-to-b from-background-dark to-surface-darker flex-shrink-0 p-6">
+            <!-- Mobile Sidebar Header with Close Button -->
+            <div class="flex items-center justify-between mb-6 lg:hidden">
+                <div class="flex items-center gap-3">
+                    <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-border-dark shadow-lg"
+                        data-alt="App logo with abstract geometric shapes"
+                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c");'>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-white text-lg font-bold leading-tight">Admin Panel</h1>
+                        <p class="text-accent text-xs font-medium tracking-wider">v2.0 PRO</p>
+                    </div>
+                </div>
+                <button class="text-white hover:text-primary-light p-2" onclick="closeSidebar()">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </div>
+
+            <!-- Desktop Sidebar Header -->
+            <div class="hidden lg:flex items-center gap-3 mb-10 px-2">
+                <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-border-dark shadow-lg"
+                    data-alt="App logo with abstract geometric shapes"
+                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c");'>
+                </div>
+                <div class="flex flex-col">
+                    <h1 class="text-white text-lg font-bold leading-tight">Admin Panel</h1>
+                    <p class="text-accent text-xs font-medium tracking-wider">v2.0 PRO</p>
+                </div>
+            </div>
+
+            <!-- Navigation menu -->
+            <nav class="flex flex-col gap-1 flex-1 overflow-y-auto">
+                <!-- Level 1 - Dashboard -->
+                <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    href="#" onclick="closeMobileSidebar()">
+                    <span
+                        class="material-symbols-outlined group-hover:text-primary-light transition-colors">dashboard</span>
+                    <p class="text-sm font-bold">Dashboard</p>
+                </a>
+
+                <!-- Users Menu -->
+                <div class="menu-item">
+                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        onclick="toggleMenu('users-menu')">
+                        <div class="flex items-center gap-4">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors">group</span>
+                            <p class="text-sm font-medium">Users</p>
+                        </div>
+                        <span class="material-symbols-outlined menu-arrow text-sm">chevron_right</span>
+                    </div>
+
+                    <div id="users-menu" class="submenu open">
+                        <!-- Level 2 - Users Submenu -->
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">person</span>
+                            <p class="text-sm font-medium">All Users</p>
+                        </a>
+
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-primary-light bg-surface-dark hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">add</span>
+                            <p class="text-sm font-medium">Add User</p>
+                        </a>
+
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">User Roles</p>
+                        </a>
+
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">lock</span>
+                            <p class="text-sm font-medium">Permissions</p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Analytics Menu -->
+                <div class="menu-item">
+                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        onclick="toggleMenu('analytics-menu')">
+                        <div class="flex items-center gap-4">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors">analytics</span>
+                            <p class="text-sm font-medium">Analytics</p>
+                        </div>
+                        <span class="material-symbols-outlined menu-arrow text-sm">chevron_right</span>
+                    </div>
+
+                    <div id="analytics-menu" class="submenu">
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">trending_up</span>
+                            <p class="text-sm font-medium">Overview</p>
+                        </a>
+
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">bar_chart</span>
+                            <p class="text-sm font-medium">Reports</p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Settings Menu -->
+                <div class="menu-item">
+                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        onclick="toggleMenu('settings-menu')">
+                        <div class="flex items-center gap-4">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors">settings</span>
+                            <p class="text-sm font-medium">Settings</p>
+                        </div>
+                        <span class="material-symbols-outlined menu-arrow text-sm">chevron_right</span>
+                    </div>
+
+                    <div id="settings-menu" class="submenu">
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">tune</span>
+                            <p class="text-sm font-medium">General</p>
+                        </a>
+
+                        <a class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer menu-indent-1"
+                            href="#" onclick="closeMobileSidebar()">
+                            <span
+                                class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">notifications</span>
+                            <p class="text-sm font-medium">Notifications</p>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="mt-auto pt-6 border-t border-border-dark">
+                <a class="flex items-center gap-4 px-4 py-3 rounded-full text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer active:scale-95"
+                    href="#" onclick="closeMobileSidebar()">
+                    <span class="material-symbols-outlined">logout</span>
+                    <p class="text-sm font-medium">Logout</p>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area (Light Theme) -->
+        <main
+            class="flex-1 flex flex-col h-full relative overflow-hidden bg-gradient-to-br from-background-lighter via-white to-blue-50">
+            <!-- Header with Glass Effect -->
+            <header
+                class="h-20 flex items-center justify-between px-6 lg:px-8 border-b border-border-light glass bg-white/90 backdrop-blur-xl sticky top-0 z-30 shadow-soft">
+                <div class="flex items-center gap-6 flex-1 max-w-2xl">
+                    <div class="lg:hidden text-slate-700 cursor-pointer hover:text-primary transition-colors"
+                        onclick="toggleSidebar()">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
+                    </div>
+                    <div class="relative w-full max-w-md hidden md:block">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                        </div>
+                        <input
+                            class="block w-full pl-10 pr-3 py-2.5 bg-white border border-border-light rounded-full text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            placeholder="Search for data, users, docs..." type="text" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button
+                        class="relative p-2 text-slate-600 hover:text-primary hover:bg-slate-50 rounded-full transition-colors duration-200 hover:scale-105">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span
+                            class="absolute top-1.5 right-2 size-2.5 bg-danger rounded-full border-2 border-white animate-pulse"></span>
+                    </button>
+
+                    <!-- Profile with Dropdown -->
+                    <div class="relative">
+                        <div class="flex items-center gap-3 pl-6 border-l border-border-light cursor-pointer group"
+                            onclick="toggleProfileDropdown()">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-bold text-slate-800">Admin User</p>
+                                <p class="text-xs text-slate-500">Super Admin</p>
+                            </div>
+                            <div class="relative">
+                                <div class="size-10 rounded-full bg-cover bg-center border-2 border-white shadow-md group-hover:border-primary transition-all duration-300"
+                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAmhtkm9iCmViNWJB0Yzmd6NVIcNUgWLAscqdvfSH8O7OUDOxIT2LBZVMg3BKk04dWHNu8nHsjmouKQzSJydBfxPsvY_ZpRNhufIiOkkqbsbWI7EP2XbQzai7KRe9oZNRLpyI7SbU6yzS5M4CfnWWc9A0jjlOEIGGHD2CPlC4gSh2dHZp4_lxzXEfbL7nizekYJoLTYTuf5Zl6LtHVa9Sjrp4k-SRziH9pJTj6jbqF3yiKpfnCp56pBOytvhWxqN-vFwkYJ9jIcTuE");'>
+                                </div>
+                                <div
+                                    class="absolute -bottom-1 -right-1 size-3.5 bg-success rounded-full border-2 border-white">
+                                </div>
+                            </div>
+                            <span
+                                class="material-symbols-outlined text-slate-400 text-sm group-hover:text-primary transition-colors">expand_more</span>
+                        </div>
+
+                        <!-- Profile Dropdown Menu -->
+                        <div id="profile-dropdown"
+                            class="profile-dropdown absolute right-0 mt-3 w-64 bg-white rounded-xl border border-border-light shadow-hard z-50">
+                            <div
+                                class="p-4 border-b border-border-light bg-gradient-to-r from-primary/5 to-secondary/5">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-12 rounded-full bg-cover bg-center border-2 border-white shadow-md"
+                                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAmhtkm9iCmViNWJB0Yzmd6NVIcNUgWLAscqdvfSH8O7OUDOxIT2LBZVMg3BKk04dWHNu8nHsjmouKQzSJydBfxPsvY_ZpRNhufIiOkkqbsbWI7EP2XbQzai7KRe9oZNRLpyI7SbU6yzS5M4CfnWWc9A0jjlOEIGGHD2CPlC4gSh2dHZp4_lxzXEfbL7nizekYJoLTYTuf5Zl6LtHVa9Sjrp4k-SRziH9pJTj6jbqF3yiKpfnCp56pBOytvhWxqN-vFwkYJ9jIcTuE");'>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">Admin User</p>
+                                        <p class="text-xs text-slate-500">admin@example.com</p>
+                                        <p
+                                            class="text-xs text-primary font-semibold mt-1 px-2 py-0.5 bg-primary/10 rounded-full inline-block">
+                                            Super Admin</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="py-2">
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">person</span>
+                                    <span class="text-sm font-medium">My Profile</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">settings</span>
+                                    <span class="text-sm font-medium">Account Settings</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">notifications</span>
+                                    <span class="text-sm font-medium">Notifications</span>
+                                    <span
+                                        class="ml-auto bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">3</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">help</span>
+                                    <span class="text-sm font-medium">Help & Support</span>
+                                </a>
+                            </div>
+                            <div class="p-3 border-t border-border-light bg-slate-50/50">
+                                <a href="#"
+                                    class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white text-danger hover:bg-danger/10 hover:text-danger-dark transition-all cursor-pointer border border-border-light shadow-sm">
+                                    <span class="material-symbols-outlined text-sm">logout</span>
+                                    <span class="text-sm font-medium">Log Out</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 lg:space-y-8">
+                <!-- Header Section -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Add New User</h2>
+                        <p class="text-slate-500 text-sm mt-2">Create a new user account in the system</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Back Button -->
+                        <a href="#"
+                            class="px-4 lg:px-5 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-white hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center gap-2 active:scale-95">
+                            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                            Back
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Form Container -->
+                <div class="space-y-6" id="addUserForm">
+                    <!-- Personal Information Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span class="material-symbols-outlined text-primary text-xl">person</span>
+                            <h3 class="text-lg font-bold text-slate-800">Personal Information</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- First Name -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    First Name <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="first_name"
+                                    placeholder="John"
+                                    required
+                                    class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                />
+                            </div>
+
+                            <!-- Last Name -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Last Name <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="last_name"
+                                    placeholder="Doe"
+                                    required
+                                    class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span class="material-symbols-outlined text-primary text-xl">email</span>
+                            <h3 class="text-lg font-bold text-slate-800">Contact Information</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- Email -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Email Address <span class="text-danger">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="material-symbols-outlined text-slate-400 text-[20px]">mail</span>
+                                    </div>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        placeholder="john.doe@example.com"
+                                        required
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Phone Number
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="material-symbols-outlined text-slate-400 text-[20px]">phone</span>
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        placeholder="+1 (555) 123-4567"
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Security Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span class="material-symbols-outlined text-primary text-xl">lock</span>
+                            <h3 class="text-lg font-bold text-slate-800">Account Security</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- Password -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="material-symbols-outlined text-slate-400 text-[20px]">lock</span>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        placeholder="••••••••"
+                                        required
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                    />
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">Minimum 8 characters</p>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Confirm Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="material-symbols-outlined text-slate-400 text-[20px]">lock</span>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        name="password_confirmation"
+                                        placeholder="••••••••"
+                                        required
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Role & Permissions Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
+                            <h3 class="text-lg font-bold text-slate-800">Role & Permissions</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- Role -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    User Role <span class="text-danger">*</span>
+                                </label>
+                                <select
+                                    name="role"
+                                    required
+                                    class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="">Select a role</option>
+                                    <option value="administrator">Administrator</option>
+                                    <option value="editor">Editor</option>
+                                    <option value="viewer">Viewer</option>
+                                    <option value="moderator">Moderator</option>
+                                </select>
+                            </div>
+
+                            <!-- Status -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Account Status <span class="text-danger">*</span>
+                                </label>
+                                <select
+                                    name="status"
+                                    required
+                                    class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex items-center gap-2 mb-6">
+                            <span class="material-symbols-outlined text-primary text-xl">info</span>
+                            <h3 class="text-lg font-bold text-slate-800">Additional Information</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- Bio -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Bio / Description
+                                </label>
+                                <textarea
+                                    name="bio"
+                                    rows="3"
+                                    placeholder="Brief description about the user..."
+                                    class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-border-light shadow-soft">
+                        <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                class="w-full sm:w-auto px-6 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95"
+                                onclick="window.history.back()"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                class="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-primary to-primary-dark text-white text-sm font-bold hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                                onclick="document.getElementById('addUserForm').dispatchEvent(new Event('submit'))"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">save</span>
+                                Create User
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Toggle submenus in sidebar
+        function toggleMenu(menuId) {
+            const menu = document.getElementById(menuId);
+            const arrow = event.currentTarget.querySelector('.menu-arrow');
+
+            menu.classList.toggle('open');
+            arrow.classList.toggle('rotated');
+        }
+
+        // Toggle profile dropdown
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            const dropdown = document.getElementById('profile-dropdown');
+            const profileArea = document.querySelector('.relative'); // Profile container
+
+            if (dropdown && profileArea && !profileArea.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Toggle sidebar on mobile
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.mobile-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+
+            sidebar.classList.toggle('active');
+            sidebar.classList.toggle('hidden');
+            overlay.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        }
+
+        // Close sidebar on mobile
+        function closeSidebar() {
+            const sidebar = document.querySelector('.mobile-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+
+            sidebar.classList.remove('active');
+            sidebar.classList.add('hidden');
+            overlay.classList.remove('active');
+            body.classList.remove('sidebar-open');
+        }
+
+        // Close mobile sidebar when clicking on menu items
+        function closeMobileSidebar() {
+            if (window.innerWidth < 1024) { // Only on mobile
+                closeSidebar();
+            }
+        }
+
+        // Form submission handler
+        document.getElementById('addUserForm').addEventListener('submit', function(e) {
+            if (e.target.tagName === 'FORM') {
+                e.preventDefault();
+                // Add your form submission logic here
+                console.log('Form submitted');
+                // You can add validation and API call here
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function () {
+            // Open users menu by default
+            const usersMenu = document.getElementById('users-menu');
+            if (usersMenu) {
+                usersMenu.classList.add('open');
+                const menuItem = document.querySelector('[onclick="toggleMenu(\'users-menu\')"]');
+                if (menuItem) {
+                    const arrow = menuItem.querySelector('.menu-arrow');
+                    if (arrow) {
+                        arrow.classList.add('rotated');
+                    }
+                }
+            }
+
+            // Add click effects to buttons
+            document.querySelectorAll('button, .cursor-pointer').forEach(button => {
+                button.addEventListener('click', function () {
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+
+            // Close sidebar when clicking Escape key
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
