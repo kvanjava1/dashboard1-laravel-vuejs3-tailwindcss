@@ -328,7 +328,7 @@ const reportPermissions = computed(() => permissions.value?.report || [])
 const otherPermissions = computed(() => permissions.value?.other || [])
 
 const goBack = () => {
-    router.push('/role_management/index')
+    router.push({ name: 'role_management.index' })
 }
 
 // Fetch permissions from API
@@ -437,7 +437,7 @@ const handleSubmit = async () => {
             console.log('Role created successfully:', data)
 
             // Success - redirect to roles list
-            router.push('/role_management/index')
+            router.push({ name: 'role_management.index' })
         } else {
             // Handle API error
             const errorData = await response.json()

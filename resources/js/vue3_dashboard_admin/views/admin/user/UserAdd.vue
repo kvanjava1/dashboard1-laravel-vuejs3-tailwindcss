@@ -321,7 +321,7 @@ const form = reactive<UserForm>({
 })
 
 const goBack = () => {
-    router.push('/user_management/index')
+    router.push({ name: 'user_management.index' })
 }
 
 const validateForm = (): boolean => {
@@ -406,7 +406,7 @@ const handleSubmit = async () => {
             console.log('User created successfully:', data)
 
             // Success - redirect to users list
-            router.push('/user_management/index')
+            router.push({ name: 'user_management.index' })
         } else {
             // Handle API error
             const errorData = await response.json()

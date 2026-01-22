@@ -221,7 +221,7 @@ const goToPage = (page: number) => {
 }
 
 const goToAddUser = () => {
-    router.push('/user_management/add')
+    router.push({ name: 'user_management.add' })
 }
 
 const openAdvancedFilter = () => {

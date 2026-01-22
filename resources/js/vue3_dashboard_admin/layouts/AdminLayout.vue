@@ -269,7 +269,7 @@ const handleLogout = async () => {
     // Implement logout logic
     try {
         // await logout API call
-        router.push('/login')
+        router.push({ name: 'login' })
     } catch (error) {
         console.error('Logout failed:', error)
     }

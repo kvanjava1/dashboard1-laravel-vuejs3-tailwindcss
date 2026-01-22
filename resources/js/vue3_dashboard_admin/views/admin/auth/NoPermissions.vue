@@ -80,6 +80,6 @@ const goBack = () => {
 }
 
 const goHome = () => {
-    router.push('/dashboard')
+    router.push({ name: 'dashboard.index' })
 }
 </script>

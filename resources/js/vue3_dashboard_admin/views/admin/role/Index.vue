@@ -276,7 +276,7 @@ const fetchRoles = async () => {
 }
 
 const goToAddRole = () => {
-    router.push('/role_management/add')
+    router.push({ name: 'role_management.add' })
 }
 
 const editRole = (role: any) => {
