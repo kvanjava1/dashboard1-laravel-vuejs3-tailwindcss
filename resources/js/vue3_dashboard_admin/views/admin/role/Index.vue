@@ -105,27 +105,24 @@
 
                 <!-- Data Table -->
                 <div v-else>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                    Role Name
-                                </th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                    Permissions
-                                </th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                    Users Count
-                                </th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200">
-                            <tr v-for="role in roles" :key="role.id" class="hover:bg-slate-50">
-                                <td class="px-6 py-4">
+                    <SimpleUserTable>
+                        <SimpleUserTableHead>
+                            <SimpleUserTableHeadRow>
+                                <SimpleUserTableHeadCol>
+                                    <div class="flex items-center gap-2">
+                                        <span>Role Name</span>
+                                        <span class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
+                                    </div>
+                                </SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Permissions</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Users Count</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Actions</SimpleUserTableHeadCol>
+                            </SimpleUserTableHeadRow>
+                        </SimpleUserTableHead>
+
+                        <SimpleUserTableBody>
+                            <SimpleUserTableBodyRow v-for="role in roles" :key="role.id">
+                                <SimpleUserTableBodyCol>
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 mr-3">
                                             <span class="material-symbols-outlined text-primary text-sm">
@@ -139,8 +136,8 @@
                                             <div class="text-xs text-slate-500">{{ role.name }}</div>
                                         </div>
                                     </div>
-                                </td>
-                                <td class="px-6 py-4">
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
                                     <div class="flex flex-wrap gap-1">
                                         <span
                                             v-for="permission in role.permissions.slice(0, 3)"
@@ -156,13 +153,13 @@
                                             +{{ role.permissions.length - 3 }} more
                                         </span>
                                     </div>
-                                </td>
-                                <td class="px-6 py-4">
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                         {{ role.users_count || 0 }} users
                                     </span>
-                                </td>
-                                <td class="px-6 py-4 text-sm font-medium">
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
                                         <button
                                             @click="editRole(role)"
@@ -187,30 +184,35 @@
                                             <span class="material-symbols-outlined text-lg">delete</span>
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                </div>
+                                </SimpleUserTableBodyCol>
+                            </SimpleUserTableBodyRow>
+                        </SimpleUserTableBody>
+                    </SimpleUserTable>
 
-                        <!-- Pagination -->
-                        <div class="mt-6">
-                            <Pagination
-                                :current-start="1"
-                                :current-end="roles.length"
-                                :total="roles.length"
-                                :current-page="1"
-                                :total-pages="1"
-                                :rows-per-page="10"
-                            />
-                        </div>
-                    </div>
+                    <!-- Pagination -->
+                    <Pagination
+                        :current-start="1"
+                        :current-end="roles.length"
+                        :total="roles.length"
+                        :current-page="1"
+                        :total-pages="1"
+                        :rows-per-page="10"
+                    />
+                </div>
             </ContentBoxBody>
         </ContentBox>
 
         <!-- Advanced Filter Modal -->
-        <div v-if="showAdvancedFilter" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <Teleport to="body">
+            <div
+                v-if="showAdvancedFilter"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                @click="showAdvancedFilter = false"
+            >
+                <div
+                    class="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+                    @click.stop
+                >
                 <h3 class="text-lg font-semibold mb-4">Advanced Filter</h3>
                 <p class="text-slate-600 mb-4">Filter roles by various criteria</p>
                 <div class="flex justify-end gap-3">
@@ -229,6 +231,14 @@
                 </div>
             </div>
         </div>
+        </Teleport>
+
+        <!-- Role Permissions Modal -->
+        <RolePermissionsModal
+            v-model="showPermissionsModal"
+            :role="selectedRole"
+            @edit-role="editRole"
+        />
     </AdminLayout>
 </template>
 
@@ -243,6 +253,10 @@ const showAdvancedFilter = ref(false)
 const isLoading = ref(true)
 const errorMessage = ref('')
 const roles = ref<any[]>([])
+
+// Permissions modal state
+const showPermissionsModal = ref(false)
+const selectedRole = ref<any>(null)
 
 const totalPermissions = computed(() => {
     const uniquePermissions = new Set()
@@ -280,14 +294,14 @@ const goToAddRole = () => {
 }
 
 const editRole = (role: any) => {
-    console.log('Edit role:', role)
-    // TODO: Navigate to edit page
+    router.push({ name: 'role_management.edit', params: { id: role.id } })
 }
 
 const viewPermissions = (role: any) => {
-    console.log('View permissions for role:', role)
-    // TODO: Show permissions modal
+    selectedRole.value = role
+    showPermissionsModal.value = true
 }
+
 
 const deleteRole = (role: any) => {
     if (confirm(`Are you sure you want to delete the "${role.display_name}" role?`)) {
@@ -323,4 +337,15 @@ import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
+
+// Table components
+import SimpleUserTable from '../../../components/ui/SimpleUserTable.vue'
+import SimpleUserTableHead from '../../../components/ui/SimpleUserTableHead.vue'
+import SimpleUserTableHeadRow from '../../../components/ui/SimpleUserTableHeadRow.vue'
+import SimpleUserTableHeadCol from '../../../components/ui/SimpleUserTableHeadCol.vue'
+import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
+import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
+import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
+
+import RolePermissionsModal from './RolePermissionsModal.vue'
 </script>

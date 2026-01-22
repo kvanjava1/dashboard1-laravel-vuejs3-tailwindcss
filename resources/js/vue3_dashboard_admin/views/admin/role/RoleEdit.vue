@@ -3,7 +3,7 @@
         <!-- Header Section -->
         <PageHeader>
             <template #title>
-                <PageHeaderTitle title="Add New Role" />
+                <PageHeaderTitle title="Edit Role" />
             </template>
             <template #actions>
                 <PageHeaderActions>
@@ -14,8 +14,33 @@
             </template>
         </PageHeader>
 
+        <!-- Loading State -->
+        <div v-if="isLoadingRole" class="flex items-center justify-center py-12">
+            <div class="flex items-center gap-3">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="text-slate-600">Loading role...</span>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="roleError" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-red-500 text-xl">error</span>
+                <div>
+                    <p class="text-red-700 font-medium">Failed to load role</p>
+                    <p class="text-red-600 text-sm">{{ roleError }}</p>
+                    <button
+                        @click="fetchRole"
+                        class="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Form Container -->
-        <div class="space-y-6">
+        <div v-else class="space-y-6">
             <!-- Role Information Card -->
             <ContentBox>
                 <ContentBoxHeader>
@@ -28,19 +53,18 @@
                 </ContentBoxHeader>
                 <ContentBoxBody>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Role Name -->
+                        <!-- Role Name (Read-only) -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Role Name <span class="text-danger">*</span>
+                                Role Name
                             </label>
                             <input
                                 v-model="form.name"
                                 type="text"
-                                placeholder="e.g., editor, moderator"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                                readonly
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed"
                             />
-                            <p class="text-xs text-slate-500 mt-1">Use lowercase with underscores (e.g., content_editor)</p>
+                            <p class="text-xs text-slate-500 mt-1">Role name cannot be changed after creation</p>
                         </div>
 
                         <!-- Display Name -->
@@ -112,27 +136,27 @@
 
                     <!-- Permissions Content -->
                     <div v-else>
-                    <!-- Quick Select Actions -->
-                    <div class="flex flex-wrap gap-3 mb-6">
-                        <button
-                            @click="selectAllPermissions"
-                            class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                            Select All
-                        </button>
-                        <button
-                            @click="clearAllPermissions"
-                            class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                        >
-                            Clear All
-                        </button>
-                        <button
-                            @click="selectCommonPermissions"
-                            class="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                        >
-                            Common Set
-                        </button>
-                    </div>
+                        <!-- Quick Select Actions -->
+                        <div class="flex flex-wrap gap-3 mb-6">
+                            <button
+                                @click="selectAllPermissions"
+                                class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                            >
+                                Select All
+                            </button>
+                            <button
+                                @click="clearAllPermissions"
+                                class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                                Clear All
+                            </button>
+                            <button
+                                @click="selectCommonPermissions"
+                                class="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                            >
+                                Common Set
+                            </button>
+                        </div>
 
                         <!-- Permission Groups -->
                         <div class="space-y-6">
@@ -282,7 +306,7 @@
                         >
                             <span v-if="isSubmitting" class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
                             <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                            {{ isSubmitting ? 'Creating...' : 'Create Role' }}
+                            {{ isSubmitting ? 'Updating...' : 'Update Role' }}
                         </button>
                     </div>
                 </ContentBoxBody>
@@ -293,27 +317,38 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
 
 const router = useRouter()
-const { post, get } = useApi()
+const route = useRoute()
+const { get, put } = useApi()
+
+// State
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 const isLoadingPermissions = ref(true)
 const permissionsError = ref('')
+const isLoadingRole = ref(true)
+const roleError = ref('')
+
+// Get role ID from route params
+const roleId = computed(() => route.params.id as string)
+
+// Permissions data
 const permissions = ref<{
-  dashboard: any[]
-  user_management: any[]
-  report: any[]
-  other: any[]
+    dashboard: any[]
+    user_management: any[]
+    report: any[]
+    other: any[]
 }>({
-  dashboard: [],
-  user_management: [],
-  report: [],
-  other: []
+    dashboard: [],
+    user_management: [],
+    report: [],
+    other: []
 })
 
+// Form data
 const form = reactive({
     name: '',
     display_name: '',
@@ -321,12 +356,13 @@ const form = reactive({
     permissions: [] as string[]
 })
 
-// Permission definitions (from API)
+// Computed permissions
 const dashboardPermissions = computed(() => permissions.value?.dashboard || [])
 const userPermissions = computed(() => permissions.value?.user_management || [])
 const reportPermissions = computed(() => permissions.value?.report || [])
 const otherPermissions = computed(() => permissions.value?.other || [])
 
+// Navigation
 const goBack = () => {
     router.push({ name: 'role_management.index' })
 }
@@ -354,25 +390,39 @@ const fetchPermissions = async () => {
     }
 }
 
-// Lifecycle hook
-onMounted(async () => {
-    await fetchPermissions()
-})
+// Fetch role data
+const fetchRole = async () => {
+    try {
+        isLoadingRole.value = true
+        roleError.value = ''
 
-const validateForm = (): boolean => {
-    if (!form.name.trim()) {
-        errorMessage.value = 'Role name is required'
-        return false
+        const response = await get(`/api/v1/roles/${roleId.value}`)
+
+        if (response.ok) {
+            const data = await response.json()
+            const role = data.role
+
+            // Populate form with existing data
+            form.name = role.name
+            form.display_name = role.display_name || ''
+            form.description = role.description || ''
+            form.permissions = role.permissions || []
+        } else {
+            const errorData = await response.json()
+            roleError.value = errorData.message || 'Failed to load role data'
+        }
+    } catch (error) {
+        console.error('Error fetching role:', error)
+        roleError.value = 'An unexpected error occurred while loading role data'
+    } finally {
+        isLoadingRole.value = false
     }
+}
 
+// Form validation
+const validateForm = (): boolean => {
     if (!form.display_name.trim()) {
         errorMessage.value = 'Display name is required'
-        return false
-    }
-
-    // Check role name format
-    if (!/^[a-z_]+$/.test(form.name)) {
-        errorMessage.value = 'Role name can only contain lowercase letters and underscores'
         return false
     }
 
@@ -384,6 +434,7 @@ const validateForm = (): boolean => {
     return true
 }
 
+// Permission selection helpers
 const selectAllPermissions = () => {
     form.permissions = [
         ...(dashboardPermissions.value?.map((p: any) => p.name) || []),
@@ -412,6 +463,7 @@ const selectCommonPermissions = () => {
     form.permissions = commonPerms
 }
 
+// Handle form submission
 const handleSubmit = async () => {
     if (!validateForm()) {
         return
@@ -423,34 +475,41 @@ const handleSubmit = async () => {
     try {
         // Prepare data for API
         const roleData = {
-            name: form.name,
             display_name: form.display_name,
             description: form.description,
             permissions: form.permissions
         }
 
-        // Make API call to create role
-        const response = await post('/api/v1/roles', roleData)
+        // Update role via API
+        const response = await put(`/api/v1/roles/${roleId.value}`, roleData)
 
         if (response.ok) {
             const data = await response.json()
-            console.log('Role created successfully:', data)
+            console.log('Role updated successfully:', data)
 
             // Success - redirect to roles list
             router.push({ name: 'role_management.index' })
         } else {
             // Handle API error
             const errorData = await response.json()
-            errorMessage.value = errorData.message || 'Failed to create role. Please try again.'
+            errorMessage.value = errorData.message || 'Failed to update role. Please try again.'
             console.error('API Error:', errorData)
         }
     } catch (error) {
-        console.error('Error creating role:', error)
+        console.error('Error updating role:', error)
         errorMessage.value = 'An unexpected error occurred. Please try again.'
     } finally {
         isSubmitting.value = false
     }
 }
+
+// Lifecycle hook
+onMounted(async () => {
+    await Promise.all([
+        fetchPermissions(),
+        fetchRole()
+    ])
+})
 
 // Import components
 import AdminLayout from '../../../layouts/AdminLayout.vue'
