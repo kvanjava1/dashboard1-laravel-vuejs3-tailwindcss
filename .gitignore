@@ -1,0 +1,59 @@
+############################
+# Dependencies
+############################
+/node_modules/
+/vendor/
+
+############################
+# Environment files
+############################
+.env
+.env.*
+!.env.example
+
+############################
+# Laravel
+############################
+/bootstrap/cache/
+/storage/*.key
+/storage/framework/*
+/storage/logs/*
+!/storage/framework/.gitignore
+!/storage/logs/.gitignore
+
+############################
+# Build & frontend
+############################
+/public/build/
+/dist/
+/build/
+/.hot
+/vite.config.js.timestamp-*
+
+############################
+# Logs
+############################
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+############################
+# Cache
+############################
+.cache/
+coverage/
+
+############################
+# IDE / Editor
+############################
+.idea/
+.vscode/
+*.swp
+*.swo
+
+############################
+# OS
+############################
+.DS_Store
+Thumbs.db
