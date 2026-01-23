@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { apiRoutes } from '@/config/apiRoutes';
 
 interface User {
   id: number;
@@ -57,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
 
     try {
-      const response = await fetch('/api/v1/login', {
+      const response = await fetch(apiRoutes.auth.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       if (token.value) {
-        await fetch('/api/v1/logout', {
+        await fetch(apiRoutes.auth.logout, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
 
     try {
-      const response = await fetch('/api/v1/me', {
+      const response = await fetch(apiRoutes.auth.me, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -326,6 +326,35 @@ authStore.isLoading        // boolean
 authStore.error           // string | null
 ```
 
+## 🛠️ API Routes Configuration
+
+### **Centralized API Configuration**
+All API endpoints are now centrally managed in `resources/js/vue3_dashboard_admin/config/apiRoutes.ts`:
+
+```typescript
+export const apiRoutes = {
+  auth: {
+    login: '/api/v1/login',
+    logout: '/api/v1/logout',
+    me: '/api/v1/me'
+  },
+  roles: {
+    index: (params?: { page?: number; per_page?: number }) =>
+      `/api/v1/roles?page=${params?.page}&per_page=${params?.per_page}`,
+    show: (id: string | number) => `/api/v1/roles/${id}`,
+    store: '/api/v1/roles',
+    update: (id: string | number) => `/api/v1/roles/${id}`,
+    destroy: (id: string | number) => `/api/v1/roles/${id}`
+  }
+} as const
+```
+
+**Benefits:**
+- ✅ **Type-safe** - Full TypeScript support
+- ✅ **DRY** - Single source of truth for API URLs
+- ✅ **Maintainable** - Easy to update and refactor
+- ✅ **IDE Support** - Auto-completion and IntelliSense
+
 ## 🐳 Docker Development Environment
 
 ### **Container Structure**

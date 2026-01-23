@@ -130,13 +130,6 @@
                         >
                             Clear All
                         </Button>
-                        <Button
-                            variant="ghost"
-                            left-icon="settings"
-                            @click="selectCommonPermissions"
-                        >
-                            Common Set
-                        </Button>
                     </div>
 
                         <!-- Permission Groups -->
@@ -299,6 +292,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
+import { apiRoutes } from '../../../config/apiRoutes'
 
 const router = useRouter()
 const { post, get } = useApi()
@@ -341,7 +335,7 @@ const fetchPermissions = async () => {
         isLoadingPermissions.value = true
         permissionsError.value = ''
 
-        const response = await get('/api/v1/permissions/grouped')
+        const response = await get(apiRoutes.permissions.grouped)
 
         if (response.ok) {
             const data = await response.json()
@@ -401,20 +395,6 @@ const clearAllPermissions = () => {
     form.permissions = []
 }
 
-const selectCommonPermissions = () => {
-    const commonPerms = [
-        'dashboard.view',
-        'user_management.view',
-        'user_management.search',
-        'report.view'
-    ].filter(perm =>
-        (dashboardPermissions.value || []).some((p: any) => p.name === perm) ||
-        (userPermissions.value || []).some((p: any) => p.name === perm) ||
-        (reportPermissions.value || []).some((p: any) => p.name === perm) ||
-        (otherPermissions.value || []).some((p: any) => p.name === perm)
-    )
-    form.permissions = commonPerms
-}
 
 const handleSubmit = async () => {
     if (!validateForm()) {
@@ -434,7 +414,7 @@ const handleSubmit = async () => {
         }
 
         // Make API call to create role
-        const response = await post('/api/v1/roles', roleData)
+        const response = await post(apiRoutes.roles.store, roleData)
 
         if (response.ok) {
             const data = await response.json()

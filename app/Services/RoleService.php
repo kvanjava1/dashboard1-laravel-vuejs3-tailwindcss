@@ -38,6 +38,51 @@ class RoleService
     }
 
     /**
+     * Get paginated roles with their permissions and user counts
+     */
+    public function getPaginatedRoles(int $perPage = 15, int $page = 1): array
+    {
+        try {
+            // Use a single query with left join to count users efficiently (avoiding N+1)
+            $roles = Role::with('permissions')
+                ->leftJoin('model_has_roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->leftJoin('users', 'model_has_roles.model_id', '=', 'users.id')
+                ->select('roles.*')
+                ->selectRaw('COUNT(DISTINCT users.id) as users_count')
+                ->groupBy('roles.id')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            $formattedRoles = $roles->getCollection()->map(function ($role) {
+                return $this->formatRoleData($role);
+            });
+
+            Log::info('Paginated roles retrieved successfully', [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $roles->total(),
+                'count' => $formattedRoles->count()
+            ]);
+
+            return [
+                'roles' => $formattedRoles->toArray(),
+                'total' => $roles->total(),
+                'total_pages' => $roles->lastPage(),
+                'current_page' => $roles->currentPage(),
+                'per_page' => $roles->perPage(),
+                'from' => $roles->firstItem(),
+                'to' => $roles->lastItem()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve paginated roles', [
+                'page' => $page,
+                'per_page' => $perPage,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Get a specific role by ID
      */
     public function getRoleById(int $roleId): array
@@ -109,6 +154,11 @@ class RoleService
     {
         try {
             $role = Role::findOrFail($roleId);
+
+            // Prevent editing of super_admin role
+            if ($role->name === 'super_admin') {
+                throw new \Exception('Super admin role cannot be edited', 403);
+            }
 
             // Update basic info
             $role->update([

@@ -156,13 +156,6 @@
                             >
                                 Clear All
                             </Button>
-                            <Button
-                                variant="ghost"
-                                left-icon="settings"
-                                @click="selectCommonPermissions"
-                            >
-                                Common Set
-                            </Button>
                         </div>
 
                         <!-- Permission Groups -->
@@ -325,6 +318,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
+import { apiRoutes } from '../../../config/apiRoutes'
 
 const router = useRouter()
 const route = useRoute()
@@ -379,7 +373,7 @@ const fetchPermissions = async () => {
         isLoadingPermissions.value = true
         permissionsError.value = ''
 
-        const response = await get('/api/v1/permissions/grouped')
+        const response = await get(apiRoutes.permissions.grouped)
 
         if (response.ok) {
             const data = await response.json()
@@ -402,11 +396,17 @@ const fetchRole = async () => {
         isLoadingRole.value = true
         roleError.value = ''
 
-        const response = await get(`/api/v1/roles/${roleId.value}`)
+        const response = await get(apiRoutes.roles.show(roleId.value))
 
         if (response.ok) {
             const data = await response.json()
             const role = data.role
+
+            // Prevent editing super admin role
+            if (role.name === 'super_admin') {
+                router.push({ name: 'role_management.index' })
+                return
+            }
 
             // Populate form with existing data
             form.name = role.name
@@ -454,20 +454,6 @@ const clearAllPermissions = () => {
     form.permissions = []
 }
 
-const selectCommonPermissions = () => {
-    const commonPerms = [
-        'dashboard.view',
-        'user_management.view',
-        'user_management.search',
-        'report.view'
-    ].filter(perm =>
-        (dashboardPermissions.value || []).some((p: any) => p.name === perm) ||
-        (userPermissions.value || []).some((p: any) => p.name === perm) ||
-        (reportPermissions.value || []).some((p: any) => p.name === perm) ||
-        (otherPermissions.value || []).some((p: any) => p.name === perm)
-    )
-    form.permissions = commonPerms
-}
 
 // Handle form submission
 const handleSubmit = async () => {
@@ -487,7 +473,7 @@ const handleSubmit = async () => {
         }
 
         // Update role via API
-        const response = await put(`/api/v1/roles/${roleId.value}`, roleData)
+        const response = await put(apiRoutes.roles.update(roleId.value), roleData)
 
         if (response.ok) {
             const data = await response.json()

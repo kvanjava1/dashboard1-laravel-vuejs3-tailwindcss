@@ -35,7 +35,7 @@
                     <div class="flex items-center justify-center mb-2">
                         <span class="material-symbols-outlined text-3xl text-primary">group</span>
                     </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ roles.length }}</p>
+                    <p class="text-2xl font-bold text-slate-800">{{ pagination.total }}</p>
                     <p class="text-sm text-slate-600">Total Roles</p>
                 </ContentBoxBody>
             </ContentBox>
@@ -45,7 +45,7 @@
                         <span class="material-symbols-outlined text-3xl text-success">admin_panel_settings</span>
                     </div>
                     <p class="text-2xl font-bold text-slate-800">{{ roles.filter(r => r.name === 'super_admin').length }}</p>
-                    <p class="text-sm text-slate-600">Admin Roles</p>
+                    <p class="text-sm text-slate-600">Admin Roles (Current Page)</p>
                 </ContentBoxBody>
             </ContentBox>
             <ContentBox>
@@ -54,7 +54,7 @@
                         <span class="material-symbols-outlined text-3xl text-warning">manage_accounts</span>
                     </div>
                     <p class="text-2xl font-bold text-slate-800">{{ roles.filter(r => r.name !== 'super_admin').length }}</p>
-                    <p class="text-sm text-slate-600">Custom Roles</p>
+                    <p class="text-sm text-slate-600">Custom Roles (Current Page)</p>
                 </ContentBoxBody>
             </ContentBox>
             <ContentBox>
@@ -63,7 +63,7 @@
                         <span class="material-symbols-outlined text-3xl text-info">security</span>
                     </div>
                     <p class="text-2xl font-bold text-slate-800">{{ totalPermissions }}</p>
-                    <p class="text-sm text-slate-600">Total Permissions</p>
+                    <p class="text-sm text-slate-600">Permissions (Current Page)</p>
                 </ContentBoxBody>
             </ContentBox>
         </div>
@@ -97,7 +97,7 @@
                                 variant="danger"
                                 size="sm"
                                 class="mt-2"
-                                @click="fetchRoles"
+                                @click="() => fetchRoles(1)"
                             >
                                 Try Again
                             </Button>
@@ -164,11 +164,20 @@
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
                                         <Button
+                                            v-if="role.name !== 'super_admin'"
                                             variant="ghost"
                                             size="xs"
                                             left-icon="edit"
                                             title="Edit role"
                                             @click="editRole(role)"
+                                        />
+                                        <Button
+                                            v-else
+                                            variant="ghost"
+                                            size="xs"
+                                            left-icon="edit"
+                                            title="Super admin role cannot be edited"
+                                            disabled
                                         />
                                         <Button
                                             variant="ghost"
@@ -193,12 +202,15 @@
 
                     <!-- Pagination -->
                     <Pagination
-                        :current-start="1"
-                        :current-end="roles.length"
-                        :total="roles.length"
-                        :current-page="1"
-                        :total-pages="1"
-                        :rows-per-page="10"
+                        :current-start="currentStart"
+                        :current-end="currentEnd"
+                        :total="pagination.total"
+                        :current-page="pagination.current_page"
+                        :total-pages="pagination.total_pages"
+                        :rows-per-page="pagination.per_page"
+                        @prev="prevPage"
+                        @next="nextPage"
+                        @goto="goToPage"
                     />
                 </div>
             </ContentBoxBody>
@@ -248,6 +260,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
+import { apiRoutes } from '../../../config/apiRoutes'
 
 const router = useRouter()
 const { get } = useApi()
@@ -260,6 +273,20 @@ const roles = ref<any[]>([])
 const showPermissionsModal = ref(false)
 const selectedRole = ref<any>(null)
 
+// Pagination state
+const currentPage = ref(1)
+const itemsPerPage = 5
+
+// Pagination metadata from server
+const pagination = ref({
+    total: 0,
+    total_pages: 0,
+    current_page: 1,
+    per_page: 5
+})
+
+// Note: With server-side pagination, this only counts permissions from current page
+// For accurate total, backend should provide this in the API response
 const totalPermissions = computed(() => {
     const uniquePermissions = new Set()
     roles.value.forEach(role => {
@@ -268,17 +295,37 @@ const totalPermissions = computed(() => {
     return uniquePermissions.size
 })
 
-// Fetch roles from API
-const fetchRoles = async () => {
+// Pagination computed properties (using server data)
+const totalPages = computed(() => pagination.value.total_pages)
+
+const currentStart = computed(() => {
+    if (roles.value.length === 0) return 0
+    return (pagination.value.current_page - 1) * pagination.value.per_page + 1
+})
+
+const currentEnd = computed(() => {
+    const end = pagination.value.current_page * pagination.value.per_page
+    return Math.min(end, pagination.value.total)
+})
+
+// Fetch roles from API with pagination
+const fetchRoles = async (page = currentPage.value) => {
     try {
         isLoading.value = true
         errorMessage.value = ''
 
-        const response = await get('/api/v1/roles')
+        const response = await get(apiRoutes.roles.index({ page, per_page: itemsPerPage }))
 
         if (response.ok) {
             const data = await response.json()
             roles.value = data.roles || []
+            pagination.value = {
+                total: data.total || 0,
+                total_pages: data.total_pages || 0,
+                current_page: data.current_page || page,
+                per_page: data.per_page || itemsPerPage
+            }
+            currentPage.value = data.current_page || page
         } else {
             const errorData = await response.json()
             errorMessage.value = errorData.message || 'Failed to load roles'
@@ -319,6 +366,25 @@ const openAdvancedFilter = () => {
 const applyFilters = () => {
     showAdvancedFilter.value = false
     console.log('Applying filters...')
+}
+
+// Pagination handlers
+const prevPage = () => {
+    if (currentPage.value > 1) {
+        fetchRoles(currentPage.value - 1)
+    }
+}
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+        fetchRoles(currentPage.value + 1)
+    }
+}
+
+const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages.value) {
+        fetchRoles(page)
+    }
 }
 
 // Lifecycle hook

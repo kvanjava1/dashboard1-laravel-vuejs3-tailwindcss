@@ -280,6 +280,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
+import { apiRoutes } from '../../../config/apiRoutes'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -399,7 +400,7 @@ const handleSubmit = async () => {
         }
 
         // Make API call to create user
-        const response = await post('/api/v1/users', userData)
+        const response = await post(apiRoutes.users.store, userData)
 
         if (response.ok) {
             const data = await response.json()
