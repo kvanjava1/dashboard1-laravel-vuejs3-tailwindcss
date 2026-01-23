@@ -77,19 +77,16 @@
                         </div>
 
                         <!-- Submit Button -->
-                        <button
+                        <Button
                             type="submit"
-                            :disabled="authStore.isLoading"
-                            class="w-full mt-6 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-bold rounded-lg hover:shadow-hard hover:scale-[1.02] transition-all duration-200 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                            variant="primary"
+                            full-width
+                            class="mt-6"
+                            :loading="authStore.isLoading"
                         >
-                            <span v-if="authStore.isLoading" class="flex items-center justify-center gap-2">
-                                <span class="inline-block animate-spin">
-                                    <span class="material-symbols-outlined text-sm">refresh</span>
-                                </span>
-                                Signing In...
-                            </span>
-                            <span v-else>Sign In</span>
-                        </button>
+                            <template v-if="authStore.isLoading">Signing In...</template>
+                            <template v-else>Sign In</template>
+                        </Button>
                     </form>
 
                     <!-- Divider -->
@@ -101,18 +98,20 @@
 
                     <!-- Social Buttons -->
                     <div class="grid grid-cols-2 gap-3">
-                        <button
-                            type="button"
-                            class="flex items-center justify-center gap-2 px-4 py-2.5 border border-border-light rounded-lg hover:bg-slate-50 transition-colors"
+                        <Button
+                            variant="outline"
+                            full-width
+                            left-icon="account_circle"
                         >
-                            <span class="text-slate-600">Google</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="flex items-center justify-center gap-2 px-4 py-2.5 border border-border-light rounded-lg hover:bg-slate-50 transition-colors"
+                            Google
+                        </Button>
+                        <Button
+                            variant="outline"
+                            full-width
+                            left-icon="code"
                         >
-                            <span class="text-slate-600">GitHub</span>
-                        </button>
+                            GitHub
+                        </Button>
                     </div>
 
                     <!-- Sign Up Link -->
@@ -138,6 +137,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ContentBox from '../../../components/ui/ContentBox.vue'
+import Button from '../../../components/ui/Button.vue'
 
 interface LoginForm {
     email: string

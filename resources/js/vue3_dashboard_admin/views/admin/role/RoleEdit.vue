@@ -29,12 +29,14 @@
                 <div>
                     <p class="text-red-700 font-medium">Failed to load role</p>
                     <p class="text-red-600 text-sm">{{ roleError }}</p>
-                    <button
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        class="mt-2"
                         @click="fetchRole"
-                        class="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
                     >
                         Try Again
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -124,12 +126,14 @@
                             <div>
                                 <p class="text-red-700 font-medium">Failed to load permissions</p>
                                 <p class="text-red-600 text-sm">{{ permissionsError }}</p>
-                                <button
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    class="mt-2"
                                     @click="fetchPermissions"
-                                    class="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
                                 >
                                     Try Again
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -138,24 +142,27 @@
                     <div v-else>
                         <!-- Quick Select Actions -->
                         <div class="flex flex-wrap gap-3 mb-6">
-                            <button
+                            <Button
+                                variant="ghost"
+                                left-icon="select_all"
                                 @click="selectAllPermissions"
-                                class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                             >
                                 Select All
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                left-icon="clear_all"
                                 @click="clearAllPermissions"
-                                class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                             >
                                 Clear All
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                left-icon="settings"
                                 @click="selectCommonPermissions"
-                                class="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
                             >
                                 Common Set
-                            </button>
+                            </Button>
                         </div>
 
                         <!-- Permission Groups -->
@@ -290,24 +297,23 @@
             <ContentBox>
                 <ContentBoxBody>
                     <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
-                        <button
-                            type="button"
-                            class="w-full sm:w-auto px-6 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95"
+                        <Button
+                            variant="outline"
+                            class="w-full sm:w-auto"
+                            left-icon="close"
                             @click="goBack"
                         >
-                            <span class="material-symbols-outlined text-[18px]">close</span>
                             Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-primary to-primary-dark text-white text-sm font-bold hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        </Button>
+                        <Button
+                            variant="primary"
+                            class="w-full sm:w-auto"
+                            left-icon="save"
+                            :loading="isSubmitting"
                             @click="handleSubmit"
-                            :disabled="isSubmitting"
                         >
-                            <span v-if="isSubmitting" class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                            <span v-else class="material-symbols-outlined text-[18px]">save</span>
                             {{ isSubmitting ? 'Updating...' : 'Update Role' }}
-                        </button>
+                        </Button>
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -517,6 +523,7 @@ import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
 import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
+import Button from '../../../components/ui/Button.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'

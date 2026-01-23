@@ -252,24 +252,23 @@
             <ContentBox>
                 <ContentBoxBody>
                     <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
-                        <button
-                            type="button"
-                            class="w-full sm:w-auto px-6 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95"
+                        <Button
+                            variant="outline"
+                            class="w-full sm:w-auto"
+                            left-icon="close"
                             @click="goBack"
                         >
-                            <span class="material-symbols-outlined text-[18px]">close</span>
                             Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-primary to-primary-dark text-white text-sm font-bold hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        </Button>
+                        <Button
+                            variant="primary"
+                            class="w-full sm:w-auto"
+                            left-icon="save"
+                            :loading="isSubmitting"
                             @click="handleSubmit"
-                            :disabled="isSubmitting"
                         >
-                            <span v-if="isSubmitting" class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                            <span v-else class="material-symbols-outlined text-[18px]">save</span>
                             {{ isSubmitting ? 'Creating...' : 'Create User' }}
-                        </button>
+                        </Button>
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -286,6 +285,7 @@ import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
 import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
+import Button from '../../../components/ui/Button.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
