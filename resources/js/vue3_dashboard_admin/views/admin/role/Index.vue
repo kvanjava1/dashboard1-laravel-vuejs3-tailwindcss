@@ -93,12 +93,14 @@
                         <div>
                             <p class="text-red-700 font-medium">Failed to load roles</p>
                             <p class="text-red-600 text-sm">{{ errorMessage }}</p>
-                            <button
+                            <Button
+                                variant="danger"
+                                size="sm"
+                                class="mt-2"
                                 @click="fetchRoles"
-                                class="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
                             >
                                 Try Again
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -161,28 +163,28 @@
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
-                                        <button
-                                            @click="editRole(role)"
-                                            class="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
+                                        <Button
+                                            variant="ghost"
+                                            size="xs"
+                                            left-icon="edit"
                                             title="Edit role"
-                                        >
-                                            <span class="material-symbols-outlined text-lg">edit</span>
-                                        </button>
-                                        <button
-                                            @click="viewPermissions(role)"
-                                            class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                                            @click="editRole(role)"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="xs"
+                                            left-icon="visibility"
                                             title="View permissions"
-                                        >
-                                            <span class="material-symbols-outlined text-lg">visibility</span>
-                                        </button>
-                                        <button
+                                            @click="viewPermissions(role)"
+                                        />
+                                        <Button
                                             v-if="role.name !== 'super_admin'"
-                                            @click="deleteRole(role)"
-                                            class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                                            variant="ghost"
+                                            size="xs"
+                                            left-icon="delete"
                                             title="Delete role"
-                                        >
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
+                                            @click="deleteRole(role)"
+                                        />
                                     </div>
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
@@ -216,18 +218,18 @@
                 <h3 class="text-lg font-semibold mb-4">Advanced Filter</h3>
                 <p class="text-slate-600 mb-4">Filter roles by various criteria</p>
                 <div class="flex justify-end gap-3">
-                    <button
+                    <Button
+                        variant="outline"
                         @click="showAdvancedFilter = false"
-                        class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="primary"
                         @click="applyFilters"
-                        class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                     >
                         Apply Filters
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -332,6 +334,7 @@ import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
 import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
+import Button from '../../../components/ui/Button.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'

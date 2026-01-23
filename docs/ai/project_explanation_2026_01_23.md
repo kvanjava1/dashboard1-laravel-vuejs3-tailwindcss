@@ -182,6 +182,109 @@ Route                     Component               Permission
 </SimpleUserTable>
 ```
 
+#### **Button.vue** - Standardized Button Component
+```vue
+<!-- Primary Actions -->
+<Button variant="primary" left-icon="save" @click="saveData">
+  Save Changes
+</Button>
+
+<!-- Cancel/Secondary Actions -->
+<Button variant="outline" @click="cancel">
+  Cancel
+</Button>
+
+<!-- Destructive Actions -->
+<Button variant="danger" size="sm" left-icon="delete" @click="deleteItem">
+  Delete
+</Button>
+
+<!-- Icon-only Buttons (Table Actions) -->
+<Button variant="ghost" size="xs" left-icon="edit" title="Edit" @click="editItem" />
+<Button variant="ghost" size="xs" left-icon="visibility" title="View" @click="viewItem" />
+
+<!-- States -->
+<Button :loading="true">Loading...</Button>
+<Button :disabled="!canSubmit">Submit</Button>
+
+<!-- Full Width -->
+<Button full-width variant="primary">
+  Full Width Button
+</Button>
+```
+
+**Variants:** `primary` (default), `secondary`, `danger`, `success`, `warning`, `outline`, `ghost`  
+**Sizes:** `xs`, `sm`, `md` (default), `lg`  
+**Features:** Loading states, disabled states, left/right icons, full-width option, consistent styling with design system
+
+#### **ActionButton.vue** - Primary Action Buttons
+```vue
+<ActionButton icon="add" @click="addNewItem">
+  Add New
+</ActionButton>
+```
+**Features:** Gradient background, rounded corners, icon support, hover animations
+
+#### **ActionDropdown.vue** - Dropdown Menus
+```vue
+<ActionDropdown>
+  <ActionDropdownItem icon="download" @click="exportData">
+    Export CSV
+  </ActionDropdownItem>
+  <ActionDropdownItem icon="upload" @click="importData">
+    Import Data
+  </ActionDropdownItem>
+  <ActionDropdownItem icon="filter_list" @click="openFilters">
+    Advanced Filter
+  </ActionDropdownItem>
+</ActionDropdown>
+```
+**Features:** Mobile-responsive (tap to open/close), desktop hover, auto-close on outside click, keyboard navigation
+
+#### **Layout Components**
+
+**AdminLayout.vue** - Main Application Layout
+```vue
+<template>
+  <AdminLayout>
+    <!-- All page content goes here -->
+  </AdminLayout>
+</template>
+```
+**Features:** Sidebar navigation, responsive design, consistent header/footer
+
+**PageHeader.vue** - Page Headers with Actions
+```vue
+<PageHeader>
+  <template #title>
+    <PageHeaderTitle title="Page Title" />
+  </template>
+  <template #actions>
+    <PageHeaderActions>
+      <ActionButton icon="add">Add New</ActionButton>
+      <ActionDropdown>
+        <!-- Dropdown items -->
+      </ActionDropdown>
+    </PageHeaderActions>
+  </template>
+</PageHeader>
+```
+
+**ContentBox.vue** - Content Containers
+```vue
+<ContentBox>
+  <ContentBoxHeader>
+    <template #title>
+      <ContentBoxTitle title="Section Title" subtitle="Optional description" />
+    </template>
+  </ContentBoxHeader>
+  <ContentBoxBody>
+    <!-- Content goes here -->
+  </ContentBoxBody>
+</ContentBox>
+```
+**Features:** Consistent spacing, header/body structure, shadow styling
+
 ## 🔄 Data Flow Patterns
 
 ### **1. Authentication Flow**

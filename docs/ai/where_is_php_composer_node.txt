@@ -1,8 +1,0 @@
-# PHP commands
-docker exec php_dev_php8.2 bash -c 'cd /var/www/php/php8.2/laravel/dashboard1 && php [command]'
-
-# Composer commands  
-docker exec php_dev_php8.2 bash -c 'cd /var/www/php/php8.2/laravel/dashboard1 && php ./composer_2.9.3.phar [command]'
-
-# Node.js/npm commands
-docker exec php_dev_nodejs_20 sh -c 'cd /var/www/php/php8.2/laravel/dashboard1 && [command]'
