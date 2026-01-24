@@ -3,10 +3,19 @@
 namespace App\Services;
 
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Log;
+use App\Services\PermissionService;
 
 class RoleService
 {
+    protected PermissionService $permissionService;
+
+    public function __construct()
+    {
+        $this->permissionService = app(PermissionService::class);
+    }
+
     /**
      * Get all roles with their permissions and user counts
      */
@@ -38,27 +47,46 @@ class RoleService
     }
 
     /**
-     * Get paginated roles with their permissions and user counts
+     * Get filtered and paginated roles with their permissions and user counts
      */
-    public function getPaginatedRoles(int $perPage = 15, int $page = 1): array
+    public function getFilteredPaginatedRoles(int $perPage = 15, int $page = 1, array $filters = []): array
     {
         try {
-            // Use a single query with left join to count users efficiently (avoiding N+1)
-            $roles = Role::with('permissions')
+            // Start building the query
+            $query = Role::with('permissions')
                 ->leftJoin('model_has_roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->leftJoin('users', 'model_has_roles.model_id', '=', 'users.id')
                 ->select('roles.*')
                 ->selectRaw('COUNT(DISTINCT users.id) as users_count')
-                ->groupBy('roles.id')
-                ->paginate($perPage, ['*'], 'page', $page);
+                ->groupBy('roles.id');
+
+            // Apply search filter (role name)
+            if (!empty($filters['search'])) {
+                $query->where('roles.name', 'LIKE', '%' . $filters['search'] . '%');
+            }
+
+            // Apply permissions filter (roles must have ALL selected permissions)
+            if (!empty($filters['permissions']) && is_array($filters['permissions'])) {
+                foreach ($filters['permissions'] as $permission) {
+                    $query->whereHas('permissions', function ($q) use ($permission) {
+                        $q->where('name', $permission);
+                    });
+                }
+            }
+
+            $roles = $query->paginate($perPage, ['*'], 'page', $page);
 
             $formattedRoles = $roles->getCollection()->map(function ($role) {
                 return $this->formatRoleData($role);
             });
 
-            Log::info('Paginated roles retrieved successfully', [
+            // Get all available permissions grouped for the filter dropdown
+            $availablePermissions = $this->permissionService->getPermissionsGrouped();
+
+            Log::info('Filtered paginated roles retrieved successfully', [
                 'page' => $page,
                 'per_page' => $perPage,
+                'filters' => $filters,
                 'total' => $roles->total(),
                 'count' => $formattedRoles->count()
             ]);
@@ -70,12 +98,14 @@ class RoleService
                 'current_page' => $roles->currentPage(),
                 'per_page' => $roles->perPage(),
                 'from' => $roles->firstItem(),
-                'to' => $roles->lastItem()
+                'to' => $roles->lastItem(),
+                'available_permissions' => $availablePermissions
             ];
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve paginated roles', [
+            Log::error('Failed to retrieve filtered paginated roles', [
                 'page' => $page,
                 'per_page' => $perPage,
+                'filters' => $filters,
                 'error' => $e->getMessage()
             ]);
             throw $e;

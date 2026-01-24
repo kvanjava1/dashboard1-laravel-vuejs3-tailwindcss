@@ -11,62 +11,14 @@
                         Add New
                     </ActionButton>
                     <ActionDropdown>
-                        <ActionDropdownItem icon="download">
-                            Export CSV
-                        </ActionDropdownItem>
-                        <ActionDropdownItem icon="upload">
-                            Import Data
-                        </ActionDropdownItem>
                         <ActionDropdownItem icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
-                        </ActionDropdownItem>
-                        <ActionDropdownItem icon="print">
-                            Print Report
                         </ActionDropdownItem>
                     </ActionDropdown>
                 </PageHeaderActions>
             </template>
         </PageHeader>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <ContentBox>
-                <ContentBoxBody class="text-center">
-                    <div class="flex items-center justify-center mb-2">
-                        <span class="material-symbols-outlined text-3xl text-primary">group</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ pagination.total }}</p>
-                    <p class="text-sm text-slate-600">Total Roles</p>
-                </ContentBoxBody>
-            </ContentBox>
-            <ContentBox>
-                <ContentBoxBody class="text-center">
-                    <div class="flex items-center justify-center mb-2">
-                        <span class="material-symbols-outlined text-3xl text-success">admin_panel_settings</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ roles.filter(r => r.name === 'super_admin').length }}</p>
-                    <p class="text-sm text-slate-600">Admin Roles (Current Page)</p>
-                </ContentBoxBody>
-            </ContentBox>
-            <ContentBox>
-                <ContentBoxBody class="text-center">
-                    <div class="flex items-center justify-center mb-2">
-                        <span class="material-symbols-outlined text-3xl text-warning">manage_accounts</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ roles.filter(r => r.name !== 'super_admin').length }}</p>
-                    <p class="text-sm text-slate-600">Custom Roles (Current Page)</p>
-                </ContentBoxBody>
-            </ContentBox>
-            <ContentBox>
-                <ContentBoxBody class="text-center">
-                    <div class="flex items-center justify-center mb-2">
-                        <span class="material-symbols-outlined text-3xl text-info">security</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ totalPermissions }}</p>
-                    <p class="text-sm text-slate-600">Permissions (Current Page)</p>
-                </ContentBoxBody>
-            </ContentBox>
-        </div>
 
         <ContentBox>
             <!-- Card Header -->
@@ -105,8 +57,26 @@
                     </div>
                 </div>
 
+                <!-- Active Filters Indicator -->
+                <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-600 text-lg">filter_list</span>
+                            <span class="text-blue-800 font-medium">Filters Active</span>
+                            <span class="text-blue-600 text-sm">Showing filtered results</span>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            @click="resetFilters"
+                        >
+                            Clear Filters
+                        </Button>
+                    </div>
+                </div>
+
                 <!-- Data Table -->
-                <div v-else>
+                <div>
                     <SimpleUserTable>
                         <SimpleUserTableHead>
                             <SimpleUserTableHeadRow>
@@ -217,35 +187,14 @@
         </ContentBox>
 
         <!-- Advanced Filter Modal -->
-        <Teleport to="body">
-            <div
-                v-if="showAdvancedFilter"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                @click="showAdvancedFilter = false"
-            >
-                <div
-                    class="bg-white rounded-lg p-6 max-w-md w-full mx-4"
-                    @click.stop
-                >
-                <h3 class="text-lg font-semibold mb-4">Advanced Filter</h3>
-                <p class="text-slate-600 mb-4">Filter roles by various criteria</p>
-                <div class="flex justify-end gap-3">
-                    <Button
-                        variant="outline"
-                        @click="showAdvancedFilter = false"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="primary"
-                        @click="applyFilters"
-                    >
-                        Apply Filters
-                    </Button>
-                </div>
-            </div>
-        </div>
-        </Teleport>
+        <RoleAdvancedFilterModal
+            v-model="showAdvancedFilter"
+            :filters="filters"
+            :available-permissions="availablePermissions"
+            @apply-filters="handleApplyFilters"
+            @cancel="showAdvancedFilter = false"
+            @reset="resetFilters"
+        />
 
         <!-- Role Permissions Modal -->
         <RolePermissionsModal
@@ -285,14 +234,24 @@ const pagination = ref({
     per_page: 5
 })
 
-// Note: With server-side pagination, this only counts permissions from current page
-// For accurate total, backend should provide this in the API response
-const totalPermissions = computed(() => {
-    const uniquePermissions = new Set()
-    roles.value.forEach(role => {
-        role.permissions.forEach((permission: string) => uniquePermissions.add(permission))
-    })
-    return uniquePermissions.size
+// Advanced filter state
+const filters = ref({
+    search: '',
+    permissions: [] as string[]
+})
+
+// Available permissions grouped by category
+const availablePermissions = ref<{
+    dashboard?: any[]
+    user_management?: any[]
+    report?: any[]
+    other?: any[]
+}>({})
+
+
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+    return filters.value.search.trim() !== '' || filters.value.permissions.length > 0
 })
 
 // Pagination computed properties (using server data)
@@ -308,13 +267,23 @@ const currentEnd = computed(() => {
     return Math.min(end, pagination.value.total)
 })
 
-// Fetch roles from API with pagination
+// Fetch roles from API with pagination and filters
 const fetchRoles = async (page = currentPage.value) => {
     try {
         isLoading.value = true
         errorMessage.value = ''
 
-        const response = await get(apiRoutes.roles.index({ page, per_page: itemsPerPage }))
+        const filterParams: any = { page, per_page: itemsPerPage }
+
+        if (filters.value.search) {
+            filterParams.search = filters.value.search
+        }
+
+        if (filters.value.permissions.length > 0) {
+            filterParams.permissions = filters.value.permissions
+        }
+
+        const response = await get(apiRoutes.roles.index(filterParams))
 
         if (response.ok) {
             const data = await response.json()
@@ -326,6 +295,11 @@ const fetchRoles = async (page = currentPage.value) => {
                 per_page: data.per_page || itemsPerPage
             }
             currentPage.value = data.current_page || page
+
+            // Update available permissions if not already loaded
+            if (Object.keys(availablePermissions.value).length === 0 && data.available_permissions) {
+                availablePermissions.value = data.available_permissions
+            }
         } else {
             const errorData = await response.json()
             errorMessage.value = errorData.message || 'Failed to load roles'
@@ -365,7 +339,23 @@ const openAdvancedFilter = () => {
 
 const applyFilters = () => {
     showAdvancedFilter.value = false
-    console.log('Applying filters...')
+    fetchRoles(1) // Reset to first page when applying filters
+}
+
+const resetFilters = () => {
+    filters.value = {
+        search: '',
+        permissions: []
+    }
+    fetchRoles(1) // Refresh data with cleared filters
+}
+
+// Manual apply filters handler
+const handleApplyFilters = (filterData: { search: string; permissions: string[] }) => {
+    filters.value.search = filterData.search
+    filters.value.permissions = filterData.permissions
+    showAdvancedFilter.value = false // Close modal
+    fetchRoles(1) // Apply filters manually
 }
 
 // Pagination handlers
@@ -400,6 +390,7 @@ import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
 import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
+import BaseModal from '../../../components/ui/BaseModal.vue'
 import Button from '../../../components/ui/Button.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
@@ -417,4 +408,5 @@ import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRo
 import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
 
 import RolePermissionsModal from './RolePermissionsModal.vue'
+import RoleAdvancedFilterModal from './RoleAdvancedFilterModal.vue'
 </script>

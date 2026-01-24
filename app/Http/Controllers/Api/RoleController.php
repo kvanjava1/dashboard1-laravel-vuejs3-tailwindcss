@@ -30,7 +30,13 @@ class RoleController extends Controller
             $perPage = max(1, min((int)$perPage, 100)); // Max 100 per page
             $page = max(1, (int)$page);
 
-            $result = $this->roleService->getPaginatedRoles($perPage, $page);
+            // Get filter parameters
+            $filters = [
+                'search' => $request->get('search'),
+                'permissions' => $request->get('permissions', []),
+            ];
+
+            $result = $this->roleService->getFilteredPaginatedRoles($perPage, $page, $filters);
 
             return response()->json([
                 'message' => 'Roles retrieved successfully',

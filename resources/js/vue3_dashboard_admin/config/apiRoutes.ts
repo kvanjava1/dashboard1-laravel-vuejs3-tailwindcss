@@ -8,6 +8,8 @@
 interface RouteParams {
   page?: number
   per_page?: number
+  search?: string
+  permissions?: string[]
 }
 
 interface UserRouteParams extends RouteParams {
@@ -30,6 +32,12 @@ export const apiRoutes = {
       const searchParams = new URLSearchParams()
       if (params?.page) searchParams.set('page', params.page.toString())
       if (params?.per_page) searchParams.set('per_page', params.per_page.toString())
+      if (params?.search) searchParams.set('search', params.search)
+      if (params?.permissions && params.permissions.length > 0) {
+        params.permissions.forEach(permission => {
+          searchParams.append('permissions[]', permission)
+        })
+      }
       return `/api/v1/roles${searchParams.toString() ? '?' + searchParams.toString() : ''}`
     },
     show: (id: string | number) => `/api/v1/roles/${id}`,

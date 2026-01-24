@@ -11,17 +11,8 @@
                         Add New
                     </ActionButton>
                     <ActionDropdown>
-                        <ActionDropdownItem icon="download">
-                            Export CSV
-                        </ActionDropdownItem>
-                        <ActionDropdownItem icon="upload">
-                            Import Data
-                        </ActionDropdownItem>
                         <ActionDropdownItem icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
-                        </ActionDropdownItem>
-                        <ActionDropdownItem icon="print">
-                            Print Report
                         </ActionDropdownItem>
                     </ActionDropdown>
                 </PageHeaderActions>

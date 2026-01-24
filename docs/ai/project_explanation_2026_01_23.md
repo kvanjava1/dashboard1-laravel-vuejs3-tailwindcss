@@ -355,6 +355,135 @@ export const apiRoutes = {
 - ✅ **Maintainable** - Easy to update and refactor
 - ✅ **IDE Support** - Auto-completion and IntelliSense
 
+## 🔍 Advanced Search & Filtering
+
+### **Role Management Search Features**
+The role index page now includes advanced filtering capabilities:
+
+#### **Search Filters:**
+- **Role Name Search**: LIKE search for partial matches
+- **Permission Filtering**: Multi-select checkboxes organized by categories (roles must have ALL selected permissions)
+  - **Dashboard**: dashboard.view
+  - **User Management**: user_management.view, user_management.add, user_management.edit, etc.
+  - **Reports**: report.view, report.export
+  - **Other**: Any additional permissions
+
+#### **Search Implementation:**
+```typescript
+// Filter state management
+const filters = ref({
+    search: '',              // Text search for role names
+    permissions: [] as string[]  // Selected permissions to filter by
+})
+
+// Available permissions grouped by category
+const availablePermissions = ref<{
+    dashboard?: any[]
+    user_management?: any[]
+    report?: any[]
+    other?: any[]
+}>({})
+
+// API call with filters
+const filterParams = {
+    search: filters.value.search || undefined,
+    permissions: filters.value.permissions.length > 0 ? filters.value.permissions : undefined
+}
+```
+
+#### **Manual Filter Application:**
+```typescript
+// No automatic API calls - user controls when to search
+const handleApplyFilters = (filterData: { search: string; permissions: string[] }) => {
+    filters.value.search = filterData.search
+    filters.value.permissions = filterData.permissions
+    showAdvancedFilter.value = false // Close modal
+    fetchRoles(1) // Apply filters manually via "Apply Filters" button
+}
+```
+
+**Benefits:**
+- **User Control**: Complete control over when searches execute
+- **Predictable**: No surprise API calls while typing
+- **Performance**: Only one API call per filter application
+- **Clear UX**: Explicit "Apply Filters" action required
+
+#### **Active Filter Indicator:**
+```typescript
+// Check if filters are active
+const hasActiveFilters = computed(() => {
+    return filters.value.search.trim() !== '' || filters.value.permissions.length > 0
+})
+```
+
+```vue
+<!-- Visual indicator when filters are active -->
+<div v-if="hasActiveFilters" class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-600">filter_list</span>
+            <span class="text-blue-800 font-medium">Filters Active</span>
+            <span class="text-blue-600 text-sm">Showing filtered results</span>
+        </div>
+        <Button variant="outline" size="sm" @click="resetFilters">
+            Clear Filters
+        </Button>
+    </div>
+</div>
+```
+
+#### **Extracted Modal Component:**
+```vue
+<!-- Usage in Index.vue -->
+<RoleAdvancedFilterModal
+    v-model="showAdvancedFilter"
+    :filters="filters"
+    :available-permissions="availablePermissions"
+    @apply="applyFilters"
+    @cancel="showAdvancedFilter = false"
+    @reset="resetFilters"
+/>
+
+<!-- Separate Modal File: RoleAdvancedFilterModal.vue -->
+<template>
+    <BaseModal v-model="isOpen" size="lg">
+        <!-- Modal Header, Body, Footer templates -->
+    </BaseModal>
+</template>
+
+<script setup lang="ts">
+interface Props {
+    modelValue: boolean
+    filters: { search: string; permissions: string[] }
+    availablePermissions: Record<string, any[]>
+}
+
+const emit = defineEmits<{
+    'update:modelValue': [value: boolean]
+    'apply': []
+    'cancel': []
+    'reset': []
+}>()
+</script>
+```
+
+#### **Backend Filtering Logic:**
+```php
+// Role name search
+if (!empty($filters['search'])) {
+    $query->where('roles.name', 'LIKE', '%' . $filters['search'] . '%');
+}
+
+// Permission filtering (ALL selected permissions required)
+if (!empty($filters['permissions'])) {
+    foreach ($filters['permissions'] as $permission) {
+        $query->whereHas('permissions', function ($q) use ($permission) {
+            $q->where('name', $permission);
+        });
+    }
+}
+```
+
 ## 🐳 Docker Development Environment
 
 ### **Container Structure**
