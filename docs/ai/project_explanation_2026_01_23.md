@@ -623,13 +623,14 @@ php_dev_mysql       # MySQL database (optional)
 ### **Development Commands**
 ```bash
 # PHP/Laravel commands
-docker exec php_dev_php8.2 bash -c "cd /var/www/php/php8.2/laravel/dashboard1 && php artisan migrate"
+docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php composer_2.9.3.phar install"
+docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php artisan migrate"
+docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php artisan db:seed"
+docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php artisan tinker"
 
-# Node.js commands
-docker exec php_dev_nodejs_20 sh -c "cd /var/www/php/php8.2/laravel/dashboard1 && npm install"
-
-# Full development setup
-composer run-script dev  # Starts all services concurrently
+# Node.js commands  
+docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm install"
+docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm run build"
 ```
 
 ## 📁 Project Structure Deep Dive
@@ -788,6 +789,8 @@ const validateForm = () => {
 - Node.js 20+ (for local development)
 - PHP 8.2+ (for local development)
 
+**Note:** This project supports both local development (with PHP/Node installed locally) and Docker-based development. The commands below assume local development. For Docker development commands, see the "Docker Development Environment" section below.
+
 ### **Quick Setup**
 ```bash
 # Clone repository
@@ -799,7 +802,6 @@ composer install
 
 # Install Node dependencies
 npm install
-npm install vue-advanced-cropper  # Required for profile image cropping
 
 # Copy environment file
 cp .env.example .env
@@ -860,9 +862,6 @@ npm run preview                  # Preview production build
 docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php artisan tinker"
 docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm install"
 docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php composer_2.9.3.phar install"
-
-# Install additional packages for image cropping
-docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm install vue-advanced-cropper"
 ```
 
 ## 🎯 Key Design Patterns
