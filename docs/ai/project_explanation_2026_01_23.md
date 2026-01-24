@@ -432,6 +432,133 @@ const hasActiveFilters = computed(() => {
 </div>
 ```
 
+## 🖼️ **Profile Image Upload with Cropping**
+
+### **User Profile Picture Management:**
+
+#### **Frontend Features:**
+- ✅ **1:1 Aspect Ratio** circular preview
+- ✅ **Interactive Cropping** with vue-advanced-cropper
+- ✅ **Drag & Drop** or click to upload
+- ✅ **Image Validation** (2MB max, JPEG/PNG/WebP)
+- ✅ **Live Preview** with crop adjustments
+- ✅ **Edit Existing** crop functionality
+- ✅ **Remove Image** functionality
+- ✅ **Fallback Avatar** (user icon when no image)
+
+#### **Cropping Features:**
+- ✅ **Square (1:1) aspect ratio** enforced
+- ✅ **Real-time preview** of cropped area
+- ✅ **Zoom and pan** controls
+- ✅ **High-quality output** (JPEG, 90% quality)
+- ✅ **Responsive cropper** interface
+
+#### **Backend Implementation:**
+```php
+// Validation rules
+'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048'
+
+// File storage
+$imagePath = $request->file('profile_image')->store('avatars', 'public');
+
+// User model access
+$user->profile_image_url  // Returns full URL or default avatar
+```
+
+#### **Enhanced Error Handling:**
+```typescript
+// Display all validation errors instead of truncated messages
+if (errorData.errors) {
+    errorMessages.value = Object.values(errorData.errors).flat() as string[]
+} else {
+    errorMessages.value = [errorData.message || 'Failed to create user.']
+}
+
+// Template displays each error on new line
+<div v-if="errorMessages.length > 0" class="bg-red-50 border border-red-200 p-4">
+    <div v-for="error in errorMessages" :key="error">
+        • {{ error }}
+    </div>
+</div>
+```
+
+**Benefits:**
+- ✅ **All errors visible** instead of truncated "and 5 more errors"
+- ✅ **Clear formatting** with bullet points
+- ✅ **Better UX** - users see exactly what to fix
+
+#### **UI Components:**
+```vue
+<!-- Circular Image Preview -->
+<div class="w-32 h-32 rounded-full border-4 border-dashed">
+  <img v-if="previewImage" :src="previewImage" class="w-full h-full object-cover" />
+  <span v-else>👤</span> <!-- Fallback icon -->
+</div>
+
+<!-- Upload Controls -->
+<input type="file" accept="image/*" @change="handleFileSelect" />
+<Button @click="removeImage">Remove Photo</Button>
+```
+
+## 🗑️ **Delete Role Functionality**
+
+### **Complete Delete Implementation:**
+```typescript
+const deleteRole = async (role: any) => {
+    // Enhanced confirmation with user count
+    const confirmed = confirm(`Delete "${role.display_name}" role?\n\nUsers assigned: ${role.users_count}`)
+
+    if (!confirmed) return
+
+    try {
+        isDeleting.value = true
+
+        const response = await del(apiRoutes.roles.destroy(role.id))
+
+        if (response.ok) {
+            successMessage.value = `Role deleted successfully`
+            await fetchRoles(currentPage.value) // Refresh list
+        } else {
+            // Handle specific error types
+            if (response.status === 403) {
+                errorMessage.value = 'Super admin role cannot be deleted'
+            } else if (response.status === 409) {
+                errorMessage.value = 'Cannot delete role with assigned users'
+            }
+        }
+    } catch (error) {
+        errorMessage.value = 'Delete failed'
+    } finally {
+        isDeleting.value = false
+    }
+}
+```
+
+### **Security & Validation:**
+- ✅ **Super admin protection** (frontend + backend)
+- ✅ **User assignment checks** (cannot delete roles with users)
+- ✅ **Confirmation dialogs** with detailed information
+- ✅ **Loading states** and error handling
+- ✅ **Success feedback** with auto-dismiss
+
+### **UI States:**
+```vue
+<!-- Delete button with loading state -->
+<Button
+    v-if="role.name !== 'super_admin'"
+    :disabled="isDeleting"
+    @click="deleteRole(role)"
+>
+    <span v-if="isDeleting" class="animate-spin">⟳</span>
+    <span v-else>🗑️</span>
+</Button>
+
+<!-- Success message -->
+<div v-if="successMessage" class="bg-green-50 border border-green-200 p-3">
+    ✅ {{ successMessage }}
+</div>
+```
+
 #### **Extracted Modal Component:**
 ```vue
 <!-- Usage in Index.vue -->
@@ -672,6 +799,7 @@ composer install
 
 # Install Node dependencies
 npm install
+npm install vue-advanced-cropper  # Required for profile image cropping
 
 # Copy environment file
 cp .env.example .env
@@ -728,9 +856,13 @@ npm run dev                      # Start Vite dev server
 npm run build                    # Build for production
 npm run preview                  # Preview production build
 
-# Docker commands
+# Docker commands to use PHP, NodeJs, composer.
 docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php artisan tinker"
 docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm install"
+docker exec php_dev_php8.2 bash -c "cd laravel/dashboard1 && php composer_2.9.3.phar install"
+
+# Install additional packages for image cropping
+docker exec php_dev_nodejs_20 sh -c "cd dashboard1 && npm install vue-advanced-cropper"
 ```
 
 ## 🎯 Key Design Patterns

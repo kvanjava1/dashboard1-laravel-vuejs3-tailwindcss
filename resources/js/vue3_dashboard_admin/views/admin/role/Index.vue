@@ -57,6 +57,14 @@
                     </div>
                 </div>
 
+                <!-- Success Message -->
+                <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
+                        <span class="text-green-800 font-medium">{{ successMessage }}</span>
+                    </div>
+                </div>
+
                 <!-- Active Filters Indicator -->
                 <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div class="flex items-center justify-between">
@@ -160,10 +168,14 @@
                                             v-if="role.name !== 'super_admin'"
                                             variant="ghost"
                                             size="xs"
-                                            left-icon="delete"
-                                            title="Delete role"
+                                            :disabled="isDeleting"
+                                            :title="isDeleting ? 'Deleting...' : 'Delete role'"
                                             @click="deleteRole(role)"
-                                        />
+                                        >
+                                            <span class="material-symbols-outlined text-base" :class="{ 'animate-spin': isDeleting }">
+                                                {{ isDeleting ? 'refresh' : 'delete' }}
+                                            </span>
+                                        </Button>
                                     </div>
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
@@ -212,10 +224,12 @@ import { useApi } from '../../../composables/useApi'
 import { apiRoutes } from '../../../config/apiRoutes'
 
 const router = useRouter()
-const { get } = useApi()
+const { get, del } = useApi()
 const showAdvancedFilter = ref(false)
 const isLoading = ref(true)
+const isDeleting = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const roles = ref<any[]>([])
 
 // Permissions modal state
@@ -326,10 +340,50 @@ const viewPermissions = (role: any) => {
 }
 
 
-const deleteRole = (role: any) => {
-    if (confirm(`Are you sure you want to delete the "${role.display_name}" role?`)) {
-        console.log('Delete role:', role)
-        // TODO: Delete role
+const deleteRole = async (role: any) => {
+    // Enhanced confirmation with more details
+    const roleName = role.display_name || role.name
+    const confirmed = confirm(
+        `Are you sure you want to delete the "${roleName}" role?\n\n` +
+        `⚠️ This action cannot be undone.\n\n` +
+        `Users assigned: ${role.users_count || 0}`
+    )
+
+    if (!confirmed) return
+
+    try {
+        isDeleting.value = true
+        errorMessage.value = ''
+
+        // API call to delete role
+        const response = await del(apiRoutes.roles.destroy(role.id))
+
+        if (response.ok) {
+            // Success: refresh roles list and show success message
+            successMessage.value = `Role "${roleName}" deleted successfully`
+            await fetchRoles(currentPage.value)
+
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+                successMessage.value = ''
+            }, 3000)
+        } else {
+            // Handle specific error types
+            const errorData = await response.json()
+
+            if (response.status === 403) {
+                errorMessage.value = 'Super admin role cannot be deleted'
+            } else if (response.status === 409) {
+                errorMessage.value = errorData.message || 'Cannot delete role that has assigned users'
+            } else {
+                errorMessage.value = errorData.message || 'Failed to delete role'
+            }
+        }
+    } catch (error) {
+        console.error('Delete role error:', error)
+        errorMessage.value = 'An unexpected error occurred while deleting the role'
+    } finally {
+        isDeleting.value = false
     }
 }
 

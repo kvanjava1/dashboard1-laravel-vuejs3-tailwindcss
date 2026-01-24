@@ -232,6 +232,12 @@ class RoleService
                 throw new \Exception('Cannot delete super_admin role', 403);
             }
 
+            // Check if role has assigned users
+            $userCount = $role->users()->count();
+            if ($userCount > 0) {
+                throw new \Exception("Cannot delete role. It has {$userCount} assigned users.", 409);
+            }
+
             $roleName = $role->name;
             $role->delete();
 

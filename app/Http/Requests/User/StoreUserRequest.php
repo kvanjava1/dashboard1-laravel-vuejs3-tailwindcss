@@ -30,6 +30,7 @@ class StoreUserRequest extends FormRequest
             'role' => 'required|string|in:administrator,editor,viewer,moderator',
             'status' => 'required|string|in:active,inactive,pending',
             'bio' => 'nullable|string|max:1000',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB max
         ];
     }
 

@@ -22,7 +22,19 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'status',
         'password',
+        'profile_image',
+        'username',
+        'bio',
+        'date_of_birth',
+        'location',
+        'last_activity',
+        'is_banned',
+        'ban_reason',
+        'banned_until',
+        'timezone',
     ];
 
     /**
@@ -45,6 +57,57 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'date_of_birth' => 'date',
+            'last_activity' => 'datetime',
+            'banned_until' => 'datetime',
+            'is_banned' => 'boolean',
+            'post_count' => 'integer',
+            'topic_count' => 'integer',
+            'forum_preferences' => 'array',
         ];
+    }
+
+    /**
+     * Get the user's profile image URL
+     */
+    public function getProfileImageUrlAttribute(): string
+    {
+        return $this->profile_image
+            ? asset('storage/' . $this->profile_image)
+            : asset('images/default-avatar.png'); // You can add a default avatar
+    }
+
+    /**
+     * Check if user is a forum member
+     */
+    public function isForumMember(): bool
+    {
+        return $this->hasAnyRole(['forum_member', 'administrator', 'moderator', 'editor']);
+    }
+
+    /**
+     * Check if user can moderate
+     */
+    public function canModerate(): bool
+    {
+        return $this->hasAnyRole(['administrator', 'moderator']);
+    }
+
+    /**
+     * Check if user is banned
+     */
+    public function isBanned(): bool
+    {
+        if (!$this->is_banned) {
+            return false;
+        }
+
+        // Check if ban has expired
+        if ($this->banned_until && $this->banned_until->isPast()) {
+            $this->update(['is_banned' => false, 'ban_reason' => null, 'banned_until' => null]);
+            return false;
+        }
+
+        return true;
     }
 }

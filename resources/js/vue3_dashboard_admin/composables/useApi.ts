@@ -12,10 +12,14 @@ export const useApi = () => {
     options: RequestOptions = {}
   ): Promise<Response> => {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...options.headers,
     };
+
+    // Only set Content-Type for non-FormData requests with a body
+    if (options.body && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Add authorization header if token exists
     if (authStore.token) {
@@ -40,26 +44,32 @@ export const useApi = () => {
   };
 
   const post = async (url: string, data?: any, options: RequestOptions = {}): Promise<Response> => {
+    const isFormData = data instanceof FormData;
+    
     return request(url, {
       ...options,
       method: 'POST',
-      body: data ? JSON.stringify(data) : null,
+      body: data ? (isFormData ? data : JSON.stringify(data)) : null,
     } as RequestOptions);
   };
 
   const put = async (url: string, data?: any, options: RequestOptions = {}): Promise<Response> => {
+    const isFormData = data instanceof FormData;
+    
     return request(url, {
       ...options,
       method: 'PUT',
-      body: data ? JSON.stringify(data) : null,
+      body: data ? (isFormData ? data : JSON.stringify(data)) : null,
     } as RequestOptions);
   };
 
   const patch = async (url: string, data?: any, options: RequestOptions = {}): Promise<Response> => {
+    const isFormData = data instanceof FormData;
+    
     return request(url, {
       ...options,
       method: 'PATCH',
-      body: data ? JSON.stringify(data) : null,
+      body: data ? (isFormData ? data : JSON.stringify(data)) : null,
     } as RequestOptions);
   };
 
