@@ -179,13 +179,22 @@ class UserService
             $user = User::findOrFail($userId);
 
             // Prevent editing of super admin users (optional)
-            if ($user->hasRole('super_admin') && !($data['updated_by'] ?? null) === 'super_admin') {
+            if ($user->hasRole('super_admin')) {
                 throw new \Exception('Super admin users cannot be edited', 403);
             }
 
             // Update basic info
             $updateData = [];
-            if (isset($data['name'])) $updateData['name'] = $data['name'];
+            
+            // Handle name update from first_name and last_name
+            if (isset($data['first_name']) || isset($data['last_name'])) {
+                $firstName = $data['first_name'] ?? '';
+                $lastName = $data['last_name'] ?? '';
+                $updateData['name'] = trim("{$firstName} {$lastName}");
+            } elseif (isset($data['name'])) {
+                $updateData['name'] = $data['name'];
+            }
+            
             if (isset($data['email'])) $updateData['email'] = $data['email'];
             if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
             if (isset($data['status'])) $updateData['status'] = $data['status'];

@@ -139,7 +139,8 @@ class RoleController extends Controller
             }
 
             $validated = $request->validate([
-                'name' => 'sometimes|string|max:255|unique:roles,name,' . $roleId,
+                'display_name' => 'sometimes|string|max:255',
+                'description' => 'sometimes|string|max:255',
                 'permissions' => 'sometimes|array',
                 'permissions.*' => 'string|exists:permissions,name',
                 'guard_name' => 'sometimes|string|max:255',

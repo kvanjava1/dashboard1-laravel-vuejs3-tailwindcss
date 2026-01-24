@@ -463,7 +463,7 @@ interface UserForm {
 
 const router = useRouter()
 const route = useRoute()
-const { get, put } = useApi()
+const { get, patch } = useApi()
 const isSubmitting = ref(false)
 const errorMessages = ref<string[]>([])
 const loading = ref(true)
@@ -523,15 +523,15 @@ const fetchUser = async () => {
 
         // Populate form
         Object.assign(form, {
-            first_name: firstName,
-            last_name: lastName,
-            email: userData.value.email,
-            phone: userData.value.phone || '',
-            password: '',
-            password_confirmation: '',
-            role: userData.value.role || '',
-            status: userData.value.status || 'active',
-            bio: userData.value.bio || ''
+          first_name: firstName,
+          last_name: lastName,
+          email: userData.value.email,
+          phone: userData.value.phone || '',
+          password: '',
+          password_confirmation: '',
+          role: userData.value.role || '',
+          status: userData.value.status || 'active',
+          bio: userData.value.bio || ''
         })
 
     } catch (err: any) {
@@ -567,8 +567,8 @@ const fetchRoles = async () => {
 
 // Fetch user and roles when component mounts
 onMounted(() => {
-    fetchUser()
-    fetchRoles()
+  fetchUser()
+  fetchRoles()
 })
 
 const goBack = () => {
@@ -653,26 +653,23 @@ const handleSubmit = async () => {
 
         // Make API call to update user
         const url = apiRoutes.users.update(userId)
-        const response = await put(url, formData)
+        const response = await patch(url, formData)
 
         if (response.ok) {
-            const data = await response.json()
-            console.log('User updated successfully:', data)
+          const data = await response.json()
 
-            // Success - redirect to users list
-            router.push({ name: 'user_management.index' })
+          // Success - redirect to users list
+          router.push({ name: 'user_management.index' })
         } else {
-            // Handle API error
-            const errorData = await response.json()
+          // Handle API error
+          const errorData = await response.json()
 
-            // Handle validation errors (Laravel returns errors object)
-            if (errorData.errors) {
-                errorMessages.value = Object.values(errorData.errors).flat() as string[]
-            } else {
-                errorMessages.value = [errorData.message || 'Failed to update user. Please try again.']
-            }
-
-            console.error('API Error:', errorData)
+          // Handle validation errors (Laravel returns errors object)
+          if (errorData.errors) {
+            errorMessages.value = Object.values(errorData.errors).flat() as string[]
+          } else {
+            errorMessages.value = [errorData.message || 'Failed to update user. Please try again.']
+          }
         }
     } catch (error) {
         console.error('Error updating user:', error)

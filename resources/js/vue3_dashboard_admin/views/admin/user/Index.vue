@@ -186,8 +186,8 @@ interface User {
     name: string
     email: string
     avatar: string
-    role: 'Administrator' | 'Editor' | 'Viewer'
-    status: 'Active' | 'Pending' | 'Inactive'
+    role: string  // API returns role names like 'super_admin', 'administrator', etc.
+    status: string  // API returns status values like 'active', 'inactive', 'pending'
     joinedDate: string
 }
 
@@ -226,8 +226,8 @@ const fetchUsers = async () => {
             name: user.name,
             email: user.email,
             avatar: user.profile_image_url || '',
-            role: user.role_display_name as 'Administrator' | 'Editor' | 'Viewer',
-            status: user.status.charAt(0).toUpperCase() + user.status.slice(1) as 'Active' | 'Pending' | 'Inactive',
+            role: user.role_display_name || user.role || '',
+            status: user.status || '',
             joinedDate: user.joined_date
         }))
 

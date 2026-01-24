@@ -56,20 +56,40 @@ export const useApi = () => {
   const put = async (url: string, data?: any, options: RequestOptions = {}): Promise<Response> => {
     const isFormData = data instanceof FormData;
     
+    // For FormData with PUT, we need to use POST with _method=PUT
+    if (isFormData) {
+      data.append('_method', 'PUT');
+      return request(url, {
+        ...options,
+        method: 'POST',
+        body: data,
+      } as RequestOptions);
+    }
+    
     return request(url, {
       ...options,
       method: 'PUT',
-      body: data ? (isFormData ? data : JSON.stringify(data)) : null,
+      body: data ? JSON.stringify(data) : null,
     } as RequestOptions);
   };
 
   const patch = async (url: string, data?: any, options: RequestOptions = {}): Promise<Response> => {
     const isFormData = data instanceof FormData;
     
+    // For FormData with PATCH, we need to use POST with _method=PATCH
+    if (isFormData) {
+      data.append('_method', 'PATCH');
+      return request(url, {
+        ...options,
+        method: 'POST',
+        body: data,
+      } as RequestOptions);
+    }
+    
     return request(url, {
       ...options,
       method: 'PATCH',
-      body: data ? (isFormData ? data : JSON.stringify(data)) : null,
+      body: data ? JSON.stringify(data) : null,
     } as RequestOptions);
   };
 
