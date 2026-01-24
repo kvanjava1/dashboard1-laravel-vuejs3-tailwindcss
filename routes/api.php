@@ -18,10 +18,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
 
         // User management routes
-        Route::apiResource('users', UserController::class)->only(['store']);
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->where('user', '[0-9]+');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->where('user', '[0-9]+');
+        Route::patch('users/{user}', [UserController::class, 'update']);
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->where('user', '[0-9]+');
 
         // Role management routes
-        Route::apiResource('roles', RoleController::class);
+        Route::get('roles/options', [RoleController::class, 'options'])->name('roles.options');
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->where('role', '[0-9]+');
+        Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update')->where('role', '[0-9]+');
+        Route::patch('roles/{role}', [RoleController::class, 'update']);
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->where('role', '[0-9]+');
 
         // Permission routes
         Route::get('permissions', [PermissionController::class, 'index']);

@@ -257,6 +257,33 @@ class RoleService
     }
 
     /**
+     * Get role options for dropdown (lightweight - id, name, display_name only)
+     */
+    public function getRoleOptions(): array
+    {
+        try {
+            $roles = Role::select(['id', 'name'])->orderBy('name')->get();
+            
+            $formattedRoles = $roles->map(function ($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'display_name' => $this->getDisplayName($role->name),
+                ];
+            });
+            
+            Log::info('Role options retrieved successfully', ['count' => $roles->count()]);
+            
+            return $formattedRoles->toArray();
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve role options', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Format role data for API response
      */
     private function formatRoleData(Role $role): array

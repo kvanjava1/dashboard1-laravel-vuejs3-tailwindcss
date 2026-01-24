@@ -3,7 +3,7 @@
         <!-- Header Section -->
         <PageHeader>
             <template #title>
-                <PageHeaderTitle title="Add New User" />
+                <PageHeaderTitle :title="`Edit User: ${userData?.name || 'Loading...'}`" />
             </template>
             <template #actions>
                 <PageHeaderActions>
@@ -14,8 +14,23 @@
             </template>
         </PageHeader>
 
+        <!-- Loading State -->
+        <div v-if="loading" class="py-12 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p class="mt-2 text-sm text-slate-600">Loading user data...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="loadError" class="py-8 text-center">
+            <span class="material-symbols-outlined text-danger text-4xl">error</span>
+            <p class="mt-2 text-sm text-slate-700">{{ loadError }}</p>
+            <button @click="fetchUser" class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
+                Try Again
+            </button>
+        </div>
+
         <!-- Form Container -->
-        <div class="space-y-6">
+        <div v-else class="space-y-6">
             <!-- Profile Picture Card -->
             <ContentBox>
                 <ContentBoxHeader>
@@ -67,8 +82,8 @@
                             <div class="relative flex justify-center">
                                 <div class="w-32 h-32 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50 transition-colors hover:border-primary/50">
                                     <img
-                                        v-if="previewImage"
-                                        :src="previewImage"
+                                        v-if="previewImage || userData?.profile_image_url"
+                                        :src="previewImage || userData?.profile_image_url"
                                         class="w-full h-full object-cover"
                                         alt="Profile preview"
                                     />
@@ -77,7 +92,7 @@
 
                                 <!-- Remove image button -->
                                 <button
-                                    v-if="previewImage"
+                                    v-if="previewImage || userData?.profile_image_url"
                                     @click="removeImage"
                                     class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
                                     title="Remove image"
@@ -87,7 +102,7 @@
 
                                 <!-- Edit/Crop button -->
                                 <button
-                                    v-if="previewImage"
+                                    v-if="previewImage || userData?.profile_image_url"
                                     @click="editImage"
                                     class="absolute -bottom-2 -right-2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center hover:bg-primary-dark transition-colors shadow-lg"
                                     title="Crop image"
@@ -113,7 +128,7 @@
                                 :disabled="isSubmitting"
                             >
                                 <span class="material-symbols-outlined mr-2">upload</span>
-                                {{ previewImage ? 'Change Photo' : 'Upload Photo' }}
+                                {{ (previewImage || userData?.profile_image_url) ? 'Change Photo' : 'Upload Photo' }}
                             </Button>
 
                             <p class="text-xs text-slate-500 text-center">
@@ -220,22 +235,23 @@
                 </ContentBoxBody>
             </ContentBox>
 
-            <!-- Account Security Card -->
+            <!-- Account Security Card (Optional) -->
             <ContentBox>
                 <ContentBoxHeader>
                     <template #title>
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary text-xl">lock</span>
-                            <ContentBoxTitle title="Account Security" />
+                            <ContentBoxTitle title="Change Password (Optional)" />
                         </div>
                     </template>
                 </ContentBoxHeader>
                 <ContentBoxBody>
+                    <p class="text-sm text-slate-600 mb-4">Leave password fields blank to keep current password</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Password -->
+                        <!-- New Password -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Password <span class="text-danger">*</span>
+                                New Password
                             </label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -245,17 +261,16 @@
                                     v-model="form.password"
                                     type="password"
                                     placeholder="••••••••"
-                                    required
                                     class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                                 />
                             </div>
                             <p class="text-xs text-slate-500 mt-1">Minimum 8 characters</p>
                         </div>
 
-                        <!-- Confirm Password -->
+                        <!-- Confirm New Password -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Confirm Password <span class="text-danger">*</span>
+                                Confirm New Password
                             </label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -265,7 +280,6 @@
                                     v-model="form.password_confirmation"
                                     type="password"
                                     placeholder="••••••••"
-                                    required
                                     class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                                 />
                             </div>
@@ -308,7 +322,7 @@
                                     <span class="material-symbols-outlined text-yellow-600 text-lg">warning</span>
                                     <div>
                                         <p class="text-yellow-800 font-medium">No roles available</p>
-                                        <p class="text-yellow-600 text-sm">Please create roles first before adding users.</p>
+                                        <p class="text-yellow-600 text-sm">Please create roles first before editing users.</p>
                                     </div>
                                 </div>
                             </div>
@@ -406,7 +420,7 @@
                             :loading="isSubmitting"
                             @click="handleSubmit"
                         >
-                            {{ isSubmitting ? 'Creating...' : 'Create User' }}
+                            {{ isSubmitting ? 'Updating...' : 'Update User' }}
                         </Button>
                     </div>
                 </ContentBoxBody>
@@ -416,10 +430,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useApi } from '../../../composables/useApi'
-import { apiRoutes } from '../../../config/apiRoutes'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -448,9 +462,12 @@ interface UserForm {
 }
 
 const router = useRouter()
-const { get, post } = useApi()
+const route = useRoute()
+const { get, put } = useApi()
 const isSubmitting = ref(false)
 const errorMessages = ref<string[]>([])
+const loading = ref(true)
+const loadError = ref<string>('')
 
 // Role fetching
 const roles = ref<any[]>([])
@@ -467,6 +484,9 @@ const showCropper = ref(false)
 const cropperImage = ref<string>('')
 const cropperRef = ref<any>(null)
 
+// User data
+const userData = ref<any>(null)
+
 const form = reactive<UserForm>({
     first_name: '',
     last_name: '',
@@ -478,6 +498,49 @@ const form = reactive<UserForm>({
     status: 'active',
     bio: ''
 })
+
+// Fetch user data
+const fetchUser = async () => {
+    loading.value = true
+    loadError.value = ''
+    
+    try {
+        const userId = route.params.id as string
+        const url = apiRoutes.users.show(userId)
+        const response = await get(url)
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch user: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        userData.value = data.user
+
+        // Parse name into first_name and last_name
+        const nameParts = userData.value.name.split(' ')
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || ''
+
+        // Populate form
+        Object.assign(form, {
+            first_name: firstName,
+            last_name: lastName,
+            email: userData.value.email,
+            phone: userData.value.phone || '',
+            password: '',
+            password_confirmation: '',
+            role: userData.value.role || '',
+            status: userData.value.status || 'active',
+            bio: userData.value.bio || ''
+        })
+
+    } catch (err: any) {
+        loadError.value = err.message || 'Failed to load user data'
+        console.error('Error fetching user:', err)
+    } finally {
+        loading.value = false
+    }
+}
 
 // Fetch roles from API
 const fetchRoles = async () => {
@@ -502,8 +565,9 @@ const fetchRoles = async () => {
     }
 }
 
-// Fetch roles when component mounts
+// Fetch user and roles when component mounts
 onMounted(() => {
+    fetchUser()
     fetchRoles()
 })
 
@@ -512,55 +576,47 @@ const goBack = () => {
 }
 
 const validateForm = (): boolean => {
+    errorMessages.value = []
+
     // Basic validation
     if (!form.first_name.trim()) {
-        alert('First name is required')
-        return false
+        errorMessages.value.push('First name is required')
     }
 
     if (!form.last_name.trim()) {
-        alert('Last name is required')
-        return false
+        errorMessages.value.push('Last name is required')
     }
 
     if (!form.email.trim()) {
-        alert('Email is required')
-        return false
+        errorMessages.value.push('Email is required')
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(form.email)) {
-        alert('Please enter a valid email address')
-        return false
+    if (form.email.trim() && !emailRegex.test(form.email)) {
+        errorMessages.value.push('Please enter a valid email address')
     }
 
-    if (!form.password) {
-        alert('Password is required')
-        return false
-    }
+    // Password validation (only if provided)
+    if (form.password) {
+        if (form.password.length < 8) {
+            errorMessages.value.push('Password must be at least 8 characters long')
+        }
 
-    if (form.password.length < 8) {
-        alert('Password must be at least 8 characters long')
-        return false
-    }
-
-    if (form.password !== form.password_confirmation) {
-        alert('Passwords do not match')
-        return false
+        if (form.password !== form.password_confirmation) {
+            errorMessages.value.push('Passwords do not match')
+        }
     }
 
     if (!form.role) {
-        alert('Please select a user role')
-        return false
+        errorMessages.value.push('Please select a user role')
     }
 
     if (!form.status) {
-        alert('Please select account status')
-        return false
+        errorMessages.value.push('Please select account status')
     }
 
-    return true
+    return errorMessages.value.length === 0
 }
 
 const handleSubmit = async () => {
@@ -572,29 +628,36 @@ const handleSubmit = async () => {
     errorMessages.value = []
 
     try {
+        const userId = route.params.id as string
+        
         // Prepare FormData for file upload
         const formData = new FormData()
         formData.append('first_name', form.first_name)
         formData.append('last_name', form.last_name)
         formData.append('email', form.email)
         formData.append('phone', form.phone)
-        formData.append('password', form.password)
-        formData.append('password_confirmation', form.password_confirmation)
         formData.append('role', form.role)
         formData.append('status', form.status)
         formData.append('bio', form.bio)
+
+        // Only append password if provided
+        if (form.password) {
+            formData.append('password', form.password)
+            formData.append('password_confirmation', form.password_confirmation)
+        }
 
         // Add profile image if selected
         if (selectedFile.value) {
             formData.append('profile_image', selectedFile.value)
         }
 
-        // Make API call to create user
-        const response = await post(apiRoutes.users.store, formData)
+        // Make API call to update user
+        const url = apiRoutes.users.update(userId)
+        const response = await put(url, formData)
 
         if (response.ok) {
             const data = await response.json()
-            console.log('User created successfully:', data)
+            console.log('User updated successfully:', data)
 
             // Success - redirect to users list
             router.push({ name: 'user_management.index' })
@@ -606,13 +669,13 @@ const handleSubmit = async () => {
             if (errorData.errors) {
                 errorMessages.value = Object.values(errorData.errors).flat() as string[]
             } else {
-                errorMessages.value = [errorData.message || 'Failed to create user. Please try again.']
+                errorMessages.value = [errorData.message || 'Failed to update user. Please try again.']
             }
 
             console.error('API Error:', errorData)
         }
     } catch (error) {
-        console.error('Error creating user:', error)
+        console.error('Error updating user:', error)
         errorMessages.value = ['An unexpected error occurred. Please try again.']
     } finally {
         isSubmitting.value = false
@@ -691,6 +754,10 @@ const editImage = () => {
     if (selectedFile.value && previewImage.value) {
         // Convert current preview back to cropper
         cropperImage.value = previewImage.value
+        showCropper.value = true
+    } else if (userData.value?.profile_image_url) {
+        // Use existing profile image for cropping
+        cropperImage.value = userData.value.profile_image_url
         showCropper.value = true
     }
 }

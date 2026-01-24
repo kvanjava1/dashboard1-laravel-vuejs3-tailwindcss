@@ -29,47 +29,81 @@
 
             <!-- Data Table -->
             <ContentBoxBody>
-                <SimpleUserTable>
-                    <SimpleUserTableHead>
-                        <SimpleUserTableHeadRow>
-                            <SimpleUserTableHeadCol>
-                                <div class="flex items-center gap-2">
-                                    <span>User</span>
-                                    <span class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
-                                </div>
-                            </SimpleUserTableHeadCol>
-                            <SimpleUserTableHeadCol>Role</SimpleUserTableHeadCol>
-                            <SimpleUserTableHeadCol>Status</SimpleUserTableHeadCol>
-                            <SimpleUserTableHeadCol>Joined Date</SimpleUserTableHeadCol>
-                            <SimpleUserTableHeadCol>Actions</SimpleUserTableHeadCol>
-                        </SimpleUserTableHeadRow>
-                    </SimpleUserTableHead>
+                <!-- Loading State -->
+                <div v-if="loading" class="py-12 text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p class="mt-2 text-sm text-slate-600">Loading users...</p>
+                </div>
 
-                    <SimpleUserTableBody>
-                        <SimpleUserTableBodyRow v-for="user in users" :key="user.id">
-                            <SimpleUserTableBodyCol>
-                                <UserCellUser :name="user.name" :email="user.email" :avatar="user.avatar" />
-                            </SimpleUserTableBodyCol>
-                            <SimpleUserTableBodyCol>
-                                <UserCellRole :role="user.role" />
-                            </SimpleUserTableBodyCol>
-                            <SimpleUserTableBodyCol>
-                                <UserCellStatus :status="user.status" />
-                            </SimpleUserTableBodyCol>
-                            <SimpleUserTableBodyCol>
-                                <span class="text-sm text-slate-700">{{ user.joinedDate }}</span>
-                            </SimpleUserTableBodyCol>
-                            <SimpleUserTableBodyCol>
-                                <UserCellActions @edit="handleEdit(user)" @delete="handleDelete(user)"
-                                    @view="handleView(user)" />
-                            </SimpleUserTableBodyCol>
-                        </SimpleUserTableBodyRow>
-                    </SimpleUserTableBody>
-                </SimpleUserTable>
+                <!-- Error State -->
+                <div v-else-if="error" class="py-8 text-center">
+                    <span class="material-symbols-outlined text-danger text-4xl">error</span>
+                    <p class="mt-2 text-sm text-slate-700">{{ error }}</p>
+                    <button @click="fetchUsers" class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
+                        Try Again
+                    </button>
+                </div>
 
-                <!-- Pagination -->
-                <Pagination :current-start="1" :current-end="5" :total="24" :current-page="1" :total-pages="4"
-                    :rows-per-page="10" @prev="prevPage" @next="nextPage" @goto="goToPage" />
+                <!-- Empty State -->
+                <div v-else-if="users.length === 0" class="py-12 text-center">
+                    <span class="material-symbols-outlined text-slate-400 text-4xl">group</span>
+                    <p class="mt-2 text-sm text-slate-700">No users found</p>
+                    <p class="text-xs text-slate-500 mt-1">Try adjusting your filters or add a new user</p>
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <SimpleUserTable>
+                        <SimpleUserTableHead>
+                            <SimpleUserTableHeadRow>
+                                <SimpleUserTableHeadCol>
+                                    <div class="flex items-center gap-2">
+                                        <span>User</span>
+                                        <span class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
+                                    </div>
+                                </SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Role</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Status</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Joined Date</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Actions</SimpleUserTableHeadCol>
+                            </SimpleUserTableHeadRow>
+                        </SimpleUserTableHead>
+
+                        <SimpleUserTableBody>
+                            <SimpleUserTableBodyRow v-for="user in users" :key="user.id">
+                                <SimpleUserTableBodyCol>
+                                    <UserCellUser :name="user.name" :email="user.email" :avatar="user.avatar" />
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
+                                    <UserCellRole :role="user.role" />
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
+                                    <UserCellStatus :status="user.status" />
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
+                                    <span class="text-sm text-slate-700">{{ user.joinedDate }}</span>
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
+                                    <UserCellActions @edit="handleEdit(user)" @delete="handleDelete(user)"
+                                        @view="handleView(user)" />
+                                </SimpleUserTableBodyCol>
+                            </SimpleUserTableBodyRow>
+                        </SimpleUserTableBody>
+                    </SimpleUserTable>
+
+                    <!-- Pagination -->
+                    <Pagination 
+                        :current-start="pagination.from" 
+                        :current-end="pagination.to" 
+                        :total="pagination.total" 
+                        :current-page="pagination.current_page" 
+                        :total-pages="pagination.total_pages"
+                        :rows-per-page="pagination.per_page" 
+                        @prev="prevPage" 
+                        @next="nextPage" 
+                        @goto="goToPage" 
+                    />
+                </div>
             </ContentBoxBody>
         </ContentBox>
 
@@ -84,10 +118,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
 
 const router = useRouter()
+const { get, del } = useApi()
 
 // Modal state
 const showAdvancedFilter = ref(false)
@@ -104,6 +141,21 @@ const currentFilters = reactive({
     sort_by: 'created_at',
     sort_order: 'desc'
 })
+
+// UI State
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+// Pagination
+const pagination = reactive({
+    total: 0,
+    total_pages: 0,
+    current_page: 1,
+    per_page: 10,
+    from: 0,
+    to: 0
+})
+
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -139,76 +191,123 @@ interface User {
     joinedDate: string
 }
 
-const users = ref<User[]>([
-    {
-        id: 1,
-        name: 'Alex Johnson',
-        email: 'alex.j@example.com',
-        avatar: 'https://lh3.googleusercontent.com/a/ACg8ocKx_nV7qJmIBqGv6A4gH9YwYQdX7hD6tZ8bQjYF=s100-c',
-        role: 'Administrator',
-        status: 'Active',
-        joinedDate: 'Jan 15, 2024'
-    },
-    {
-        id: 2,
-        name: 'Maria Garcia',
-        email: 'maria.g@example.com',
-        avatar: 'https://lh3.googleusercontent.com/a/ACg8ocJbV7hD6tZ8bQjYFKx_nV7qJmIBqGv6A4gH9YwYQdX=s100-c',
-        role: 'Editor',
-        status: 'Active',
-        joinedDate: 'Feb 03, 2024'
-    },
-    {
-        id: 3,
-        name: 'David Chen',
-        email: 'david.c@example.com',
-        avatar: 'https://lh3.googleusercontent.com/a/ACg8ocLhD6tZ8bQjYFKx_nV7qJmIBqGv6A4gH9YwYQdX7qJm=s100-c',
-        role: 'Viewer',
-        status: 'Pending',
-        joinedDate: 'Mar 22, 2024'
-    },
-    {
-        id: 4,
-        name: 'Sarah Williams',
-        email: 'sarah.w@example.com',
-        avatar: 'https://lh3.googleusercontent.com/a/ACg8ocN7qJmIBqGv6A4gH9YwYQdXhD6tZ8bQjYFKx_nV7qJm=s100-c',
-        role: 'Administrator',
-        status: 'Active',
-        joinedDate: 'Apr 10, 2024'
-    },
-    {
-        id: 5,
-        name: 'Michael Brown',
-        email: 'michael.b@example.com',
-        avatar: 'https://lh3.googleusercontent.com/a/ACg8ocO7qJmIBqGv6A4gH9YwYQdXhD6tZ8bQjYFKx_nV7qJmIB=s100-c',
-        role: 'Editor',
-        status: 'Inactive',
-        joinedDate: 'May 05, 2024'
-    }
-])
+const users = ref<User[]>([])
 
-const handleEdit = (user: User) => {
-    console.log('Edit user:', user)
+// Fetch users from API
+const fetchUsers = async () => {
+    loading.value = true
+    error.value = null
+
+    try {
+        const params = {
+            page: pagination.current_page,
+            per_page: pagination.per_page,
+            search: currentFilters.search,
+            role: currentFilters.role,
+            status: currentFilters.status,
+            date_from: currentFilters.date_from,
+            date_to: currentFilters.date_to,
+            sort_by: currentFilters.sort_by,
+            sort_order: currentFilters.sort_order
+        }
+
+        const url = apiRoutes.users.index(params)
+        const response = await get(url)
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+
+        // Map API data to frontend User interface
+        users.value = data.data.map((user: any) => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.profile_image_url || '',
+            role: user.role_display_name as 'Administrator' | 'Editor' | 'Viewer',
+            status: user.status.charAt(0).toUpperCase() + user.status.slice(1) as 'Active' | 'Pending' | 'Inactive',
+            joinedDate: user.joined_date
+        }))
+
+        // Update pagination meta
+        Object.assign(pagination, {
+            total: data.meta.total,
+            total_pages: data.meta.total_pages,
+            current_page: data.meta.current_page,
+            per_page: data.meta.per_page,
+            from: data.meta.from,
+            to: data.meta.to
+        })
+
+    } catch (err: any) {
+        error.value = err.message || 'Failed to load users'
+        console.error('Error fetching users:', err)
+    } finally {
+        loading.value = false
+    }
 }
 
-const handleDelete = (user: User) => {
-    console.log('Delete user:', user)
+// Pagination handlers
+const prevPage = () => {
+    if (pagination.current_page > 1) {
+        pagination.current_page--
+        fetchUsers()
+    }
+}
+
+const nextPage = () => {
+    if (pagination.current_page < pagination.total_pages) {
+        pagination.current_page++
+        fetchUsers()
+    }
+}
+
+const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.total_pages) {
+        pagination.current_page = page
+        fetchUsers()
+    }
+}
+
+// User actions
+const handleEdit = (user: User) => {
+    console.log('Edit user:', user)
+    // TODO: Navigate to edit page
+    router.push({ name: 'user_management.edit', params: { id: user.id } })
+}
+
+const handleDelete = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+        return
+    }
+
+    try {
+        const url = apiRoutes.users.destroy(user.id)
+        const response = await del(url)
+
+        if (!response.ok) {
+            throw new Error(`Failed to delete user: ${response.status} ${response.statusText}`)
+        }
+
+        // Remove user from local list
+        users.value = users.value.filter(u => u.id !== user.id)
+        
+        // Refresh user count
+        pagination.total--
+        
+        alert('User deleted successfully')
+    } catch (err: any) {
+        alert(`Failed to delete user: ${err.message}`)
+        console.error('Error deleting user:', err)
+    }
 }
 
 const handleView = (user: User) => {
     console.log('View user:', user)
-}
-
-const prevPage = () => {
-    console.log('Previous page')
-}
-
-const nextPage = () => {
-    console.log('Next page')
-}
-
-const goToPage = (page: number) => {
-    console.log('Go to page:', page)
+    // TODO: Navigate to user detail page
+    router.push({ name: 'user_management.view', params: { id: user.id } })
 }
 
 const goToAddUser = () => {
@@ -221,9 +320,8 @@ const openAdvancedFilter = () => {
 
 const handleApplyFilters = (filters: any) => {
     Object.assign(currentFilters, filters)
-    console.log('Applied filters:', filters)
-    // TODO: Implement actual filtering logic here
-    // This would typically make an API call with the filters
+    pagination.current_page = 1 // Reset to first page when filters change
+    fetchUsers()
 }
 
 const handleResetFilters = () => {
@@ -238,7 +336,12 @@ const handleResetFilters = () => {
         sort_by: 'created_at',
         sort_order: 'desc'
     })
-    console.log('Filters reset')
-    // TODO: Reset the data to original state
+    pagination.current_page = 1
+    fetchUsers()
 }
+
+// Initial fetch
+onMounted(() => {
+    fetchUsers()
+})
 </script>

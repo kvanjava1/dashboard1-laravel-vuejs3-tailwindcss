@@ -52,6 +52,27 @@ class RoleController extends Controller
     }
 
     /**
+     * Get role options for dropdowns (lightweight - id, name, display_name only)
+     */
+    public function options(): JsonResponse
+    {
+        try {
+            $roles = $this->roleService->getRoleOptions();
+            
+            return response()->json([
+                'message' => 'Role options retrieved successfully',
+                'roles' => $roles,
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to retrieve role options',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Store a newly created role.
      */
     public function store(Request $request): JsonResponse

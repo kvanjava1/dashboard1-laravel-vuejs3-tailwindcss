@@ -40,6 +40,7 @@ export const apiRoutes = {
       }
       return `/api/v1/roles${searchParams.toString() ? '?' + searchParams.toString() : ''}`
     },
+    options: '/api/v1/roles/options',
     show: (id: string | number) => `/api/v1/roles/${id}`,
     store: '/api/v1/roles',
     update: (id: string | number) => `/api/v1/roles/${id}`,
