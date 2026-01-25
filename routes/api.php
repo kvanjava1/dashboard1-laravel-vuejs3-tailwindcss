@@ -37,5 +37,13 @@ Route::prefix('v1')->group(function () {
         // Permission routes
         Route::get('permissions', [PermissionController::class, 'index']);
         Route::get('permissions/grouped', [PermissionController::class, 'grouped']);
+
+        // Example management routes
+        Route::get('examples', [\App\Http\Controllers\Api\ExampleManagementController::class, 'index'])->name('examples.index');
+        Route::post('examples', [\App\Http\Controllers\Api\ExampleManagementController::class, 'store'])->name('examples.store');
+        Route::get('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'show'])->name('examples.show')->where('exampleManagement', '[0-9]+');
+        Route::put('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'update'])->name('examples.update')->where('exampleManagement', '[0-9]+');
+        Route::patch('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'update']);
+        Route::delete('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'destroy'])->name('examples.destroy')->where('exampleManagement', '[0-9]+');
     });
 });
