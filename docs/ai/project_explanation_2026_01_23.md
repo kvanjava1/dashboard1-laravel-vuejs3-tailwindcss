@@ -72,6 +72,7 @@
 - **Tailwind CSS 4** - Utility-first CSS framework
 - **Vite** - Fast build tool and dev server
 - **Axios** - HTTP client for API calls
+- **SweetAlert2** - Consistent modals and toast notifications
 
 ### **Development Tools**
 - **Docker** - Containerized development environment
@@ -957,6 +958,9 @@ export const useAuthStore = defineStore('auth', () => {
 - **Shadows**: `shadow-md`, `shadow-hard` (custom)
 - **Transitions**: `transition-all duration-200`
 - **Focus States**: Ring-based focus indicators
+
+### **Modal & Toast Notifications**
+- **SweetAlert2** is used for all confirmation dialogs and toast notifications, providing a consistent, modern, and accessible user experience across the app. Custom composables (`showConfirm`, `showToast`) wrap SweetAlert2 for easy usage in Vue components.
 
 ## 📈 Performance Optimizations
 

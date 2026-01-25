@@ -24,7 +24,7 @@ class UserService
                 $searchTerm = $filters['search'];
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('users.name', 'LIKE', '%' . $searchTerm . '%')
-                      ->orWhere('users.email', 'LIKE', '%' . $searchTerm . '%');
+                        ->orWhere('users.email', 'LIKE', '%' . $searchTerm . '%');
                 });
             }
 
@@ -178,14 +178,39 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Prevent editing of super admin users (optional)
-            if ($user->hasRole('super_admin')) {
-                throw new \Exception('Super admin users cannot be edited', 403);
+            // Restrict super_admin: only password can be changed
+            if ($user->hasRole('super_admin') || $user->email === 'super@admin.com') {
+                $updateData = [];
+                if (!empty($data['password'])) {
+                    $updateData['password'] = bcrypt($data['password']);
+                }
+
+                // Handle profile image upload
+                if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
+                    // Delete old image if exists
+                    if ($user->profile_image) {
+                        Storage::disk('public')->delete($user->profile_image);
+                    }
+                    $imagePath = $data['profile_image']->store('avatars', 'public');
+                    $updateData['profile_image'] = $imagePath;
+                }
+
+                if (!empty($updateData)) {
+                    $user->update($updateData);
+                }
+
+                // Reload with roles
+                $user->load('roles');
+                Log::info('Super admin password updated', [
+                    'user_id' => $userId,
+                    'email' => $user->email,
+                    'updated_by' => $data['updated_by'] ?? 'system'
+                ]);
+                return $this->formatUserData($user);
             }
 
             // Update basic info
             $updateData = [];
-            
             // Handle name update from first_name and last_name
             if (isset($data['first_name']) || isset($data['last_name'])) {
                 $firstName = $data['first_name'] ?? '';
@@ -194,21 +219,21 @@ class UserService
             } elseif (isset($data['name'])) {
                 $updateData['name'] = $data['name'];
             }
-            
-            if (isset($data['email'])) $updateData['email'] = $data['email'];
-            if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
-            if (isset($data['status'])) $updateData['status'] = $data['status'];
-            if (isset($data['bio'])) $updateData['bio'] = $data['bio'];
-            
+            if (isset($data['email']))
+                $updateData['email'] = $data['email'];
+            if (isset($data['phone']))
+                $updateData['phone'] = $data['phone'];
+            if (isset($data['status']))
+                $updateData['status'] = $data['status'];
+            if (isset($data['bio']))
+                $updateData['bio'] = $data['bio'];
             // Update password if provided
             if (!empty($data['password'])) {
                 $updateData['password'] = bcrypt($data['password']);
             }
-
             if (!empty($updateData)) {
                 $user->update($updateData);
             }
-
             // Handle profile image upload
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
                 // Delete old image if exists
@@ -218,21 +243,17 @@ class UserService
                 $imagePath = $data['profile_image']->store('avatars', 'public');
                 $user->update(['profile_image' => $imagePath]);
             }
-
             // Update role if provided
             if (isset($data['role'])) {
                 $user->syncRoles([$data['role']]);
             }
-
             // Reload with roles
             $user->load('roles');
-
             Log::info('User updated successfully', [
                 'user_id' => $userId,
                 'email' => $user->email,
                 'updated_by' => $data['updated_by'] ?? 'system'
             ]);
-
             return $this->formatUserData($user);
         } catch (\Exception $e) {
             Log::error('Failed to update user', [
@@ -251,8 +272,8 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Prevent deletion of super admin users
-            if ($user->hasRole('super_admin')) {
+            // Prevent deletion of super admin users by email or role
+            if ($user->hasRole('super_admin') && $user->email === 'super@admin.com') {
                 throw new \Exception('Cannot delete super admin users', 403);
             }
 
@@ -266,7 +287,9 @@ class UserService
                 Storage::disk('public')->delete($user->profile_image);
             }
 
+
             $userEmail = $user->email;
+            // Soft delete user
             $user->delete();
 
             Log::info('User deleted successfully', [
@@ -291,7 +314,7 @@ class UserService
     private function formatUserData(User $user): array
     {
         $primaryRole = $user->roles->first();
-        
+
         return [
             'id' => $user->id,
             'name' => $user->name,

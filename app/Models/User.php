@@ -9,10 +9,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasApiTokens;
+    use HasFactory, Notifiable, HasRoles, HasApiTokens, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -35,6 +37,15 @@ class User extends Authenticatable
         'ban_reason',
         'banned_until',
         'timezone',
+    ];
+
+    /**
+     * The attributes that should be mutated to dates.
+     *
+     * @var array
+     */
+    protected $dates = [
+        'deleted_at',
     ];
 
     /**
@@ -74,7 +85,7 @@ class User extends Authenticatable
     {
         return $this->profile_image
             ? asset('storage/' . $this->profile_image)
-            : asset('images/default-avatar.png'); // You can add a default avatar
+            : "";
     }
 
     /**

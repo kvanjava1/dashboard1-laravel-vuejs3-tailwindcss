@@ -6,6 +6,7 @@
             <span class="material-symbols-outlined text-[20px]">edit</span>
         </button>
         <button
+            v-if="showDelete !== false"
             class="p-2 text-slate-600 hover:text-danger hover:bg-slate-100 rounded-full transition-colors"
             @click="$emit('delete')">
             <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -19,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{ showDelete?: boolean }>()
 defineEmits<{
     edit: []
     delete: []

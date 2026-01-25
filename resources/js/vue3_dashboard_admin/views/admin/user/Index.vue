@@ -84,8 +84,12 @@
                                     <span class="text-sm text-slate-700">{{ user.joinedDate }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <UserCellActions @edit="handleEdit(user)" @delete="handleDelete(user)"
-                                        @view="handleView(user)" />
+                                    <UserCellActions
+                                        @edit="handleEdit(user)"
+                                        @delete="handleDelete(user)"
+                                        @view="() => openUserDetail(user)"
+                                        :show-delete="user.role !== 'super_admin' && user.email !== 'super@admin.com'"
+                                    />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
                         </SimpleUserTableBody>
@@ -93,15 +97,15 @@
 
                     <!-- Pagination -->
                     <Pagination 
-                        :current-start="pagination.from" 
-                        :current-end="pagination.to" 
-                        :total="pagination.total" 
-                        :current-page="pagination.current_page" 
+                        :current-start="currentStart"
+                        :current-end="currentEnd"
+                        :total="pagination.total"
+                        :current-page="pagination.current_page"
                         :total-pages="pagination.total_pages"
-                        :rows-per-page="pagination.per_page" 
-                        @prev="prevPage" 
-                        @next="nextPage" 
-                        @goto="goToPage" 
+                        :rows-per-page="pagination.per_page"
+                        @prev="prevPage"
+                        @next="nextPage"
+                        @goto="goToPage"
                     />
                 </div>
             </ContentBoxBody>
@@ -114,14 +118,40 @@
             @apply="handleApplyFilters"
             @reset="handleResetFilters"
         />
+
+        <!-- User Detail Modal -->
+        <UserDetailModal
+            v-model="showUserDetail"
+            :user="selectedUser"
+        />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import UserDetailModal from './UserDetailModal.vue'
+// User detail modal state
+const showUserDetail = ref(false)
+const selectedUser = ref<User | null>(null)
+
+function openUserDetail(user: User) {
+    selectedUser.value = user
+    showUserDetail.value = true
+}
+import { ref, reactive, computed, onMounted } from 'vue'
+// Pagination indicator computed properties (like role management)
+const currentStart = computed(() => {
+    if (users.value.length === 0) return 0
+    return (pagination.current_page - 1) * pagination.per_page + 1
+})
+
+const currentEnd = computed(() => {
+    const end = pagination.current_page * pagination.per_page
+    return Math.min(end, pagination.total)
+})
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
+import { showConfirm, showToast } from '@/composables/useSweetAlert'
 
 const router = useRouter()
 const { get, del } = useApi()
@@ -151,7 +181,7 @@ const pagination = reactive({
     total: 0,
     total_pages: 0,
     current_page: 1,
-    per_page: 10,
+    per_page: 5,
     from: 0,
     to: 0
 })
@@ -279,16 +309,30 @@ const handleEdit = (user: User) => {
 }
 
 const handleDelete = async (user: User) => {
-    if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
-        return
-    }
+    const confirmed = await showConfirm({
+        title: `Delete user "${user.name}"?`,
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel'
+    })
+
+    if (!confirmed) return
 
     try {
         const url = apiRoutes.users.destroy(user.id)
         const response = await del(url)
 
         if (!response.ok) {
-            throw new Error(`Failed to delete user: ${response.status} ${response.statusText}`)
+            let errorText = ''
+            try {
+                const errorData = await response.json()
+                errorText = errorData.error || errorData.message || response.statusText
+            } catch {
+                errorText = response.statusText
+            }
+            await showToast({ icon: 'error', title: 'Failed to delete user', text: errorText, timer: 0 })
+            return
         }
 
         // Remove user from local list
@@ -297,9 +341,9 @@ const handleDelete = async (user: User) => {
         // Refresh user count
         pagination.total--
         
-        alert('User deleted successfully')
+        await showToast({ icon: 'success', title: 'User deleted successfully', timer: 0 })
     } catch (err: any) {
-        alert(`Failed to delete user: ${err.message}`)
+        await showToast({ icon: 'error', title: 'Failed to delete user', text: err?.message ?? '', timer: 0 })
         console.error('Error deleting user:', err)
     }
 }

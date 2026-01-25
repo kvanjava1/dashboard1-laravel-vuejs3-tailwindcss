@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\RoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Requests\Role\StoreRoleRequest;
+use App\Http\Requests\Role\UpdateRoleRequest;
 use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
@@ -75,17 +77,10 @@ class RoleController extends Controller
     /**
      * Store a newly created role.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreRoleRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:roles,name',
-                'permissions' => 'sometimes|array',
-                'permissions.*' => 'string|exists:permissions,name',
-                'guard_name' => 'sometimes|string|max:255',
-            ]);
-
-            $role = $this->roleService->createRole($validated);
+            $role = $this->roleService->createRole($request->validated());
 
             return response()->json([
                 'message' => 'Role created successfully',
@@ -126,7 +121,7 @@ class RoleController extends Controller
     /**
      * Update the specified role.
      */
-    public function update(Request $request, int $roleId): JsonResponse
+    public function update(UpdateRoleRequest $request, int $roleId): JsonResponse
     {
         try {
             // Prevent editing of super_admin role
@@ -138,15 +133,7 @@ class RoleController extends Controller
                 ], 403);
             }
 
-            $validated = $request->validate([
-                'display_name' => 'sometimes|string|max:255',
-                'description' => 'sometimes|string|max:255',
-                'permissions' => 'sometimes|array',
-                'permissions.*' => 'string|exists:permissions,name',
-                'guard_name' => 'sometimes|string|max:255',
-            ]);
-
-            $role = $this->roleService->updateRole($roleId, $validated);
+            $role = $this->roleService->updateRole($roleId, $request->validated());
 
             return response()->json([
                 'message' => 'Role updated successfully',

@@ -218,10 +218,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
 import { apiRoutes } from '../../../config/apiRoutes'
+import { showConfirm, showToast } from '../../../composables/useSweetAlert'
 
 const router = useRouter()
 const { get, del } = useApi()
@@ -237,15 +238,14 @@ const showPermissionsModal = ref(false)
 const selectedRole = ref<any>(null)
 
 // Pagination state
-const currentPage = ref(1)
-const itemsPerPage = 5
-
-// Pagination metadata from server
-const pagination = ref({
+// Pagination state (unified object, like user management)
+const pagination = reactive({
     total: 0,
     total_pages: 0,
     current_page: 1,
-    per_page: 5
+    per_page: 5,
+    from: 0,
+    to: 0
 })
 
 // Advanced filter state
@@ -268,26 +268,27 @@ const hasActiveFilters = computed(() => {
     return filters.value.search.trim() !== '' || filters.value.permissions.length > 0
 })
 
-// Pagination computed properties (using server data)
-const totalPages = computed(() => pagination.value.total_pages)
-
+// Pagination computed properties (like user management)
 const currentStart = computed(() => {
     if (roles.value.length === 0) return 0
-    return (pagination.value.current_page - 1) * pagination.value.per_page + 1
+    return (pagination.current_page - 1) * pagination.per_page + 1
 })
 
 const currentEnd = computed(() => {
-    const end = pagination.value.current_page * pagination.value.per_page
-    return Math.min(end, pagination.value.total)
+    const end = pagination.current_page * pagination.per_page
+    return Math.min(end, pagination.total)
 })
 
 // Fetch roles from API with pagination and filters
-const fetchRoles = async (page = currentPage.value) => {
+const fetchRoles = async (page = pagination.current_page) => {
     try {
         isLoading.value = true
         errorMessage.value = ''
 
-        const filterParams: any = { page, per_page: itemsPerPage }
+        const filterParams: any = {
+            page,
+            per_page: pagination.per_page
+        }
 
         if (filters.value.search) {
             filterParams.search = filters.value.search
@@ -302,13 +303,14 @@ const fetchRoles = async (page = currentPage.value) => {
         if (response.ok) {
             const data = await response.json()
             roles.value = data.roles || []
-            pagination.value = {
+            Object.assign(pagination, {
                 total: data.total || 0,
                 total_pages: data.total_pages || 0,
                 current_page: data.current_page || page,
-                per_page: data.per_page || itemsPerPage
-            }
-            currentPage.value = data.current_page || page
+                per_page: data.per_page || pagination.per_page,
+                from: data.from || currentStart.value,
+                to: data.to || currentEnd.value
+            })
 
             // Update available permissions if not already loaded
             if (Object.keys(availablePermissions.value).length === 0 && data.available_permissions) {
@@ -341,14 +343,14 @@ const viewPermissions = (role: any) => {
 
 
 const deleteRole = async (role: any) => {
-    // Enhanced confirmation with more details
     const roleName = role.display_name || role.name
-    const confirmed = confirm(
-        `Are you sure you want to delete the "${roleName}" role?\n\n` +
-        `⚠️ This action cannot be undone.\n\n` +
-        `Users assigned: ${role.users_count || 0}`
-    )
-
+    const confirmed = await showConfirm({
+        title: `Delete role "${roleName}"?`,
+        text: `This action cannot be undone.\nUsers assigned: ${role.users_count || 0}`,
+        icon: 'warning',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel'
+    })
     if (!confirmed) return
 
     try {
@@ -359,29 +361,21 @@ const deleteRole = async (role: any) => {
         const response = await del(apiRoutes.roles.destroy(role.id))
 
         if (response.ok) {
-            // Success: refresh roles list and show success message
-            successMessage.value = `Role "${roleName}" deleted successfully`
-            await fetchRoles(currentPage.value)
-
-            // Clear success message after 3 seconds
-            setTimeout(() => {
-                successMessage.value = ''
-            }, 3000)
+            await showToast({ icon: 'success', title: `Role "${roleName}" deleted successfully`, timer: 0 })
+            await fetchRoles(pagination.current_page)
         } else {
             // Handle specific error types
             const errorData = await response.json()
-
+            const errorText = errorData.error || errorData.message || ''
             if (response.status === 403) {
-                errorMessage.value = 'Super admin role cannot be deleted'
-            } else if (response.status === 409) {
-                errorMessage.value = errorData.message || 'Cannot delete role that has assigned users'
+                await showToast({ icon: 'error', title: 'Super admin role cannot be deleted', timer: 0 })
             } else {
-                errorMessage.value = errorData.message || 'Failed to delete role'
+                await showToast({ icon: 'error', title: 'Failed to delete role', text: errorText, timer: 0 })
             }
         }
     } catch (error) {
         console.error('Delete role error:', error)
-        errorMessage.value = 'An unexpected error occurred while deleting the role'
+        await showToast({ icon: 'error', title: 'An unexpected error occurred while deleting the role', timer: 0 })
     } finally {
         isDeleting.value = false
     }
@@ -414,19 +408,22 @@ const handleApplyFilters = (filterData: { search: string; permissions: string[] 
 
 // Pagination handlers
 const prevPage = () => {
-    if (currentPage.value > 1) {
-        fetchRoles(currentPage.value - 1)
+    if (pagination.current_page > 1) {
+        pagination.current_page--
+        fetchRoles(pagination.current_page)
     }
 }
 
 const nextPage = () => {
-    if (currentPage.value < totalPages.value) {
-        fetchRoles(currentPage.value + 1)
+    if (pagination.current_page < pagination.total_pages) {
+        pagination.current_page++
+        fetchRoles(pagination.current_page)
     }
 }
 
 const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages.value) {
+    if (page >= 1 && page <= pagination.total_pages) {
+        pagination.current_page = page
         fetchRoles(page)
     }
 }

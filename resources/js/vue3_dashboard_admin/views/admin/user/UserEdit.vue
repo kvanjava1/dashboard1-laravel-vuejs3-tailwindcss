@@ -434,6 +434,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
+import { showToast } from '@/composables/useSweetAlert'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -629,7 +630,6 @@ const handleSubmit = async () => {
 
     try {
         const userId = route.params.id as string
-        
         // Prepare FormData for file upload
         const formData = new FormData()
         formData.append('first_name', form.first_name)
@@ -656,24 +656,27 @@ const handleSubmit = async () => {
         const response = await patch(url, formData)
 
         if (response.ok) {
-          const data = await response.json()
-
-          // Success - redirect to users list
-          router.push({ name: 'user_management.index' })
+            const data = await response.json()
+            // Success - redirect to users list
+            router.push({ name: 'user_management.index' })
         } else {
-          // Handle API error
-          const errorData = await response.json()
-
-          // Handle validation errors (Laravel returns errors object)
-          if (errorData.errors) {
-            errorMessages.value = Object.values(errorData.errors).flat() as string[]
-          } else {
-            errorMessages.value = [errorData.message || 'Failed to update user. Please try again.']
-          }
+            // Handle API error
+            const errorData = await response.json()
+            errorMessages.value = []
+            if (errorData.errors) {
+                errorMessages.value = Object.values(errorData.errors).flat() as string[]
+            }
+            if (errorData.error) {
+                errorMessages.value.push(errorData.error)
+            }
+            if (!errorData.errors && !errorData.error) {
+                errorMessages.value.push(errorData.message || 'Failed to update user. Please try again.')
+            }
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating user:', error)
         errorMessages.value = ['An unexpected error occurred. Please try again.']
+        await showToast({ icon: 'error', title: 'Failed to update user', text: error?.message ?? '', timer: 0 })
     } finally {
         isSubmitting.value = false
     }

@@ -23,17 +23,28 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $result = $this->authService->authenticate($request->validated());
+            $result = $this->authService->authenticate(
+                $request->validated(),
+                [
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'user_id' => $request->user()?->id ?? null,
+                ]
+            );
 
             return response()->json([
                 'message' => 'Login successful',
                 'token' => $result['token'],
                 'user' => $result['user'],
             ], 200);
+        } catch (\Illuminate\Auth\AuthenticationException $e) {
+            return response()->json([
+                'message' => $e->getMessage() ?? 'Authentication failed',
+            ], 401);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage() ?? 'Authentication failed',
-            ], $e->getCode() ?: 401);
+            ], $e->getCode() ?: 500);
         }
     }
 
@@ -43,7 +54,14 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $this->authService->logout($request->user());
+            $this->authService->logout(
+                $request->user(),
+                [
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'user_id' => $request->user()?->id ?? null,
+                ]
+            );
 
             return response()->json([
                 'message' => 'Logged out successfully',

@@ -1,7 +1,19 @@
 <template>
     <div class="flex items-center gap-3">
-        <div class="size-10 rounded-full bg-cover bg-center border border-border-light"
-            :style="{ backgroundImage: `url(${avatar})` }">
+        <div class="relative size-10 rounded-full border border-border-light flex items-center justify-center bg-slate-200 overflow-hidden">
+            <img
+                :src="avatar && avatar.trim() !== '' ? avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=64`"
+                alt="Avatar"
+                class="absolute inset-0 w-full h-full object-cover rounded-full"
+                loading="lazy"
+                @error="(e) => { const t = e.target as HTMLImageElement | null; if (t) { t.style.display = 'none'; const s = t.nextElementSibling as HTMLElement | null; if (s) s.style.display = 'flex'; } }"
+            />
+            <span
+                class="w-full h-full flex items-center justify-center text-xs font-bold text-white select-none"
+                style="display: none; background: #64748b;"
+            >
+                {{ name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) }}
+            </span>
         </div>
         <div>
             <p class="text-sm font-semibold text-slate-800">{{ name }}</p>
