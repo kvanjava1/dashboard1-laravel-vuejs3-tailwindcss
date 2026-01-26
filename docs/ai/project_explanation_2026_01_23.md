@@ -838,14 +838,6 @@ php artisan queue:listen  # Queue worker
 |-------|----------|------|-------------|
 | super@admin.com | 12345678 | super_admin | All permissions |
 
-## 📚 Documentation Files
-
-- `docs/ARCHITECTURE.md` - Complete system architecture
-- `docs/COMPONENTS.md` - Vue component documentation
-- `docs/api/AUTH_ENDPOINTS.md` - API documentation
-- `docs/frontend/PINIA_AUTH_STORE.md` - Auth store documentation
-- `docs/frontend/ROUTE_GUARDS.md` - Route protection documentation
-
 ## 🔄 Development Commands
 
 ```bash

@@ -100,18 +100,7 @@ class PermissionService
      */
     private function getPermissionLabel(string $permissionName): string
     {
-        $labels = [
-            'dashboard.view' => 'View Dashboard',
-            'user_management.view' => 'View Users',
-            'user_management.add' => 'Add Users',
-            'user_management.edit' => 'Edit Users',
-            'user_management.delete' => 'Delete Users',
-            'user_management.search' => 'Search Users',
-            'report.view' => 'View Reports',
-            'report.export' => 'Export Reports',
-        ];
-
-        return $labels[$permissionName] ?? ucwords(str_replace(['_', '.'], [' ', ' '], $permissionName));
+        return ucwords(str_replace(['_', '.'], [' ', ' '], $permissionName));
     }
 
 }

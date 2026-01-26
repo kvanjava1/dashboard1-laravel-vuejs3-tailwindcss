@@ -158,16 +158,15 @@
                             </Button>
                         </div>
 
-                        <!-- Permission Groups -->
+                        <!-- Dynamic Permission Groups -->
                         <div class="space-y-6">
-                            <!-- Dashboard Permissions -->
-                            <div v-if="(dashboardPermissions || []).length > 0">
+                            <div v-for="(group, groupName) in permissions" :key="groupName">
                                 <h4 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">dashboard</span>
-                                    Dashboard
+                                    <span class="material-symbols-outlined text-lg">{{ getGroupIcon(groupName) }}</span>
+                                    {{ formatGroupName(groupName) }}
                                 </h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <label v-for="permission in dashboardPermissions || []" :key="permission.name"
+                                    <label v-for="permission in group || []" :key="permission.name"
                                            class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                                         <input
                                             v-model="form.permissions"
@@ -181,76 +180,7 @@
                                     </label>
                                 </div>
                             </div>
-
-                            <!-- User Management Permissions -->
-                            <div v-if="(userPermissions || []).length > 0">
-                                <h4 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">group</span>
-                                    User Management
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <label v-for="permission in userPermissions || []" :key="permission.name"
-                                           class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                        <input
-                                            v-model="form.permissions"
-                                            :value="permission.name"
-                                            type="checkbox"
-                                            class="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30"
-                                        />
-                                        <div class="flex-1">
-                                            <span class="text-sm font-medium text-slate-700">{{ permission.label }}</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Report Permissions -->
-                            <div v-if="(reportPermissions || []).length > 0">
-                                <h4 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">analytics</span>
-                                    Reports
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <label v-for="permission in reportPermissions || []" :key="permission.name"
-                                           class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                        <input
-                                            v-model="form.permissions"
-                                            :value="permission.name"
-                                            type="checkbox"
-                                            class="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30"
-                                        />
-                                        <div class="flex-1">
-                                            <span class="text-sm font-medium text-slate-700">{{ permission.label }}</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Other Permissions -->
-                            <div v-if="(otherPermissions || []).length > 0">
-                                <h4 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">settings</span>
-                                    Other Permissions
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <label v-for="permission in otherPermissions || []" :key="permission.name"
-                                           class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                        <input
-                                            v-model="form.permissions"
-                                            :value="permission.name"
-                                            type="checkbox"
-                                            class="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30"
-                                        />
-                                        <div class="flex-1">
-                                            <span class="text-sm font-medium text-slate-700">{{ permission.label }}</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- No Permissions Message -->
-                            <div v-if="(dashboardPermissions || []).length === 0 && (userPermissions || []).length === 0 && (reportPermissions || []).length === 0 && (otherPermissions || []).length === 0"
-                                 class="text-center py-8">
+                            <div v-if="Object.values(permissions).every(g => (g || []).length === 0)" class="text-center py-8">
                                 <span class="material-symbols-outlined text-4xl text-slate-400 mb-2 block">security</span>
                                 <p class="text-slate-600">No permissions available</p>
                             </div>
@@ -442,19 +372,31 @@ const validateForm = (): boolean => {
 
 // Permission selection helpers
 const selectAllPermissions = () => {
-    form.permissions = [
-        ...(dashboardPermissions.value?.map((p: any) => p.name) || []),
-        ...(userPermissions.value?.map((p: any) => p.name) || []),
-        ...(reportPermissions.value?.map((p: any) => p.name) || []),
-        ...(otherPermissions.value?.map((p: any) => p.name) || [])
-    ]
+    form.permissions = Object.values(permissions.value)
+        .flat()
+        .map((p: any) => p.name)
+}
+
+// Helpers for dynamic group rendering
+const groupIcons: Record<string, string> = {
+    dashboard: 'dashboard',
+    user_management: 'group',
+    role_management: 'admin_panel_settings',
+    report: 'analytics',
+    other: 'settings',
+}
+
+function getGroupIcon(groupName: string) {
+    return groupIcons[groupName] || 'settings'
+}
+
+function formatGroupName(groupName: string) {
+    return groupName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const clearAllPermissions = () => {
     form.permissions = []
 }
-
-
 // Handle form submission
 const handleSubmit = async () => {
     if (!validateForm()) {

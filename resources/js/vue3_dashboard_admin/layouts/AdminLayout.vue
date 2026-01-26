@@ -45,7 +45,7 @@
             <!-- Navigation menu -->
             <nav class="flex flex-col gap-1 flex-1 overflow-y-auto">
                 <!-- Level 1 - Dashboard -->
-                <router-link to="/dashboard/index"
+                <router-link v-if="authStore.hasPermission('dashboard.view')" to="/dashboard/index"
                     class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95"
                     @click="closeMobileSidebar"
                     active-class="bg-primary/10 text-primary-light border border-primary/20">
@@ -55,7 +55,7 @@
                 </router-link>
 
                 <!-- Users Menu -->
-                <router-link to="/user_management/index"
+                <router-link v-if="authStore.hasPermission('user_management.view')" to="/user_management/index"
                     class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer">
                     <div class="flex items-center gap-4">
                         <span
@@ -65,7 +65,7 @@
                 </router-link>
 
                 <!-- Roles Menu -->
-                <router-link to="/role_management/index"
+                <router-link v-if="authStore.hasPermission('role_management.view')" to="/role_management/index"
                     class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer">
                     <div class="flex items-center gap-4">
                         <span
@@ -214,8 +214,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Reactive state
 const sidebarOpen = ref(false)

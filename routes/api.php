@@ -22,7 +22,7 @@ Route::prefix('v1')->group(function () {
         Route::post('users', [UserController::class, 'store'])->name('users.store');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->where('user', '[0-9]+');
         Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->where('user', '[0-9]+');
-        Route::patch('users/{user}', [UserController::class, 'update']);
+        Route::patch('users/{user}', action: [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->where('user', '[0-9]+');
 
         // Role management routes
