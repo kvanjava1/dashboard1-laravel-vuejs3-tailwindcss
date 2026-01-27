@@ -13,6 +13,7 @@
             <span class="material-symbols-outlined text-[20px]">delete</span>
         </button>
         <button
+            v-if="showView !== false"
             class="p-2 text-slate-600 hover:text-info hover:bg-slate-100 rounded-full transition-colors"
             @click="$emit('view')">
             <span class="material-symbols-outlined text-[20px]">visibility</span>
@@ -21,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ showEdit?: boolean; showDelete?: boolean }>()
+defineProps<{ showEdit?: boolean; showDelete?: boolean; showView?: boolean }>()
 defineEmits<{
     edit: []
     delete: []

@@ -7,10 +7,10 @@
             </template>
             <template #actions>
                 <PageHeaderActions>
-                    <ActionButton icon="add" @click="goToAddRole">
+                    <ActionButton v-if="canAddRole" icon="add" @click="goToAddRole">
                         Add New
                     </ActionButton>
-                    <ActionDropdown>
+                    <ActionDropdown v-if="canSearchRole">
                         <ActionDropdownItem icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
                         </ActionDropdownItem>
@@ -142,7 +142,7 @@
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
                                         <Button
-                                            v-if="role.name !== 'super_admin'"
+                                            v-if="role.name !== 'super_admin' && canEditRole"
                                             variant="ghost"
                                             size="xs"
                                             left-icon="edit"
@@ -150,14 +150,7 @@
                                             @click="editRole(role)"
                                         />
                                         <Button
-                                            v-else
-                                            variant="ghost"
-                                            size="xs"
-                                            left-icon="edit"
-                                            title="Super admin role cannot be edited"
-                                            disabled
-                                        />
-                                        <Button
+                                            v-if="canViewRoleDetail"
                                             variant="ghost"
                                             size="xs"
                                             left-icon="visibility"
@@ -165,7 +158,7 @@
                                             @click="viewPermissions(role)"
                                         />
                                         <Button
-                                            v-if="role.name !== 'super_admin'"
+                                            v-if="role.name !== 'super_admin' && canDeleteRole"
                                             variant="ghost"
                                             size="xs"
                                             :disabled="isDeleting"
@@ -223,9 +216,19 @@ import { useRouter } from 'vue-router'
 import { useApi } from '../../../composables/useApi'
 import { apiRoutes } from '../../../config/apiRoutes'
 import { showConfirm, showToast } from '../../../composables/useSweetAlert'
+import { useAuthStore } from '../../../stores/auth'
 
 const router = useRouter()
 const { get, del } = useApi()
+const authStore = useAuthStore()
+
+// Permission checks
+const canAddRole = computed(() => authStore.hasPermission('role_management.add'))
+const canEditRole = computed(() => authStore.hasPermission('role_management.edit'))
+const canDeleteRole = computed(() => authStore.hasPermission('role_management.delete'))
+const canViewRoleDetail = computed(() => authStore.hasPermission('role_management.view_detail'))
+const canSearchRole = computed(() => authStore.hasPermission('role_management.search'))
+
 const showAdvancedFilter = ref(false)
 const isLoading = ref(true)
 const isDeleting = ref(false)
@@ -333,16 +336,29 @@ const goToAddRole = () => {
 }
 
 const editRole = (role: any) => {
+    if (!canEditRole.value) {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit roles.' })
+        return
+    }
     router.push({ name: 'role_management.edit', params: { id: role.id } })
 }
 
 const viewPermissions = (role: any) => {
+    if (!canViewRoleDetail.value) {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to view role permissions.' })
+        return
+    }
     selectedRole.value = role
     showPermissionsModal.value = true
 }
 
 
 const deleteRole = async (role: any) => {
+    if (!canDeleteRole.value) {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to delete roles.' })
+        return
+    }
+
     const roleName = role.display_name || role.name
     const confirmed = await showConfirm({
         title: `Delete role "${roleName}"?`,

@@ -140,6 +140,15 @@
                             class="absolute top-1.5 right-2 size-2.5 bg-danger rounded-full border-2 border-white animate-pulse"></span>
                     </button>
 
+                    <!-- Logout Button -->
+                    <button
+                        @click="handleLogout"
+                        class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-danger hover:bg-danger/10 rounded-full transition-colors duration-200 hover:scale-105 border border-border-light"
+                        title="Logout">
+                        <span class="material-symbols-outlined text-sm">logout</span>
+                        <span class="text-sm font-medium hidden sm:inline">Logout</span>
+                    </button>
+
                     <!-- Profile with Dropdown -->
                     <div class="relative">
                         <div class="flex items-center gap-3 pl-6 border-l border-border-light cursor-pointer group"

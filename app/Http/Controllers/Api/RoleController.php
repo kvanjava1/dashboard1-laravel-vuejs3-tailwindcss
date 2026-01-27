@@ -35,7 +35,7 @@ class RoleController extends Controller
             // Get filter parameters
             $filters = [
                 'search' => $request->get('search'),
-                'permissions' => $request->get('permissions', []),
+                'permissions' => $request->get('permissions', default: []),
             ];
 
             $result = $this->roleService->getFilteredPaginatedRoles($perPage, $page, $filters);
@@ -156,6 +156,14 @@ class RoleController extends Controller
     public function destroy(int $roleId): JsonResponse
     {
         try {
+            // Prevent deletion of super admin role
+            $role = $this->roleService->findRole($roleId);
+            if ($role && $role->name === 'super_admin') {
+                return response()->json([
+                    'message' => 'Cannot delete super admin role',
+                ], 403);
+            }
+
             $this->roleService->deleteRole($roleId);
 
             return response()->json([

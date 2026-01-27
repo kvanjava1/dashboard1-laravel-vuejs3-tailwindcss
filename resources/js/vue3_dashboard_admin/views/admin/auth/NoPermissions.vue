@@ -34,6 +34,14 @@
             <!-- Action Buttons -->
             <div class="space-y-3">
                 <button
+                    @click="handleLogout"
+                    class="w-full px-6 py-3 bg-gradient-to-r from-danger to-danger-dark text-white font-semibold rounded-xl hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                    <span class="material-symbols-outlined text-sm">logout</span>
+                    Logout
+                </button>
+                
+                <button
                     @click="goBack"
                     class="w-full px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-semibold rounded-xl hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
                 >
@@ -65,8 +73,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Component logic remains simple - no sensitive permission info displayed
 
@@ -81,5 +91,16 @@ const goBack = () => {
 
 const goHome = () => {
     router.push({ name: 'dashboard.index' })
+}
+
+const handleLogout = async () => {
+    try {
+        await authStore.logout()
+        router.push({ name: 'login' })
+    } catch (error) {
+        console.error('Logout failed:', error)
+        // Still redirect to login even if logout fails
+        router.push({ name: 'login' })
+    }
 }
 </script>

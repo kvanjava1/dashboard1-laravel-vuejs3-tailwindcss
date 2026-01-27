@@ -21,6 +21,7 @@ class RolePermissionSeeder extends Seeder
             ],
             'user_management' => [
                 'user_management.view',
+                'user_management.view_detail',
                 'user_management.add',
                 'user_management.edit',
                 'user_management.delete',
@@ -28,15 +29,21 @@ class RolePermissionSeeder extends Seeder
             ],
             'role_management' => [
                 'role_management.view',
+                'role_management.view_detail',
                 'role_management.add',
                 'role_management.edit',
                 'role_management.delete',
                 'role_management.search',
             ],
-            'report' => [
-                'report.view',
-                'report.export',
+            'profile_management' => [
+                'profile.view',
+                'profile.edit',
+                'profile.update_password',
             ],
+            'settings' => [
+                'settings.view',
+                'settings.edit',
+            ]
         ];
 
         // Create all permissions (flattened)

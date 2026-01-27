@@ -90,6 +90,7 @@
                                         @view="() => openUserDetail(user)"
                                         :show-edit="canEditUser"
                                         :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
+                                        :show-view="canViewUserDetail"
                                     />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
@@ -135,6 +136,12 @@ const showUserDetail = ref(false)
 const selectedUser = ref<User | null>(null)
 
 function openUserDetail(user: User) {
+    // Check permission before opening user detail
+    if (!canViewUserDetail.value) {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to view user details.' })
+        return
+    }
+
     // Fetch full user details from API
     get(`/api/v1/users/${user.id}`)
         .then(async (response) => {
@@ -172,6 +179,7 @@ const authStore = useAuthStore()
 const canAddUser = computed(() => authStore.hasPermission('user_management.add'))
 const canEditUser = computed(() => authStore.hasPermission('user_management.edit'))
 const canDeleteUser = computed(() => authStore.hasPermission('user_management.delete'))
+const canViewUserDetail = computed(() => authStore.hasPermission('user_management.view_detail'))
 const canSearchUser = computed(() => authStore.hasPermission('user_management.search'))
 
 // Modal state

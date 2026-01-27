@@ -53,80 +53,28 @@
                     </h4>
 
                     <div class="grid gap-4">
-                        <!-- Dashboard Permissions -->
-                        <div v-if="getPermissionsByGroup('dashboard').length > 0" class="border border-slate-200 rounded-lg p-5 bg-blue-50/30">
+                        <!-- Dynamic Permission Categories -->
+                        <div
+                            v-for="(permissions, category) in groupedPermissions"
+                            :key="category"
+                            class="border border-slate-200 rounded-lg p-5"
+                            :class="getCategoryStyle(category)"
+                        >
                             <h5 class="text-md font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-lg text-blue-600">dashboard</span>
-                                Dashboard Permissions
-                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-auto">
-                                    {{ getPermissionsByGroup('dashboard').length }}
+                                <span class="material-symbols-outlined text-lg" :class="getCategoryIconClass(category)">
+                                    {{ getCategoryIcon(category) }}
+                                </span>
+                                {{ formatCategoryName(category) }}
+                                <span class="text-xs px-2 py-1 rounded-full ml-auto" :class="getCategoryBadgeClass(category)">
+                                    {{ permissions.length }}
                                 </span>
                             </h5>
                             <div class="flex flex-wrap gap-2">
                                 <span
-                                    v-for="permission in getPermissionsByGroup('dashboard')"
+                                    v-for="permission in permissions"
                                     :key="permission"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                >
-                                    {{ permission }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- User Management Permissions -->
-                        <div v-if="getPermissionsByGroup('user_management').length > 0" class="border border-slate-200 rounded-lg p-5 bg-green-50/30">
-                            <h5 class="text-md font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-lg text-green-600">group</span>
-                                User Management
-                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                                    {{ getPermissionsByGroup('user_management').length }}
-                                </span>
-                            </h5>
-                            <div class="flex flex-wrap gap-2">
-                                <span
-                                    v-for="permission in getPermissionsByGroup('user_management')"
-                                    :key="permission"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                                >
-                                    {{ permission }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Report Permissions -->
-                        <div v-if="getPermissionsByGroup('report').length > 0" class="border border-slate-200 rounded-lg p-5 bg-purple-50/30">
-                            <h5 class="text-md font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-lg text-purple-600">analytics</span>
-                                Reports
-                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full ml-auto">
-                                    {{ getPermissionsByGroup('report').length }}
-                                </span>
-                            </h5>
-                            <div class="flex flex-wrap gap-2">
-                                <span
-                                    v-for="permission in getPermissionsByGroup('report')"
-                                    :key="permission"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                                >
-                                    {{ permission }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Other Permissions -->
-                        <div v-if="getPermissionsByGroup('other').length > 0" class="border border-slate-200 rounded-lg p-5 bg-slate-50/50">
-                            <h5 class="text-md font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-lg text-slate-600">settings</span>
-                                Other Permissions
-                                <span class="text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded-full ml-auto">
-                                    {{ getPermissionsByGroup('other').length }}
-                                </span>
-                            </h5>
-                            <div class="flex flex-wrap gap-2">
-                                <span
-                                    v-for="permission in getPermissionsByGroup('other')"
-                                    :key="permission"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800"
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                                    :class="getPermissionBadgeClass(category)"
                                 >
                                     {{ permission }}
                                 </span>
@@ -211,25 +159,99 @@ const editRole = () => {
     }
 }
 
-// Group permissions by category
-const getPermissionsByGroup = (group: string) => {
-    if (!props.role || !props.role.permissions) return []
+// Group permissions dynamically by category
+const groupedPermissions = computed(() => {
+    if (!props.role || !props.role.permissions) return {}
 
-    const groupMappings: { [key: string]: string[] } = {
-        dashboard: ['dashboard.'],
-        user_management: ['user_management.'],
-        report: ['report.'],
-        other: []
-    }
+    const groups: { [key: string]: string[] } = {}
 
-    return props.role.permissions.filter((permission: string) => {
-        if (group === 'other') {
-            return !(groupMappings.dashboard || []).some(prefix => permission.startsWith(prefix)) &&
-                   !(groupMappings.user_management || []).some(prefix => permission.startsWith(prefix)) &&
-                   !(groupMappings.report || []).some(prefix => permission.startsWith(prefix))
+    props.role.permissions.forEach((permission: string) => {
+        const category = permission.split('.')[0] || 'other'
+        if (!groups[category]) {
+            groups[category] = []
         }
-        return (groupMappings[group] || []).some(prefix => permission.startsWith(prefix))
+        groups[category].push(permission)
     })
+
+    return groups
+})
+
+// Get category display name
+const formatCategoryName = (category: string): string => {
+    const names: { [key: string]: string } = {
+        dashboard: 'Dashboard',
+        user_management: 'User Management',
+        role_management: 'Role Management',
+        profile: 'Profile Management',
+        settings: 'Settings',
+        report: 'Reports & Analytics'
+    }
+    return names[category] || category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+// Get category background style
+const getCategoryStyle = (category: string): string => {
+    const styles: { [key: string]: string } = {
+        dashboard: 'bg-blue-50/30',
+        user_management: 'bg-green-50/30',
+        role_management: 'bg-orange-50/30',
+        profile: 'bg-purple-50/30',
+        settings: 'bg-slate-50/50',
+        report: 'bg-indigo-50/30'
+    }
+    return styles[category] || 'bg-slate-50/50'
+}
+
+// Get category icon
+const getCategoryIcon = (category: string): string => {
+    const icons: { [key: string]: string } = {
+        dashboard: 'dashboard',
+        user_management: 'group',
+        role_management: 'manage_accounts',
+        profile: 'person',
+        settings: 'settings',
+        report: 'analytics'
+    }
+    return icons[category] || 'security'
+}
+
+// Get category icon class
+const getCategoryIconClass = (category: string): string => {
+    const classes: { [key: string]: string } = {
+        dashboard: 'text-blue-600',
+        user_management: 'text-green-600',
+        role_management: 'text-orange-600',
+        profile: 'text-purple-600',
+        settings: 'text-slate-600',
+        report: 'text-indigo-600'
+    }
+    return classes[category] || 'text-slate-600'
+}
+
+// Get category badge class
+const getCategoryBadgeClass = (category: string): string => {
+    const classes: { [key: string]: string } = {
+        dashboard: 'bg-blue-100 text-blue-800',
+        user_management: 'bg-green-100 text-green-800',
+        role_management: 'bg-orange-100 text-orange-800',
+        profile: 'bg-purple-100 text-purple-800',
+        settings: 'bg-slate-100 text-slate-800',
+        report: 'bg-indigo-100 text-indigo-800'
+    }
+    return classes[category] || 'bg-slate-100 text-slate-800'
+}
+
+// Get permission badge class
+const getPermissionBadgeClass = (category: string): string => {
+    const classes: { [key: string]: string } = {
+        dashboard: 'bg-blue-100 text-blue-800',
+        user_management: 'bg-green-100 text-green-800',
+        role_management: 'bg-orange-100 text-orange-800',
+        profile: 'bg-purple-100 text-purple-800',
+        settings: 'bg-slate-100 text-slate-800',
+        report: 'bg-indigo-100 text-indigo-800'
+    }
+    return classes[category] || 'bg-slate-100 text-slate-800'
 }
 
 // Handle escape key
