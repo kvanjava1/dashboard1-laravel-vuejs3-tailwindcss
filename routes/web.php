@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/management/{any}', function () {
@@ -7,5 +8,5 @@ Route::get('/management/{any}', function () {
 })->where('any', '.*');
 
 Route::get('/', function() {
-    return view('welcome');  // Laravel welcome page
+    return response()->json(['message' => 'Go to ' .  config('app.url') . '/management/login to access the dashboard.']);
 });
