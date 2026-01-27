@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Managements;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
@@ -80,49 +80,25 @@ class UserController extends Controller
         try {
             $validated = $request->validated();
 
-            // Create the user
-            $user = User::create([
-                'name' => $request->input('name'),
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'status' => $validated['status'],
-                'password' => bcrypt($validated['password']),
-                'bio' => $validated['bio'] ?? null,
-            ]);
+            // Add created_by information
+            $validated['created_by'] = $request->user()->id ?? 'system';
 
-            // Handle profile image upload
+            // Include the uploaded file in the data if present
             if ($request->hasFile('profile_image')) {
-                $imagePath = $request->file('profile_image')->store('avatars', 'public');
-                $user->update(['profile_image' => $imagePath]);
+                $validated['profile_image'] = $request->file('profile_image');
             }
 
-            // Assign role using Spatie Permission
-            $user->assignRole($validated['role']);
+            $userData = $this->userService->createUser($validated);
 
-            // Log the creation
-            Log::info('User created successfully', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'role' => $validated['role'],
-                'created_by' => $request->user()->id ?? 'system'
-            ]);
+            // Determine the appropriate message based on whether user was restored or created
+            $message = isset($userData['restored']) && $userData['restored']
+                ? 'User account restored and updated successfully'
+                : 'User created successfully';
 
             // Return success response
             return response()->json([
-                'message' => 'User created successfully',
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'first_name' => $validated['first_name'],
-                    'last_name' => $validated['last_name'],
-                    'email' => $user->email,
-                    'phone' => $validated['phone'] ?? null,
-                    'profile_image' => $user->profile_image_url,
-                    'bio' => $validated['bio'] ?? null,
-                    'role' => $validated['role'],
-                    'status' => $validated['status'],
-                    'created_at' => $user->created_at,
-                ],
+                'message' => $message,
+                'user' => $userData,
             ], 201);
 
         } catch (\Exception $e) {

@@ -127,44 +127,92 @@ class UserService
     /**
      * Create a new user
      */
-    public function createUser(array $data): array
+    public function createUser(array $data, $request = null): array
     {
         try {
-            // Create the user
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'] ?? null,
-                'status' => $data['status'],
-                'password' => bcrypt($data['password']),
-                'bio' => $data['bio'] ?? null,
-            ]);
+            // Check if there's a soft deleted user with this email
+            $existingUser = User::withTrashed()->where('email', $data['email'])->first();
 
-            // Handle profile image upload
+            if ($existingUser && $existingUser->trashed()) {
+                // Restore the soft deleted user
+                $existingUser->restore();
+
+                // Construct the full name from first_name and last_name
+                $data['name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+                
+                // Update the user with new data
+                $existingUser->update([
+                    'name' => $data['name'],
+                    'phone' => $data['phone'] ?? null,
+                    'status' => $data['status'],
+                    'password' => bcrypt($data['password']),
+                    'bio' => $data['bio'] ?? null,
+                ]);
+
+                $user = $existingUser;
+
+                Log::info('Soft deleted user restored and updated', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'restored_by' => $data['created_by'] ?? 'system'
+                ]);
+            } else {
+                // Create new user
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'phone' => $data['phone'] ?? null,
+                    'status' => $data['status'],
+                    'password' => bcrypt($data['password']),
+                    'bio' => $data['bio'] ?? null,
+                ]);
+
+                Log::info('New user created', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'created_by' => $data['created_by'] ?? 'system'
+                ]);
+            }
+
+            // Handle profile image upload (for both restored and new users)
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
                 $imagePath = $data['profile_image']->store('avatars', 'public');
                 $user->update(['profile_image' => $imagePath]);
             }
 
-            // Assign role using Spatie Permission
-            if (isset($data['role'])) {
-                $user->assignRole($data['role']);
-            }
+            // Assign role using Spatie Permission (re-assign for restored users, assign for new)
+            $user->syncRoles([$data['role']]); // Use syncRoles to replace existing roles
 
-            // Reload with roles
-            $user->load('roles');
-
-            Log::info('User created successfully', [
+            // Log the final action
+            Log::info('User creation/restore completed', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'role' => $data['role'] ?? null,
+                'role' => $data['role'],
+                'action' => $existingUser && $existingUser->trashed() ? 'restored' : 'created',
+                'created_by' => $data['created_by'] ?? 'system'
             ]);
 
-            return $this->formatUserData($user);
+            // Return formatted user data
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $user->email,
+                'phone' => $data['phone'] ?? null,
+                'profile_image' => $user->profile_image_url,
+                'bio' => $data['bio'] ?? null,
+                'role' => $data['role'],
+                'status' => $data['status'],
+                'created_at' => $user->created_at,
+                'restored' => $existingUser && $existingUser->trashed(),
+            ];
+
         } catch (\Exception $e) {
-            Log::error('Failed to create user', [
-                'email' => $data['email'] ?? null,
-                'error' => $e->getMessage()
+            Log::error('Failed to create/restore user', [
+                'error' => $e->getMessage(),
+                'email' => $data['email'],
+                'created_by' => $data['created_by'] ?? 'system'
             ]);
             throw $e;
         }

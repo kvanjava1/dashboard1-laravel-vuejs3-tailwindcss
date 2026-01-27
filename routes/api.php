@@ -2,9 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\Managements\UserController;
+use App\Http\Controllers\Api\Managements\RoleController;
+use App\Http\Controllers\Api\Managements\PermissionController;
+use App\Http\Controllers\Api\Managements\ExampleManagementController;
 
 Route::prefix('v1')->group(function () {
     // Public auth routes with rate limiting

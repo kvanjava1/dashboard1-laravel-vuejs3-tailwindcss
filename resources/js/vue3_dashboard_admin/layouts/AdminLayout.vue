@@ -70,7 +70,7 @@
                     <div class="flex items-center gap-4">
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">manage_accounts</span>
-                        <p class="text-sm font-medium">Role Management</p>
+                        <p class="text-sm font-medium">Role Managements</p>
                     </div>
                 </router-link>
 

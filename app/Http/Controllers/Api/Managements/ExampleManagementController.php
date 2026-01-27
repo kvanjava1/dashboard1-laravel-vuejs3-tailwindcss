@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Managements;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExampleManagement;
