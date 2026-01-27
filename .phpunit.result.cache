@@ -1,0 +1,1 @@
+{"version":2,"defects":[],"times":{"Tests\\Feature\\AuthApiTest::test_me_endpoint_returns_profile_picture":0.25,"Tests\\Feature\\AuthApiTest::test_me_endpoint_returns_empty_profile_image_when_none_set":0.005}}

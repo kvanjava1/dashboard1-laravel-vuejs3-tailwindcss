@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -229,13 +229,13 @@ const openMenus = reactive<Record<string, boolean>>({
     'settings-menu': false
 })
 
-// User data (replace with actual auth data)
-const user = reactive({
-    name: 'Admin User',
-    email: 'admin@example.com',
-    role: 'Super Admin',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAmhtkm9iCmViNWJB0Yzmd6NVIcNUgWLAscqdvfSH8O7OUDOxIT2LBZVMg3BKk04dWHNu8nHsjmouKQzSJydBfxPsvY_ZpRNhufIiOkkqbsbWI7EP2XbQzai7KRe9oZNRLpyI7SbU6yzS5M4CfnWWc9A0jjlOEIGGHD2CPlC4gSh2dHZp4_lxzXEfbL7nizekYJoLTYTuf5Zl6LtHVa9Sjrp4k-SRziH9pJTj6jbqF3yiKpfnCp56pBOytvhWxqN-vFwkYJ9jIcTuE'
-})
+// User data from auth store
+const user = computed(() => ({
+    name: authStore.currentUser?.name || 'Admin User',
+    email: authStore.currentUser?.email || 'admin@example.com',
+    role: authStore.currentUser?.role || 'Super Admin',
+    avatar: authStore.currentUser?.profile_image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAmhtkm9iCmViNWJB0Yzmd6NVIcNUgWLAscqdvfSH8O7OUDOxIT2LBZVMg3BKk04dWHNu8nHsjmouKQzSJydBfxPsvY_ZpRNhufIiOkkqbsbWI7EP2XbQzai7KRe9oZNRLpyI7SbU6yzS5M4CfnWWc9A0jjlOEIGGHD2CPlC4gSh2dHZp4_lxzXEfbL7nizekYJoLTYTuf5Zl6LtHVa9Sjrp4k-SRziH9pJTj6jbqF3yiKpfnCp56pBOytvhWxqN-vFwkYJ9jIcTuE'
+}))
 
 // Methods
 const toggleSidebar = () => {
@@ -268,12 +268,13 @@ const handleSearch = () => {
 }
 
 const handleLogout = async () => {
-    // Implement logout logic
     try {
-        // await logout API call
+        await authStore.logout()
         router.push({ name: 'login' })
     } catch (error) {
         console.error('Logout failed:', error)
+        // Still redirect to login even if logout fails
+        router.push({ name: 'login' })
     }
 }
 

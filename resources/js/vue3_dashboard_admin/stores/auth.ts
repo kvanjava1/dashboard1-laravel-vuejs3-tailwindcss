@@ -6,6 +6,9 @@ interface User {
   id: number;
   name: string;
   email: string;
+  phone?: string;
+  status?: string;
+  profile_image?: string;
   role: string;
   permissions: string[];
 }

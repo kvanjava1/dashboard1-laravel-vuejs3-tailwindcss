@@ -97,7 +97,7 @@
                         </FormField>
                     </div>
                 </div>
-                </div>
+            </div>
         </template>
 
         <!-- Modal Footer -->

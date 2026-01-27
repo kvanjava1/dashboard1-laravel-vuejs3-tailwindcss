@@ -60,6 +60,9 @@ class AuthService
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'phone' => $user->phone,
+            'status' => $user->status,
+            'profile_image' => $user->profile_image_url,
             'role' => $user->roles->first()->name ?? null,
             'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
         ];

@@ -1,6 +1,7 @@
 <template>
     <div class="flex items-center gap-2">
         <button
+            v-if="showEdit !== false"
             class="p-2 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-full transition-colors"
             @click="$emit('edit')">
             <span class="material-symbols-outlined text-[20px]">edit</span>
@@ -20,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ showDelete?: boolean }>()
+defineProps<{ showEdit?: boolean; showDelete?: boolean }>()
 defineEmits<{
     edit: []
     delete: []

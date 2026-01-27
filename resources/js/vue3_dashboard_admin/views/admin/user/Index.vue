@@ -7,11 +7,11 @@
             </template>
             <template #actions>
                 <PageHeaderActions>
-                    <ActionButton icon="add" @click="goToAddUser">
+                    <ActionButton v-if="canAddUser" icon="add" @click="goToAddUser">
                         Add New
                     </ActionButton>
-                    <ActionDropdown>
-                        <ActionDropdownItem icon="filter_list" @click="openAdvancedFilter">
+                    <ActionDropdown v-if="canSearchUser">
+                        <ActionDropdownItem v-if="canSearchUser" icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
                         </ActionDropdownItem>
                     </ActionDropdown>
@@ -72,23 +72,24 @@
                         <SimpleUserTableBody>
                             <SimpleUserTableBodyRow v-for="user in users" :key="user.id">
                                 <SimpleUserTableBodyCol>
-                                    <UserCellUser :name="user.name" :email="user.email" :avatar="user.avatar" />
+                                    <UserCellUser :name="user.name" :email="user.email" :avatar="user.avatar || ''" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <UserCellRole :role="user.role" />
+                                    <UserCellRole :role="user.role || ''" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <UserCellStatus :status="user.status" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <span class="text-sm text-slate-700">{{ user.joinedDate }}</span>
+                                    <span class="text-sm text-slate-700">{{ user.joined_date }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <UserCellActions
                                         @edit="handleEdit(user)"
                                         @delete="handleDelete(user)"
                                         @view="() => openUserDetail(user)"
-                                        :show-delete="user.role !== 'super_admin' && user.email !== 'super@admin.com'"
+                                        :show-edit="canEditUser"
+                                        :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
                                     />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
@@ -134,8 +135,17 @@ const showUserDetail = ref(false)
 const selectedUser = ref<User | null>(null)
 
 function openUserDetail(user: User) {
-    selectedUser.value = user
-    showUserDetail.value = true
+    // Fetch full user details from API
+    get(`/api/v1/users/${user.id}`)
+        .then(async (response) => {
+            const data = await response.json()
+            selectedUser.value = data.user
+            showUserDetail.value = true
+        })
+        .catch((err) => {
+            console.error('Failed to fetch user details:', err)
+            showToast({ icon: 'error', title: 'Failed to load user details', text: err?.message ?? '' })
+        })
 }
 import { ref, reactive, computed, onMounted } from 'vue'
 // Pagination indicator computed properties (like role management)
@@ -152,9 +162,17 @@ import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const { get, del } = useApi()
+const authStore = useAuthStore()
+
+// Permission checks
+const canAddUser = computed(() => authStore.hasPermission('user_management.add'))
+const canEditUser = computed(() => authStore.hasPermission('user_management.edit'))
+const canDeleteUser = computed(() => authStore.hasPermission('user_management.delete'))
+const canSearchUser = computed(() => authStore.hasPermission('user_management.search'))
 
 // Modal state
 const showAdvancedFilter = ref(false)
@@ -215,10 +233,27 @@ interface User {
     id: number
     name: string
     email: string
-    avatar: string
-    role: string  // API returns role names like 'super_admin', 'administrator', etc.
-    status: string  // API returns status values like 'active', 'inactive', 'pending'
-    joinedDate: string
+    username?: string
+    phone?: string
+    status: string
+    bio?: string
+    date_of_birth?: string
+    location?: string
+    timezone?: string
+    last_activity?: string
+    last_activity_formatted?: string
+    is_banned?: boolean
+    ban_reason?: string
+    banned_until?: string
+    banned_until_formatted?: string
+    profile_image?: string
+    profile_image_url?: string
+    role?: string
+    role_display_name?: string
+    created_at: string
+    updated_at: string
+    joined_date: string
+    avatar?: string  // For backward compatibility with existing code
 }
 
 const users = ref<User[]>([])
@@ -258,7 +293,7 @@ const fetchUsers = async () => {
             avatar: user.profile_image_url || '',
             role: user.role_display_name || user.role || '',
             status: user.status || '',
-            joinedDate: user.joined_date
+            joined_date: user.joined_date
         }))
 
         // Update pagination meta

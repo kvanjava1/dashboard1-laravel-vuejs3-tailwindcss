@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-bpS00NQs.css",
+    "file": "assets/app-BdYjLubm.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,12 +9,34 @@
     ]
   },
   "resources/js/vue3_dashboard_admin/app.ts": {
-    "file": "assets/app-DjRo1KU6.js",
+    "file": "assets/app-DueNj-db.js",
     "name": "app",
     "src": "resources/js/vue3_dashboard_admin/app.ts",
     "isEntry": true,
+    "dynamicImports": [
+      "resources/js/vue3_dashboard_admin/views/admin/example_management/Index.vue",
+      "resources/js/vue3_dashboard_admin/views/admin/example_management/Add.vue"
+    ],
     "css": [
-      "assets/app-Bakm0czn.css"
+      "assets/app-C31DFVhC.css"
+    ]
+  },
+  "resources/js/vue3_dashboard_admin/views/admin/example_management/Add.vue": {
+    "file": "assets/Add-SYIZJzmA.js",
+    "name": "Add",
+    "src": "resources/js/vue3_dashboard_admin/views/admin/example_management/Add.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/vue3_dashboard_admin/app.ts"
+    ]
+  },
+  "resources/js/vue3_dashboard_admin/views/admin/example_management/Index.vue": {
+    "file": "assets/Index-CbBMJcn2.js",
+    "name": "Index",
+    "src": "resources/js/vue3_dashboard_admin/views/admin/example_management/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/vue3_dashboard_admin/app.ts"
     ]
   }
 }

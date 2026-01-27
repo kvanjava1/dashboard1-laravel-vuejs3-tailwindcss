@@ -1,5 +1,5 @@
 <template>
-  <BaseModal v-model="isOpen" size="md">
+  <BaseModal v-model="isOpen" size="xl">
     <template #header>
       <span class="material-symbols-outlined text-2xl text-primary">person</span>
       <div>
@@ -11,11 +11,12 @@
     </template>
     <template #body>
       <div v-if="user" class="p-0">
-        <div class="flex flex-col items-center gap-2 mb-6">
-          <div class="w-20 h-20 rounded-full border-2 border-primary bg-slate-100 flex items-center justify-center overflow-hidden mb-2 relative">
+        <!-- Profile Header -->
+        <div class="flex flex-col items-center gap-4 mb-8 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+          <div class="w-24 h-24 rounded-full border-4 border-primary bg-slate-100 flex items-center justify-center overflow-hidden relative">
             <img
-              v-if="user.avatar"
-              :src="user.avatar"
+              v-if="user.profile_image_url"
+              :src="user.profile_image_url"
               alt="Avatar"
               class="w-full h-full object-cover rounded-full"
             />
@@ -26,29 +27,125 @@
               class="w-full h-full object-cover rounded-full"
             />
           </div>
-          <div class="text-lg font-bold text-slate-800">{{ user.name }}</div>
-          <div class="text-sm text-slate-500">{{ user.email }}</div>
-        </div>
-        <div class="bg-slate-50 rounded-xl border border-slate-200 p-6 mb-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div class="text-xs font-medium text-slate-500 mb-1">Role</div>
-              <UserCellRole :role="user.role" />
-            </div>
-            <div>
-              <div class="text-xs font-medium text-slate-500 mb-1">Status</div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-slate-800">{{ user.name }}</div>
+            <div class="text-sm text-slate-500 mb-2">{{ user.email }}</div>
+            <div class="flex items-center justify-center gap-2">
+              <UserCellRole :role="user.role || ''" />
+              <span class="text-slate-400">•</span>
               <UserCellStatus :status="user.status" />
             </div>
-            <div>
-              <div class="text-xs font-medium text-slate-500 mb-1">Joined Date</div>
-              <div class="text-sm text-slate-800">{{ user.joinedDate }}</div>
+          </div>
+        </div>
+
+        <!-- User Information Sections -->
+        <div class="space-y-6">
+          <!-- Basic Information -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h4 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">info</span>
+              Basic Information
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div v-if="user.username">
+                <div class="text-xs font-medium text-slate-500 mb-1">Username</div>
+                <div class="text-sm text-slate-800">{{ user.username }}</div>
+              </div>
+              <div v-if="user.phone">
+                <div class="text-xs font-medium text-slate-500 mb-1">Phone</div>
+                <div class="text-sm text-slate-800">{{ user.phone }}</div>
+              </div>
+              <div v-if="user.date_of_birth">
+                <div class="text-xs font-medium text-slate-500 mb-1">Date of Birth</div>
+                <div class="text-sm text-slate-800">{{ formatDate(user.date_of_birth) }}</div>
+              </div>
+              <div v-if="user.location">
+                <div class="text-xs font-medium text-slate-500 mb-1">Location</div>
+                <div class="text-sm text-slate-800">{{ user.location }}</div>
+              </div>
+              <div v-if="user.timezone">
+                <div class="text-xs font-medium text-slate-500 mb-1">Timezone</div>
+                <div class="text-sm text-slate-800">{{ user.timezone }}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">Joined Date</div>
+                <div class="text-sm text-slate-800">{{ user.joined_date }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bio Section -->
+          <div v-if="user.bio" class="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h4 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">description</span>
+              Bio
+            </h4>
+            <div class="text-sm text-slate-700 leading-relaxed">{{ user.bio }}</div>
+          </div>
+
+          <!-- Account Status -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h4 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">account_circle</span>
+              Account Status
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">Status</div>
+                <UserCellStatus :status="user.status" />
+              </div>
+              <div v-if="user.last_activity_formatted">
+                <div class="text-xs font-medium text-slate-500 mb-1">Last Activity</div>
+                <div class="text-sm text-slate-800">{{ user.last_activity_formatted }}</div>
+              </div>
+              <div v-if="user.is_banned" class="md:col-span-2">
+                <div class="text-xs font-medium text-slate-500 mb-2">Ban Information</div>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-red-500 mt-0.5">block</span>
+                    <div class="flex-1">
+                      <div class="text-sm font-medium text-red-800 mb-1">Account Banned</div>
+                      <div v-if="user.ban_reason" class="text-sm text-red-700 mb-2">{{ user.ban_reason }}</div>
+                      <div v-if="user.banned_until_formatted" class="text-xs text-red-600">
+                        Banned until: {{ user.banned_until_formatted }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Information -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h4 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">settings</span>
+              System Information
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">User ID</div>
+                <div class="text-sm text-slate-800 font-mono">{{ user.id }}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">Role</div>
+                <div class="text-sm text-slate-800">{{ user.role_display_name || user.role }}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">Created At</div>
+                <div class="text-sm text-slate-800">{{ formatDateTime(user.created_at) }}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-slate-500 mb-1">Last Updated</div>
+                <div class="text-sm text-slate-800">{{ formatDateTime(user.updated_at) }}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </template>
     <template #footer>
-      <button @click="closeModal" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+      <button @click="closeModal" class="px-6 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-slate-100 transition-all duration-200">
         Close
       </button>
     </template>
@@ -56,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, ref, onUnmounted } from 'vue'
 import BaseModal from '../../../components/ui/BaseModal.vue'
 import UserCellUser from '../../../components/ui/UserCellUser.vue'
 import UserCellRole from '../../../components/ui/UserCellRole.vue'
@@ -66,10 +163,26 @@ interface User {
   id: number
   name: string
   email: string
-  avatar: string
-  role: string
+  username?: string
+  phone?: string
   status: string
-  joinedDate: string
+  bio?: string
+  date_of_birth?: string
+  location?: string
+  timezone?: string
+  last_activity?: string
+  last_activity_formatted?: string
+  is_banned?: boolean
+  ban_reason?: string
+  banned_until?: string
+  banned_until_formatted?: string
+  profile_image?: string
+  profile_image_url?: string
+  role?: string
+  role_display_name?: string
+  created_at: string
+  updated_at: string
+  joined_date: string
 }
 
 const props = defineProps<{
@@ -78,16 +191,59 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['update:modelValue'])
 
-const isOpen = computed({
-  get: () => props.modelValue,
-  set: (v) => emit('update:modelValue', v)
+const isOpen = ref(false)
+
+// Watch for modal value changes
+watch(() => props.modelValue, (newValue) => {
+  isOpen.value = newValue
 })
 
-function closeModal() {
+watch(isOpen, (newValue) => {
+  emit('update:modelValue', newValue)
+})
+
+const closeModal = () => {
   isOpen.value = false
+}
+
+function formatDate(dateString: string): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+function formatDateTime(dateString: string): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 watch(() => props.user, (val) => {
   console.log('UserDetailModal user changed:', val)
 }, { immediate: true })
+
+// Handle escape key
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isOpen.value) {
+    closeModal()
+  }
+}
+
+document.addEventListener('keydown', handleKeydown)
+
+// Cleanup
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
 </script>
