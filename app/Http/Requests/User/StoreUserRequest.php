@@ -22,8 +22,7 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,NULL,id,deleted_at,NULL|max:255',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|max:255|confirmed',
@@ -40,8 +39,7 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'first_name.required' => 'First name is required.',
-            'last_name.required' => 'Last name is required.',
+            'name.required' => 'Full name is required.',
             'email.required' => 'Email address is required.',
             'email.email' => 'Please provide a valid email address.',
             'email.unique' => 'This email address is already in use.',
@@ -54,16 +52,5 @@ class StoreUserRequest extends FormRequest
             'status.in' => 'Please select a valid account status.',
             'bio.max' => 'Bio cannot exceed 1000 characters.',
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        // Combine first_name and last_name into a full name
-        $this->merge([
-            'name' => trim($this->first_name . ' ' . $this->last_name),
-        ]);
     }
 }

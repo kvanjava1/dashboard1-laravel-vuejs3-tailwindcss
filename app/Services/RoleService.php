@@ -5,15 +5,18 @@ namespace App\Services;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Log;
+use App\Services\ProtectionService;
 use App\Services\PermissionService;
 
 class RoleService
 {
     protected PermissionService $permissionService;
+    protected ProtectionService $protectionService;
 
     public function __construct()
     {
         $this->permissionService = app(PermissionService::class);
+        $this->protectionService = app(ProtectionService::class);
     }
 
     /**
@@ -185,9 +188,13 @@ class RoleService
         try {
             $role = Role::findOrFail($roleId);
 
-            // Prevent editing of super_admin role
-            if ($role->name === 'super_admin') {
-                throw new \Exception('Super admin role cannot be edited', 403);
+            // Check if role is protected from modification
+            if ($this->protectionService->isRoleProtectedFromModification($role)) {
+                $reason = $this->protectionService->getRoleProtectionReason($role);
+                $this->protectionService->throwProtectionException(
+                    'Cannot modify protected role',
+                    $reason
+                );
             }
 
             // Update basic info
@@ -227,9 +234,13 @@ class RoleService
         try {
             $role = Role::findOrFail($roleId);
 
-            // Prevent deletion of super_admin role
-            if ($role->name === 'super_admin') {
-                throw new \Exception('Cannot delete super_admin role', 403);
+            // Check if role is protected from deletion
+            if ($this->protectionService->isRoleProtectedFromDeletion($role)) {
+                $reason = $this->protectionService->getRoleProtectionReason($role);
+                $this->protectionService->throwProtectionException(
+                    'Cannot delete protected role',
+                    $reason
+                );
             }
 
             // Check if role has assigned users

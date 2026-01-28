@@ -39,9 +39,24 @@
   - `settings.*`: System configuration
 
 #### Super Admin Protections
-- Cannot delete super admin users
-- Cannot modify super admin roles
-- Super admin has all permissions automatically
+The system implements configurable protection for critical accounts and roles through the `ProtectionService` and `config/protected_entities.php`:
+
+- **Cannot delete super admin users**: Configured in `protected_accounts['super@admin.com']['protect_deletion']`
+- **Cannot modify super admin roles**: Configured in `protected_roles['super_admin']['protect_modification']`
+- **Super admin has all permissions automatically**: Granted via `RolePermissionSeeder`
+
+**Protection Logic**:
+```php
+// Check account protection
+if ($protectionService->isAccountProtectedFromDeletion($user)) {
+    $protectionService->throwProtectionException('Cannot delete protected account');
+}
+
+// Check role protection
+if ($protectionService->isRoleProtectedFromModification($role)) {
+    $protectionService->throwProtectionException('Cannot modify protected role');
+}
+```
 
 ### User Profile Management
 

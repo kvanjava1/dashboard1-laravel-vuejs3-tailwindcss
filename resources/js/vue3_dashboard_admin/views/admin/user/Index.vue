@@ -117,6 +117,8 @@
         <UserAdvancedFilterModal
             v-model="showAdvancedFilter"
             :initial-filters="currentFilters"
+            :available-roles="availableRoles"
+            :status-options="statusOptions"
             @apply="handleApplyFilters"
             @reset="handleResetFilters"
         />
@@ -211,6 +213,10 @@ const pagination = reactive({
     from: 0,
     to: 0
 })
+
+// Available roles and status options from API
+const availableRoles = ref([])
+const statusOptions = ref([])
 
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
@@ -313,6 +319,10 @@ const fetchUsers = async () => {
             from: data.meta.from,
             to: data.meta.to
         })
+
+        // Store available roles and status options
+        availableRoles.value = data.filters.available_roles
+        statusOptions.value = data.filters.status_options
 
     } catch (err: any) {
         error.value = err.message || 'Failed to load users'

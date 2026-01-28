@@ -124,15 +124,6 @@ class RoleController extends Controller
     public function update(UpdateRoleRequest $request, int $roleId): JsonResponse
     {
         try {
-            // Prevent editing of super_admin role
-            $role = Role::findOrFail($roleId);
-            if ($role->name === 'super_admin') {
-                return response()->json([
-                    'message' => 'Super admin role cannot be edited',
-                    'error' => 'The super admin role is protected and cannot be modified',
-                ], 403);
-            }
-
             $role = $this->roleService->updateRole($roleId, $request->validated());
 
             return response()->json([

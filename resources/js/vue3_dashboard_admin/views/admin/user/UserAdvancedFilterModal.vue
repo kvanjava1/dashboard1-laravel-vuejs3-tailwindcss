@@ -38,17 +38,12 @@
 
                         <FormField v-model="filters.role" label="User Role" type="select">
                             <option value="">All Roles</option>
-                            <option value="administrator">Administrator</option>
-                            <option value="editor">Editor</option>
-                            <option value="viewer">Viewer</option>
-                            <option value="moderator">Moderator</option>
+                            <option v-for="role in availableRoles" :key="role.name" :value="role.name">{{ role.display_name }}</option>
                         </FormField>
 
                         <FormField v-model="filters.status" label="Account Status" type="select">
                             <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="pending">Pending</option>
+                            <option v-for="status in statusOptions" :key="status.value" :value="status.value">{{ status.label }}</option>
                         </FormField>
                     </div>
                 </div>
@@ -138,6 +133,8 @@ interface FilterOptions {
 interface Props {
     modelValue: boolean
     initialFilters?: Partial<FilterOptions>
+    availableRoles?: Array<{ id: number; name: string; display_name: string }>
+    statusOptions?: Array<{ value: string; label: string }>
 }
 
 interface Emits {
@@ -148,7 +145,9 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     modelValue: false,
-    initialFilters: () => ({})
+    initialFilters: () => ({}),
+    availableRoles: () => [],
+    statusOptions: () => []
 })
 
 const emit = defineEmits<Emits>()
@@ -187,7 +186,6 @@ const applyFilters = () => {
 
 const resetFilters = () => {
     Object.assign(filters, {
-        search: '',
         name: '',
         email: '',
         role: '',

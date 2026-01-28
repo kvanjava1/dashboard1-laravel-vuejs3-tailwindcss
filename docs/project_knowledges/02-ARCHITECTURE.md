@@ -123,6 +123,7 @@ public function store(StoreUserRequest $request): JsonResponse
 - `config/permission.php`: Spatie Permission settings
 - `config/database.php`: Database connections
 - `config/sanctum.php`: API token settings
+- `config/protected_entities.php`: Protected accounts and roles configuration
 
 ### Docker Configuration
 - Separate containers for PHP, Node.js, Nginx

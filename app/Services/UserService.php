@@ -6,9 +6,16 @@ use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ProtectionService;
 
 class UserService
 {
+    protected ProtectionService $protectionService;
+
+    public function __construct(ProtectionService $protectionService)
+    {
+        $this->protectionService = $protectionService;
+    }
     /**
      * Get filtered and paginated users with their roles
      */
@@ -136,9 +143,6 @@ class UserService
             if ($existingUser && $existingUser->trashed()) {
                 // Restore the soft deleted user
                 $existingUser->restore();
-
-                // Construct the full name from first_name and last_name
-                $data['name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
                 
                 // Update the user with new data
                 $existingUser->update([
@@ -193,11 +197,12 @@ class UserService
             ]);
 
             // Return formatted user data
+            $nameParts = explode(' ', $data['name'], 2);
             return [
                 'id' => $user->id,
                 'name' => $user->name,
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
+                'first_name' => $nameParts[0] ?? '',
+                'last_name' => $nameParts[1] ?? '',
                 'email' => $user->email,
                 'phone' => $data['phone'] ?? null,
                 'profile_image' => $user->profile_image_url,
@@ -226,8 +231,8 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Restrict super_admin: only password can be changed
-            if ($user->hasRole('super_admin') || $user->email === 'super@admin.com') {
+            // Check if account is protected from profile updates
+            if ($this->protectionService->isAccountProtectedFromProfileUpdate($user)) {
                 $updateData = [];
                 if (!empty($data['password'])) {
                     $updateData['password'] = bcrypt($data['password']);
@@ -249,12 +254,22 @@ class UserService
 
                 // Reload with roles
                 $user->load('roles');
-                Log::info('Super admin password updated', [
+                Log::info('Protected account updated (limited fields only)', [
                     'user_id' => $userId,
                     'email' => $user->email,
-                    'updated_by' => $data['updated_by'] ?? 'system'
+                    'updated_by' => $data['updated_by'] ?? 'system',
+                    'reason' => $this->protectionService->getAccountProtectionReason($user)
                 ]);
                 return $this->formatUserData($user);
+            }
+
+            // Check if account is protected from role changes
+            if ($this->protectionService->isAccountProtectedFromRoleChange($user) && isset($data['role'])) {
+                $reason = $this->protectionService->getAccountProtectionReason($user);
+                $this->protectionService->throwProtectionException(
+                    'Cannot modify role for protected account',
+                    $reason
+                );
             }
 
             // Update basic info
@@ -320,9 +335,13 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Prevent deletion of super admin users by email or role
-            if ($user->hasRole('super_admin') && $user->email === 'super@admin.com') {
-                throw new \Exception('Cannot delete super admin users', 403);
+            // Check if account is protected from deletion
+            if ($this->protectionService->isAccountProtectedFromDeletion($user)) {
+                $reason = $this->protectionService->getAccountProtectionReason($user);
+                $this->protectionService->throwProtectionException(
+                    'Cannot delete protected account',
+                    $reason
+                );
             }
 
             // Prevent self-deletion

@@ -136,34 +136,15 @@
                     </template>
                 </ContentBoxHeader>
                 <ContentBoxBody>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- First Name -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                First Name <span class="text-danger">*</span>
-                            </label>
-                            <input
-                                v-model="form.first_name"
-                                type="text"
-                                placeholder="John"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            />
-                        </div>
-
-                        <!-- Last Name -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Last Name <span class="text-danger">*</span>
-                            </label>
-                            <input
-                                v-model="form.last_name"
-                                type="text"
-                                placeholder="Doe"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            />
-                        </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        <!-- Full Name -->
+                        <FormField
+                            v-model="form.name"
+                            label="Full Name"
+                            type="text"
+                            placeholder="John Doe"
+                            required
+                        />
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -181,41 +162,23 @@
                 <ContentBoxBody>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Email -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Email Address <span class="text-danger">*</span>
-                            </label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="material-symbols-outlined text-slate-400 text-[20px]">mail</span>
-                                </div>
-                                <input
-                                    v-model="form.email"
-                                    type="email"
-                                    placeholder="john.doe@example.com"
-                                    required
-                                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                />
-                            </div>
-                        </div>
+                        <FormField
+                            v-model="form.email"
+                            label="Email Address"
+                            type="email"
+                            placeholder="john.doe@example.com"
+                            leftIcon="mail"
+                            required
+                        />
 
                         <!-- Phone -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Phone Number
-                            </label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="material-symbols-outlined text-slate-400 text-[20px]">phone</span>
-                                </div>
-                                <input
-                                    v-model="form.phone"
-                                    type="tel"
-                                    placeholder="+1 (555) 123-4567"
-                                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                />
-                            </div>
-                        </div>
+                        <FormField
+                            v-model="form.phone"
+                            label="Phone Number"
+                            type="tel"
+                            placeholder="+1 (555) 123-4567"
+                            leftIcon="phone"
+                        />
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -288,21 +251,18 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Role -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                User Role <span class="text-danger">*</span>
-                            </label>
                             <div v-if="isLoadingRoles" class="flex items-center gap-2 py-2">
                                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                                 <span class="text-slate-600 text-sm">Loading roles...</span>
                             </div>
-                            
+
                             <div v-else-if="roleError" class="bg-red-50 border border-red-200 rounded-lg p-3">
                                 <p class="text-red-600 text-sm">{{ roleError }}</p>
                                 <Button variant="outline" size="sm" class="mt-2" @click="fetchRoles">
                                     Retry
                                 </Button>
                             </div>
-                            
+
                             <div v-else-if="roles.length === 0" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-yellow-600 text-lg">warning</span>
@@ -312,35 +272,21 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <select
-                                v-else
-                                v-model="form.role"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+
+                            <FormField v-else v-model="form.role" label="User Role" type="select" required>
                                 <option value="">Select a role</option>
                                 <option v-for="role in roles" :key="role.id" :value="role.name">
                                     {{ role.display_name || role.name }}
                                 </option>
-                            </select>
+                            </FormField>
                         </div>
 
-                        <!-- Status -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Account Status <span class="text-danger">*</span>
-                            </label>
-                            <select
-                                v-model="form.status"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+                            <!-- Status -->
+                            <FormField v-model="form.status" label="Account Status" type="select" required>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                                 <option value="pending">Pending</option>
-                            </select>
-                        </div>
+                            </FormField>
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -430,14 +376,14 @@ import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
+import FormField from '../../../components/ui/FormField.vue'
 
 // Image cropper
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 
 interface UserForm {
-    first_name: string
-    last_name: string
+    name: string
     email: string
     phone: string
     password: string
@@ -468,8 +414,7 @@ const cropperImage = ref<string>('')
 const cropperRef = ref<any>(null)
 
 const form = reactive<UserForm>({
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     phone: '',
     password: '',
@@ -513,13 +458,8 @@ const goBack = () => {
 
 const validateForm = (): boolean => {
     // Basic validation
-    if (!form.first_name.trim()) {
-        alert('First name is required')
-        return false
-    }
-
-    if (!form.last_name.trim()) {
-        alert('Last name is required')
+    if (!form.name.trim()) {
+        alert('Full name is required')
         return false
     }
 
@@ -574,8 +514,7 @@ const handleSubmit = async () => {
     try {
         // Prepare FormData for file upload
         const formData = new FormData()
-        formData.append('first_name', form.first_name)
-        formData.append('last_name', form.last_name)
+        formData.append('name', form.name)
         formData.append('email', form.email)
         formData.append('phone', form.phone)
         formData.append('password', form.password)
