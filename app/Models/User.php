@@ -32,7 +32,6 @@ class User extends Authenticatable
         'bio',
         'date_of_birth',
         'location',
-        'last_activity',
         'is_banned',
         'ban_reason',
         'banned_until',
@@ -69,12 +68,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'date_of_birth' => 'date',
-            'last_activity' => 'datetime',
             'banned_until' => 'datetime',
             'is_banned' => 'boolean',
-            'post_count' => 'integer',
-            'topic_count' => 'integer',
-            'forum_preferences' => 'array',
         ];
     }
 

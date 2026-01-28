@@ -374,7 +374,6 @@ class UserService
             'date_of_birth' => $user->date_of_birth,
             'location' => $user->location,
             'timezone' => $user->timezone,
-            'last_activity' => $user->last_activity,
             'is_banned' => $user->is_banned,
             'ban_reason' => $user->ban_reason,
             'banned_until' => $user->banned_until,
@@ -385,7 +384,6 @@ class UserService
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),
-            'last_activity_formatted' => $user->last_activity ? $user->last_activity->format('M d, Y H:i') : null,
             'banned_until_formatted' => $user->banned_until ? $user->banned_until->format('M d, Y H:i') : null,
         ];
     }
