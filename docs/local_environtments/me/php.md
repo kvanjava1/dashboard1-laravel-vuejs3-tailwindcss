@@ -1,0 +1,16 @@
+this project uses php container 'php_dev_php8.2' :
+
+    - root project on this container :
+        - cmd : docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && pwd'
+            - result : 
+                - /var/www/php/php8.2/laravel/dashboard1
+
+    - how to use php :
+        - cmd : docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php -v'
+            - result :
+                - PHP 8.2.30 (cli) (built: Jan  9 2026 23:02:04) (NTS) Copyright (c) The PHP Group Zend Engine v4.2.30, Copyright (c) Zend Technologies with Zend OPcache v8.2.30, Copyright (c), by Zend Technologies
+
+    - how to use composer :
+        - cmd : docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar -v'
+            - result : 
+                - Composer version 2.9.3 2025-12-30 13:40:17

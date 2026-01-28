@@ -1,0 +1,12 @@
+- this project uses nginx container 'php_dev_nginx' :
+
+    - root project on this container :
+        - cmd : docker exec php_dev_nginx sh -c 'cd /var/www/php/php8.2/laravel/dashboard1 && ls -l'
+            - result : /var/www/php/php8.2/laravel/dashboard1
+    
+    - virtual host :
+        - cmd : docker exec php_dev_nginx sh -c 'cd /etc/nginx/conf.d && ls -l'
+            - dashboard1.conf
+                - main host on this project
+    
+    - if you want more detail about my nginx vhost just read it on : /etc/nginx/conf.d/dashboard1.conf
