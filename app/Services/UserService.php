@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\UserAccountStatus;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +24,7 @@ class UserService
     {
         try {
             // Start building the query
-            $query = User::with('roles')
+            $query = User::with('roles', 'accountStatus')
                 ->select('users.*');
 
             // Apply search filter (name or email)
@@ -44,7 +45,9 @@ class UserService
 
             // Apply status filter
             if (!empty($filters['status'])) {
-                $query->where('users.status', $filters['status']);
+                $query->whereHas('accountStatus', function ($q) use ($filters) {
+                    $q->where('name', $filters['status']);
+                });
             }
 
             // Apply date range filter
@@ -83,6 +86,14 @@ class UserService
                 'count' => $formattedUsers->count()
             ]);
 
+            // Get all available account statuses
+            $availableStatuses = UserAccountStatus::active()->ordered()->get()->map(function ($status) {
+                return [
+                    'value' => $status->name,
+                    'label' => $status->display_name,
+                ];
+            })->toArray();
+
             return [
                 'users' => $formattedUsers->toArray(),
                 'total' => $users->total(),
@@ -92,11 +103,7 @@ class UserService
                 'from' => $users->firstItem(),
                 'to' => $users->lastItem(),
                 'available_roles' => $availableRoles,
-                'status_options' => [
-                    ['value' => 'active', 'label' => 'Active'],
-                    ['value' => 'inactive', 'label' => 'Inactive'],
-                    ['value' => 'pending', 'label' => 'Pending'],
-                ]
+                'status_options' => $availableStatuses,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to retrieve filtered paginated users', [
@@ -115,7 +122,7 @@ class UserService
     public function getUserById(int $userId): array
     {
         try {
-            $user = User::with('roles')->findOrFail($userId);
+            $user = User::with('roles', 'accountStatus')->findOrFail($userId);
 
             $userData = $this->formatUserData($user);
 
@@ -137,6 +144,12 @@ class UserService
     public function createUser(array $data, $request = null): array
     {
         try {
+            // Get the status ID from the status name
+            $status = UserAccountStatus::where('name', $data['status'])->first();
+            if (!$status) {
+                throw new \Exception('Invalid status provided');
+            }
+
             // Check if there's a soft deleted user with this email
             $existingUser = User::withTrashed()->where('email', $data['email'])->first();
 
@@ -148,7 +161,7 @@ class UserService
                 $existingUser->update([
                     'name' => $data['name'],
                     'phone' => $data['phone'] ?? null,
-                    'status' => $data['status'],
+                    'user_account_status_id' => $status->id,
                     'password' => bcrypt($data['password']),
                     'bio' => $data['bio'] ?? null,
                 ]);
@@ -166,7 +179,7 @@ class UserService
                     'name' => $data['name'],
                     'email' => $data['email'],
                     'phone' => $data['phone'] ?? null,
-                    'status' => $data['status'],
+                    'user_account_status_id' => $status->id,
                     'password' => bcrypt($data['password']),
                     'bio' => $data['bio'] ?? null,
                 ]);
@@ -286,8 +299,13 @@ class UserService
                 $updateData['email'] = $data['email'];
             if (isset($data['phone']))
                 $updateData['phone'] = $data['phone'];
-            if (isset($data['status']))
-                $updateData['status'] = $data['status'];
+            if (isset($data['status'])) {
+                $status = UserAccountStatus::where('name', $data['status'])->first();
+                if (!$status) {
+                    throw new \Exception('Invalid status provided');
+                }
+                $updateData['user_account_status_id'] = $status->id;
+            }
             if (isset($data['bio']))
                 $updateData['bio'] = $data['bio'];
             // Update password if provided
@@ -393,9 +411,6 @@ class UserService
             'date_of_birth' => $user->date_of_birth,
             'location' => $user->location,
             'timezone' => $user->timezone,
-            'is_banned' => $user->is_banned,
-            'ban_reason' => $user->ban_reason,
-            'banned_until' => $user->banned_until,
             'profile_image' => $user->profile_image,
             'profile_image_url' => $user->profile_image_url,
             'role' => $primaryRole ? $primaryRole->name : null,
@@ -403,7 +418,6 @@ class UserService
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),
-            'banned_until_formatted' => $user->banned_until ? $user->banned_until->format('M d, Y H:i') : null,
         ];
     }
 

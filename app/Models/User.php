@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class User extends Authenticatable
 {
@@ -25,16 +26,13 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
-        'status',
+        'user_account_status_id',
         'password',
         'profile_image',
         'username',
         'bio',
         'date_of_birth',
         'location',
-        'is_banned',
-        'ban_reason',
-        'banned_until',
         'timezone',
     ];
 
@@ -68,8 +66,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'date_of_birth' => 'date',
-            'banned_until' => 'datetime',
-            'is_banned' => 'boolean',
         ];
     }
 
@@ -100,20 +96,18 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is banned
+     * Get the user's account status.
      */
-    public function isBanned(): bool
+    public function accountStatus()
     {
-        if (!$this->is_banned) {
-            return false;
-        }
+        return $this->belongsTo(UserAccountStatus::class, 'user_account_status_id');
+    }
 
-        // Check if ban has expired
-        if ($this->banned_until && $this->banned_until->isPast()) {
-            $this->update(['is_banned' => false, 'ban_reason' => null, 'banned_until' => null]);
-            return false;
-        }
-
-        return true;
+    /**
+     * Get the status attribute (computed from relationship)
+     */
+    public function getStatusAttribute(): string
+    {
+        return $this->accountStatus ? $this->accountStatus->name : 'unknown';
     }
 }

@@ -27,7 +27,7 @@ class StoreUserRequest extends FormRequest
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|max:255|confirmed',
             'role' => 'required|string|exists:roles,name',
-            'status' => 'required|string|in:active,inactive,pending',
+            'status' => 'required|string|exists:user_account_statuses,name',
             'bio' => 'nullable|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB maximum
         ];

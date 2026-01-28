@@ -281,12 +281,27 @@
                             </FormField>
                         </div>
 
-                            <!-- Status -->
-                            <FormField v-model="form.status" label="Account Status" type="select" required>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="pending">Pending</option>
+                        <!-- Status -->
+                        <div>
+                            <div v-if="isLoadingStatuses" class="flex items-center gap-2 py-2">
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                <span class="text-slate-600 text-sm">Loading statuses...</span>
+                            </div>
+
+                            <div v-else-if="statusError" class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p class="text-red-600 text-sm">{{ statusError }}</p>
+                                <Button variant="outline" size="sm" class="mt-2" @click="fetchStatuses">
+                                    Retry
+                                </Button>
+                            </div>
+
+                            <FormField v-else v-model="form.status" label="Account Status" type="select" required>
+                                <option value="">Select a status</option>
+                                <option v-for="status in statuses" :key="status.value" :value="status.value">
+                                    {{ status.label }}
+                                </option>
                             </FormField>
+                        </div>
                     </div>
                 </ContentBoxBody>
             </ContentBox>
@@ -403,6 +418,11 @@ const roles = ref<any[]>([])
 const isLoadingRoles = ref(false)
 const roleError = ref<string>('')
 
+// Status fetching
+const statuses = ref<any[]>([])
+const isLoadingStatuses = ref(false)
+const statusError = ref<string>('')
+
 // Image handling
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -447,9 +467,35 @@ const fetchRoles = async () => {
     }
 }
 
+// Fetch statuses from API
+const fetchStatuses = async () => {
+    try {
+        isLoadingStatuses.value = true
+        statusError.value = ''
+        
+        // Since we don't have a dedicated status endpoint, we'll fetch from users endpoint
+        // The users index returns status_options in filters
+        const response = await get(apiRoutes.users.index({ page: 1, per_page: 1 }))
+
+        if (response.ok) {
+            const data = await response.json()
+            statuses.value = data.filters?.status_options || []
+        } else {
+            const errorData = await response.json()
+            statusError.value = errorData.message || 'Failed to load statuses'
+        }
+    } catch (error) {
+        console.error('Error fetching statuses:', error)
+        statusError.value = 'An unexpected error occurred'
+    } finally {
+        isLoadingStatuses.value = false
+    }
+}
+
 // Fetch roles when component mounts
 onMounted(() => {
     fetchRoles()
+    fetchStatuses()
 })
 
 const goBack = () => {
