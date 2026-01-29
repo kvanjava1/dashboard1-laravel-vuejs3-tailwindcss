@@ -6,7 +6,7 @@
     
     - virtual host :
         - cmd : docker exec php_dev_nginx sh -c 'cd /etc/nginx/conf.d && ls -l'
-            - dashboard1.conf
-                - main host on this project
-    
+            - dashboard1.conf as main host on this project
+        - browser access hit url http://dashboard1.test/management/login
+
     - if you want more detail about my nginx vhost just read it on : /etc/nginx/conf.d/dashboard1.conf

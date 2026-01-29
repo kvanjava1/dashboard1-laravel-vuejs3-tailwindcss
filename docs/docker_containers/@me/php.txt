@@ -14,3 +14,5 @@ this project uses php container 'php_dev_php8.2' :
         - cmd : docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar -v'
             - result : 
                 - Composer version 2.9.3 2025-12-30 13:40:17
+
+    - do not use standard command like 'php artisan xxx', 'composer xxxx', it does not work, please use docker command above.

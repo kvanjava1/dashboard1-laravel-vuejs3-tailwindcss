@@ -15,4 +15,4 @@ this project uses nodejs container 'php_dev_nodejs_20':
             - result : 
                 - v20.19.6
 
-            
+    - do not use standard command like 'npm install', 'npm run xxxx', it does not work, please use docker command above.

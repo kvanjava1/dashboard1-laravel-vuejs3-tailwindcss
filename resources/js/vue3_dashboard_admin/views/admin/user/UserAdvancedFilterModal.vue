@@ -81,8 +81,6 @@
                         <FormField v-model="filters.sort_by" label="Sort By" type="select">
                             <option value="name">Name</option>
                             <option value="email">Email</option>
-                            <option value="role">Role</option>
-                            <option value="status">Status</option>
                             <option value="created_at">Registration Date</option>
                         </FormField>
 
@@ -155,20 +153,30 @@ const emit = defineEmits<Emits>()
 const isOpen = ref(false)
 
 const filters = reactive<FilterOptions>({
-    name: '',
-    email: '',
-    role: '',
-    status: '',
-    date_from: '',
-    date_to: '',
-    sort_by: 'created_at',
-    sort_order: 'desc',
-    ...props.initialFilters
+    name: props.initialFilters?.name || '',
+    email: props.initialFilters?.email || '',
+    role: props.initialFilters?.role || '',
+    status: props.initialFilters?.status || '',
+    date_from: props.initialFilters?.date_from || '',
+    date_to: props.initialFilters?.date_to || '',
+    sort_by: props.initialFilters?.sort_by || 'created_at',
+    sort_order: props.initialFilters?.sort_order || 'desc'
 })
 
 // Watch for modal value changes
 watch(() => props.modelValue, (newValue) => {
     isOpen.value = newValue
+    if (newValue) {
+        // When modal opens, sync with current initialFilters
+        filters.name = props.initialFilters?.name || ''
+        filters.email = props.initialFilters?.email || ''
+        filters.role = props.initialFilters?.role || ''
+        filters.status = props.initialFilters?.status || ''
+        filters.date_from = props.initialFilters?.date_from || ''
+        filters.date_to = props.initialFilters?.date_to || ''
+        filters.sort_by = props.initialFilters?.sort_by || 'created_at'
+        filters.sort_order = props.initialFilters?.sort_order || 'desc'
+    }
 })
 
 watch(isOpen, (newValue) => {
@@ -185,16 +193,14 @@ const applyFilters = () => {
 }
 
 const resetFilters = () => {
-    Object.assign(filters, {
-        name: '',
-        email: '',
-        role: '',
-        status: '',
-        date_from: '',
-        date_to: '',
-        sort_by: 'created_at',
-        sort_order: 'desc'
-    })
+    filters.name = ''
+    filters.email = ''
+    filters.role = ''
+    filters.status = ''
+    filters.date_from = ''
+    filters.date_to = ''
+    filters.sort_by = 'created_at'
+    filters.sort_order = 'desc'
     emit('reset')
 }
 

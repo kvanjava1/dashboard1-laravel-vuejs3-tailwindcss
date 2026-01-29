@@ -16,6 +16,9 @@ class GuestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Get the active status
+        $activeStatus = \App\Models\UserAccountStatus::where('name', 'active')->first();
+
         // Ensure the 'guest' role exists
         $guestRole = Role::firstOrCreate([
             'name' => 'guest',
@@ -28,7 +31,7 @@ class GuestUserSeeder extends Seeder
                 'name' => "Guest User $i",
                 'email' => "guest$i@example.com",
                 'password' => Hash::make('password'),
-                'status' => 'active',
+                'user_account_status_id' => $activeStatus->id,
                 // 'profile_image_url' => null, // Do not set avatar, let frontend fallback handle it
             ]);
             $user->assignRole($guestRole);
