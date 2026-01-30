@@ -31,10 +31,20 @@ class UserController extends Controller
             
             $filters = [
                 'search' => $request->input('search'),
+                'name' => $request->input('name'),
+                'email' => $request->input('email'),
+                'phone' => $request->input('phone'),
+                'username' => $request->input('username'),
+                'location' => $request->input('location'),
+                'bio' => $request->input('bio'),
                 'role' => $request->input('role'),
                 'status' => $request->input('status'),
+                'is_banned' => $request->input('is_banned'),
+                'date_of_birth_from' => $request->input('date_of_birth_from'),
+                'date_of_birth_to' => $request->input('date_of_birth_to'),
                 'date_from' => $request->input('date_from'),
                 'date_to' => $request->input('date_to'),
+                'timezone' => $request->input('timezone'),
                 'sort_by' => $request->input('sort_by', 'created_at'),
                 'sort_order' => $request->input('sort_order', 'desc'),
             ];

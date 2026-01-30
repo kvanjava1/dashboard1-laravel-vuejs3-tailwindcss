@@ -36,6 +36,42 @@ class UserService
                 });
             }
 
+            // Apply individual field filters
+            if (!empty($filters['name'])) {
+                $query->where('users.name', 'LIKE', '%' . $filters['name'] . '%');
+            }
+            if (!empty($filters['email'])) {
+                $query->where('users.email', 'LIKE', '%' . $filters['email'] . '%');
+            }
+            if (!empty($filters['phone'])) {
+                $query->where('users.phone', 'LIKE', '%' . $filters['phone'] . '%');
+            }
+            if (!empty($filters['username'])) {
+                $query->where('users.username', 'LIKE', '%' . $filters['username'] . '%');
+            }
+            if (!empty($filters['location'])) {
+                $query->where('users.location', 'LIKE', '%' . $filters['location'] . '%');
+            }
+            if (!empty($filters['bio'])) {
+                $query->where('users.bio', 'LIKE', '%' . $filters['bio'] . '%');
+            }
+            if (!empty($filters['timezone'])) {
+                $query->where('users.timezone', 'LIKE', '%' . $filters['timezone'] . '%');
+            }
+
+            // Apply ban status filter
+            if ($filters['is_banned'] !== null && $filters['is_banned'] !== '') {
+                $query->where('users.is_banned', $filters['is_banned']);
+            }
+
+            // Apply date of birth range filter
+            if (!empty($filters['date_of_birth_from'])) {
+                $query->whereDate('users.date_of_birth', '>=', $filters['date_of_birth_from']);
+            }
+            if (!empty($filters['date_of_birth_to'])) {
+                $query->whereDate('users.date_of_birth', '<=', $filters['date_of_birth_to']);
+            }
+
             // Apply role filter
             if (!empty($filters['role'])) {
                 $query->whereHas('roles', function ($q) use ($filters) {
@@ -61,7 +97,21 @@ class UserService
             // Apply sorting
             $sortBy = $filters['sort_by'] ?? 'created_at';
             $sortOrder = $filters['sort_order'] ?? 'desc';
-            $query->orderBy($sortBy, $sortOrder);
+            
+            // Map sort fields to actual database columns
+            $sortFieldMap = [
+                'name' => 'users.name',
+                'email' => 'users.email',
+                'username' => 'users.username',
+                'phone' => 'users.phone',
+                'location' => 'users.location',
+                'date_of_birth' => 'users.date_of_birth',
+                'created_at' => 'users.created_at',
+                'updated_at' => 'users.updated_at',
+            ];
+            
+            $actualSortField = $sortFieldMap[$sortBy] ?? 'users.created_at';
+            $query->orderBy($actualSortField, $sortOrder);
 
             $users = $query->paginate($perPage, ['*'], 'page', $page);
 

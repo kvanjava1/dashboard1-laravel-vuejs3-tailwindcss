@@ -44,6 +44,23 @@
                     </button>
                 </div>
 
+                <!-- Active Filters Indicator -->
+                <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-600 text-lg">filter_list</span>
+                            <span class="text-blue-800 font-medium">Filters Active</span>
+                            <span class="text-blue-600 text-sm">Showing filtered results</span>
+                        </div>
+                        <button
+                            @click="handleResetFilters"
+                            class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Empty State -->
                 <div v-else-if="users.length === 0" class="py-12 text-center">
                     <span class="material-symbols-outlined text-slate-400 text-4xl">group</span>
@@ -184,6 +201,27 @@ const canDeleteUser = computed(() => authStore.hasPermission('user_management.de
 const canViewUserDetail = computed(() => authStore.hasPermission('user_management.view_detail'))
 const canSearchUser = computed(() => authStore.hasPermission('user_management.search'))
 
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+    return currentFilters.search.trim() !== '' ||
+           currentFilters.name.trim() !== '' ||
+           currentFilters.email.trim() !== '' ||
+           currentFilters.phone.trim() !== '' ||
+           currentFilters.username.trim() !== '' ||
+           currentFilters.location.trim() !== '' ||
+           currentFilters.bio.trim() !== '' ||
+           currentFilters.role !== '' ||
+           currentFilters.status !== '' ||
+           currentFilters.is_banned !== '' ||
+           currentFilters.date_of_birth_from !== '' ||
+           currentFilters.date_of_birth_to !== '' ||
+           currentFilters.date_from !== '' ||
+           currentFilters.date_to !== '' ||
+           currentFilters.timezone.trim() !== '' ||
+           currentFilters.sort_by !== 'created_at' ||
+           currentFilters.sort_order !== 'desc'
+})
+
 // Modal state
 const showAdvancedFilter = ref(false)
 
@@ -192,10 +230,18 @@ const currentFilters = reactive({
     search: '',
     name: '',
     email: '',
+    phone: '',
+    username: '',
+    location: '',
+    bio: '',
     role: '',
     status: '',
+    is_banned: '',
+    date_of_birth_from: '',
+    date_of_birth_to: '',
     date_from: '',
     date_to: '',
+    timezone: '',
     sort_by: 'created_at',
     sort_order: 'desc'
 })
@@ -282,10 +328,20 @@ const fetchUsers = async () => {
             page: pagination.current_page,
             per_page: pagination.per_page,
             search: currentFilters.search,
+            name: currentFilters.name,
+            email: currentFilters.email,
+            phone: currentFilters.phone,
+            username: currentFilters.username,
+            location: currentFilters.location,
+            bio: currentFilters.bio,
             role: currentFilters.role,
             status: currentFilters.status,
+            is_banned: currentFilters.is_banned,
+            date_of_birth_from: currentFilters.date_of_birth_from,
+            date_of_birth_to: currentFilters.date_of_birth_to,
             date_from: currentFilters.date_from,
             date_to: currentFilters.date_to,
+            timezone: currentFilters.timezone,
             sort_by: currentFilters.sort_by,
             sort_order: currentFilters.sort_order
         }
@@ -426,10 +482,18 @@ const handleResetFilters = () => {
         search: '',
         name: '',
         email: '',
+        phone: '',
+        username: '',
+        location: '',
+        bio: '',
         role: '',
         status: '',
+        is_banned: '',
+        date_of_birth_from: '',
+        date_of_birth_to: '',
         date_from: '',
         date_to: '',
+        timezone: '',
         sort_by: 'created_at',
         sort_order: 'desc'
     })
