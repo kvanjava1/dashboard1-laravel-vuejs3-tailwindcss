@@ -17,8 +17,8 @@ class DatabaseSeeder extends Seeder
     {
         // Register RolePermissionSeeder
         $this->call([
+            UserAccountStatusSeeder::class, // Must run first to create status records
             RolePermissionSeeder::class,
-            UserAccountStatusSeeder::class,
         ]);
     }
 }
