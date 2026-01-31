@@ -30,46 +30,32 @@
             <!-- Data Table -->
             <ContentBoxBody>
                 <!-- Loading State -->
-                <div v-if="loading" class="py-12 text-center">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <p class="mt-2 text-sm text-slate-600">Loading users...</p>
-                </div>
+                <LoadingState v-if="loading" message="Loading users..." />
 
                 <!-- Error State -->
-                <div v-else-if="error" class="py-8 text-center">
-                    <span class="material-symbols-outlined text-danger text-4xl">error</span>
-                    <p class="mt-2 text-sm text-slate-700">{{ error }}</p>
-                    <button @click="fetchUsers" class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
-                        Try Again
-                    </button>
-                </div>
+                <ErrorState
+                    v-else-if="error"
+                    :message="error"
+                    @retry="fetchUsers"
+                />
 
                 <!-- Active Filters Indicator -->
-                <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-blue-600 text-lg">filter_list</span>
-                            <span class="text-blue-800 font-medium">Filters Active</span>
-                            <span class="text-blue-600 text-sm">Showing filtered results</span>
-                        </div>
-                        <button
-                            @click="handleResetFilters"
-                            class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
-                        >
-                            Clear Filters
-                        </button>
-                    </div>
-                </div>
+                <ActiveFiltersIndicator
+                    v-else
+                    :has-active-filters="hasActiveFilters"
+                    @reset="handleResetFilters"
+                />
 
                 <!-- Empty State -->
-                <div v-else-if="users.length === 0" class="py-12 text-center">
-                    <span class="material-symbols-outlined text-slate-400 text-4xl">group</span>
-                    <p class="mt-2 text-sm text-slate-700">No users found</p>
-                    <p class="text-xs text-slate-500 mt-1">Try adjusting your filters or add a new user</p>
-                </div>
+                <EmptyState
+                    v-if="!loading && !error && users.length === 0"
+                    icon="group"
+                    message="No users found"
+                    subtitle="Try adjusting your filters or add a new user"
+                />
 
                 <!-- Data Table -->
-                <div v-else>
+                <div v-else-if="!loading && !error && users.length > 0">
                     <SimpleUserTable>
                         <SimpleUserTableHead>
                             <SimpleUserTableHeadRow>
@@ -101,7 +87,7 @@
                                     <span class="text-sm text-slate-700">{{ user.joined_date }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <UserCellActions
+                                    <CellActions
                                         @edit="handleEdit(user)"
                                         @delete="handleDelete(user)"
                                         @view="() => openUserDetail(user)"
@@ -149,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import UserDetailModal from './UserDetailModal.vue'
+import UserDetailModal from '../../../components/user/UserDetailModal.vue'
 // User detail modal state
 const showUserDetail = ref(false)
 const selectedUser = ref<User | null>(null)
@@ -281,13 +267,17 @@ import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCo
 import UserCellUser from '../../../components/ui/UserCellUser.vue'
 import UserCellRole from '../../../components/ui/UserCellRole.vue'
 import UserCellStatus from '../../../components/ui/UserCellStatus.vue'
-import UserCellActions from '../../../components/ui/UserCellActions.vue'
+import CellActions from '../../../components/ui/CellActions.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
-import UserAdvancedFilterModal from './UserAdvancedFilterModal.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
+import ErrorState from '../../../components/ui/ErrorState.vue'
+import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
+import EmptyState from '../../../components/ui/EmptyState.vue'
+import UserAdvancedFilterModal from '../../../components/user/UserAdvancedFilterModal.vue'
 
 interface User {
     id: number

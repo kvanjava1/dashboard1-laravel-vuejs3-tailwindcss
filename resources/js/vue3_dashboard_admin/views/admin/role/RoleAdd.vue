@@ -86,12 +86,7 @@
                 </ContentBoxHeader>
                 <ContentBoxBody>
                     <!-- Permissions Loading State -->
-                    <div v-if="isLoadingPermissions" class="flex items-center justify-center py-12">
-                        <div class="flex items-center gap-3">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                            <span class="text-slate-600">Loading permissions...</span>
-                        </div>
-                    </div>
+                    <LoadingState v-if="isLoadingPermissions" message="Loading permissions..." />
 
                     <!-- Permissions Error State -->
                     <div v-else-if="permissionsError" class="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -391,4 +386,5 @@ import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
 </script>

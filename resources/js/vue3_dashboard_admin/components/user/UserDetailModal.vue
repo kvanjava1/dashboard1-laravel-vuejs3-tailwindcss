@@ -154,10 +154,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch, ref, onUnmounted } from 'vue'
-import BaseModal from '../../../components/ui/BaseModal.vue'
-import UserCellUser from '../../../components/ui/UserCellUser.vue'
-import UserCellRole from '../../../components/ui/UserCellRole.vue'
-import UserCellStatus from '../../../components/ui/UserCellStatus.vue'
+import BaseModal from '../ui/BaseModal.vue'
+import UserCellUser from '../ui/UserCellUser.vue'
+import UserCellRole from '../ui/UserCellRole.vue'
+import UserCellStatus from '../ui/UserCellStatus.vue'
 
 interface User {
   id: number

@@ -31,34 +31,17 @@
             <!-- Data Table -->
             <ContentBoxBody>
                 <!-- Loading State -->
-                <div v-if="isLoading" class="flex items-center justify-center py-12">
-                    <div class="flex items-center gap-3">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <span class="text-slate-600">Loading roles...</span>
-                    </div>
-                </div>
+                <LoadingState v-if="isLoading" message="Loading roles..." />
 
                 <!-- Error State -->
-                <div v-else-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-red-500 text-xl">error</span>
-                        <div>
-                            <p class="text-red-700 font-medium">Failed to load roles</p>
-                            <p class="text-red-600 text-sm">{{ errorMessage }}</p>
-                            <Button
-                                variant="danger"
-                                size="sm"
-                                class="mt-2"
-                                @click="() => fetchRoles(1)"
-                            >
-                                Try Again
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <ErrorState
+                    v-else-if="errorMessage"
+                    :message="errorMessage"
+                    @retry="() => fetchRoles(1)"
+                />
 
                 <!-- Success Message -->
-                <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div v-else-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
                         <span class="text-green-800 font-medium">{{ successMessage }}</span>
@@ -66,25 +49,22 @@
                 </div>
 
                 <!-- Active Filters Indicator -->
-                <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-blue-600 text-lg">filter_list</span>
-                            <span class="text-blue-800 font-medium">Filters Active</span>
-                            <span class="text-blue-600 text-sm">Showing filtered results</span>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            @click="resetFilters"
-                        >
-                            Clear Filters
-                        </Button>
-                    </div>
-                </div>
+                <ActiveFiltersIndicator
+                    v-else
+                    :has-active-filters="hasActiveFilters"
+                    @reset="resetFilters"
+                />
+
+                <!-- Empty State -->
+                <EmptyState
+                    v-if="!isLoading && !errorMessage && !successMessage && roles.length === 0"
+                    icon="admin_panel_settings"
+                    message="No roles found"
+                    subtitle="Try adjusting your filters or add a new role"
+                />
 
                 <!-- Data Table -->
-                <div>
+                <div v-else-if="!isLoading && !errorMessage && !successMessage && roles.length > 0">
                     <SimpleUserTable>
                         <SimpleUserTableHead>
                             <SimpleUserTableHeadRow>
@@ -174,20 +154,20 @@
                             </SimpleUserTableBodyRow>
                         </SimpleUserTableBody>
                     </SimpleUserTable>
-
-                    <!-- Pagination -->
-                    <Pagination
-                        :current-start="currentStart"
-                        :current-end="currentEnd"
-                        :total="pagination.total"
-                        :current-page="pagination.current_page"
-                        :total-pages="pagination.total_pages"
-                        :rows-per-page="pagination.per_page"
-                        @prev="prevPage"
-                        @next="nextPage"
-                        @goto="goToPage"
-                    />
                 </div>
+
+                <!-- Pagination -->
+                <Pagination
+                    :current-start="currentStart"
+                    :current-end="currentEnd"
+                    :total="pagination.total"
+                    :current-page="pagination.current_page"
+                    :total-pages="pagination.total_pages"
+                    :rows-per-page="pagination.per_page"
+                    @prev="prevPage"
+                    @next="nextPage"
+                    @goto="goToPage"
+                />
             </ContentBoxBody>
         </ContentBox>
 
@@ -464,6 +444,10 @@ import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
+import ErrorState from '../../../components/ui/ErrorState.vue'
+import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
+import EmptyState from '../../../components/ui/EmptyState.vue'
 
 // Table components
 import SimpleUserTable from '../../../components/ui/SimpleUserTable.vue'

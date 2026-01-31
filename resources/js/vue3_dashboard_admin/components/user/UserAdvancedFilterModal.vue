@@ -205,8 +205,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
-import BaseModal from '../../../components/ui/BaseModal.vue'
-import FormField from '../../../components/ui/FormField.vue'
+import BaseModal from '../ui/BaseModal.vue'
+import FormField from '../ui/FormField.vue'
 
 interface FilterOptions {
     name: string

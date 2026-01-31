@@ -20,12 +20,34 @@
         </template>
       </ContentBoxHeader>
       <ContentBoxBody>
-        <div class="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-          <div class="flex items-center gap-2">
-              <!-- Search input removed as requested -->
-          </div>
-        </div>
-        <SimpleUserTable>
+        <!-- Loading State -->
+        <LoadingState v-if="loading" message="Loading examples..." />
+
+        <!-- Error State -->
+        <ErrorState
+            v-else-if="error"
+            :message="error"
+            @retry="fetchExamples"
+        />
+
+        <!-- Active Filters Indicator -->
+        <ActiveFiltersIndicator
+            v-else
+            :has-active-filters="hasActiveFilters"
+            @reset="handleResetFilters"
+        />
+
+        <!-- Empty State -->
+        <EmptyState
+            v-if="!loading && !error && examples.length === 0"
+            icon="inventory_2"
+            message="No examples found"
+            subtitle="Try adjusting your filters or add a new example"
+        />
+
+        <!-- Data Table -->
+        <div v-else-if="!loading && !error && examples.length > 0">
+          <SimpleUserTable>
           <SimpleUserTableHead>
             <SimpleUserTableHeadRow>
               <SimpleUserTableHeadCol>
@@ -69,7 +91,7 @@
                 <span class="text-sm text-slate-700">{{ example.updated_at }}</span>
               </SimpleUserTableBodyCol>
               <SimpleUserTableBodyCol>
-                <UserCellActions
+                <CellActions
                   @edit="openEditModal(example)"
                   @delete="softDeleteExample(example)"
                   @view="openDetailModal(example)"
@@ -79,6 +101,7 @@
             </SimpleUserTableBodyRow>
           </SimpleUserTableBody>
         </SimpleUserTable>
+        </div>
         <Pagination
           :current-start="currentStart"
           :current-end="currentEnd"
@@ -121,8 +144,12 @@ import SimpleUserTableHeadCol from '../../../components/ui/SimpleUserTableHeadCo
 import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
 import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
 import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
-import UserCellActions from '../../../components/ui/UserCellActions.vue'
+import CellActions from '../../../components/ui/CellActions.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
+import ErrorState from '../../../components/ui/ErrorState.vue'
+import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
+import EmptyState from '../../../components/ui/EmptyState.vue'
 import ExampleEditModal from './ExampleEditModal.vue'
 import ExampleDetailModal from './ExampleDetailModal.vue'
 import ExampleAdvancedFilterModal from './ExampleAdvancedFilterModal.vue'
@@ -207,8 +234,35 @@ const advancedFilters = reactive({
 const showEditModal = ref(false)
 const showDetailModal = ref(false)
 const selectedExample = ref<any>(null)
+
+// UI State
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+  return advancedFilters.name.trim() !== '' ||
+         advancedFilters.type !== '' ||
+         advancedFilters.status !== '' ||
+         advancedFilters.date_from !== '' ||
+         advancedFilters.date_to !== '' ||
+         advancedFilters.sort_by !== 'created_at' ||
+         advancedFilters.sort_order !== 'desc'
+})
 function fetchExamples() {
-  // TODO: API call to backend for search & pagination, include advanced.type and advanced.status
+  loading.value = true
+  error.value = null
+
+  try {
+    // TODO: API call to backend for search & pagination, include advanced.type and advanced.status
+    // For now, just simulate loading
+    setTimeout(() => {
+      loading.value = false
+    }, 1000)
+  } catch (err: any) {
+    error.value = err.message || 'Failed to load examples'
+    loading.value = false
+  }
 }
 function openAddModal() {
   router.push({ name: 'admin-example-management-add' })
