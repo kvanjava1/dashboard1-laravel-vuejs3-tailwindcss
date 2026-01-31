@@ -301,38 +301,6 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if account is protected from profile updates
-            if ($this->protectionService->isAccountProtectedFromProfileUpdate($user)) {
-                $updateData = [];
-                if (!empty($data['password'])) {
-                    $updateData['password'] = bcrypt($data['password']);
-                }
-
-                // Handle profile image upload
-                if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
-                    // Delete old image if exists
-                    if ($user->profile_image) {
-                        Storage::disk('public')->delete($user->profile_image);
-                    }
-                    $imagePath = $data['profile_image']->store('avatars', 'public');
-                    $updateData['profile_image'] = $imagePath;
-                }
-
-                if (!empty($updateData)) {
-                    $user->update($updateData);
-                }
-
-                // Reload with roles
-                $user->load('roles');
-                Log::info('Protected account updated (limited fields only)', [
-                    'user_id' => $userId,
-                    'email' => $user->email,
-                    'updated_by' => $data['updated_by'] ?? 'system',
-                    'reason' => $this->protectionService->getAccountProtectionReason($user)
-                ]);
-                return $this->formatUserData($user);
-            }
-
             // Check if account is protected from role changes
             if ($this->protectionService->isAccountProtectedFromRoleChange($user) && isset($data['role'])) {
                 $reason = $this->protectionService->getAccountProtectionReason($user);
@@ -423,7 +391,6 @@ class UserService
             if ($user->profile_image) {
                 Storage::disk('public')->delete($user->profile_image);
             }
-
 
             $userEmail = $user->email;
             // Soft delete user
@@ -587,6 +554,13 @@ class UserService
             'role_display_name' => $primaryRole ? $this->getRoleDisplayName($primaryRole->name) : null,
             'is_banned' => $user->is_banned,
             'is_active' => $user->is_active,
+            'protection' => [
+                'can_delete' => !$this->protectionService->isAccountProtectedFromDeletion($user),
+                'can_edit' => !$this->protectionService->isAccountProtectedFromProfileUpdate($user),
+                'can_ban' => !$this->protectionService->isAccountProtectedFromBan($user),
+                'can_change_role' => !$this->protectionService->isAccountProtectedFromRoleChange($user),
+                'reason' => $this->protectionService->getAccountProtectionReason($user),
+            ],
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),

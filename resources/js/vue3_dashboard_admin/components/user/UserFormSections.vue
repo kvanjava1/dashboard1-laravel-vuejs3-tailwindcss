@@ -254,11 +254,6 @@ const roles = ref<any[]>([])
 const isLoadingRoles = ref(false)
 const roleError = ref<string>('')
 
-// Status fetching
-const statuses = ref<any[]>([])
-const isLoadingStatuses = ref(false)
-const statusError = ref<string>('')
-
 // Fetch roles from API
 const fetchRoles = async () => {
   try {
@@ -282,34 +277,9 @@ const fetchRoles = async () => {
   }
 }
 
-// Fetch statuses from API
-const fetchStatuses = async () => {
-  try {
-    isLoadingStatuses.value = true
-    statusError.value = ''
-
-    // Since we don't have a dedicated status endpoint, we'll fetch from users endpoint
-    // The users index returns status_options in filters
-    const response = await get(apiRoutes.users.index({ page: 1, per_page: 1 }))
-
-    if (response.ok) {
-      const data = await response.json()
-      statuses.value = data.filters?.status_options || []
-    } else {
-      const errorData = await response.json()
-      statusError.value = errorData.message || 'Failed to load statuses'
-    }
-  } catch (error) {
-    console.error('Error fetching statuses:', error)
-    statusError.value = 'An unexpected error occurred'
-  } finally {
-    isLoadingStatuses.value = false
-  }
-}
-
 // Initialize data fetching
 onMounted(() => {
   fetchRoles()
-  fetchStatuses()
+  // fetchStatuses() - Removed: statuses not used in user form
 })
 </script>
