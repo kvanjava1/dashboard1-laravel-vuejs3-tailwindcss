@@ -356,8 +356,6 @@ class UserService
                 $updateData['email'] = $data['email'];
             if (isset($data['phone']))
                 $updateData['phone'] = $data['phone'];
-            if (isset($data['is_banned']))
-                $updateData['is_banned'] = $data['is_banned'];
             if (isset($data['is_active']))
                 $updateData['is_active'] = $data['is_active'];
             if (isset($data['bio']))

@@ -174,19 +174,6 @@
       </ContentBoxHeader>
       <ContentBoxBody>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Is Banned -->
-          <div>
-            <label class="flex items-center gap-2">
-              <input
-                v-model="formData.is_banned"
-                type="checkbox"
-                class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
-              />
-              <span class="text-sm font-semibold text-slate-700">Banned</span>
-            </label>
-            <p class="text-xs text-slate-500 mt-1">Check to ban this user account</p>
-          </div>
-
           <!-- Is Active -->
           <div>
             <label class="flex items-center gap-2">
@@ -250,7 +237,6 @@ interface Props {
     password: string
     password_confirmation: string
     role: string
-    is_banned: boolean
     is_active: boolean
     bio: string
   }

@@ -35,7 +35,6 @@ class UpdateUserRequest extends FormRequest
             ],
             'password' => 'nullable|string|min:8|max:255|confirmed',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB maximum
-            'is_banned' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
