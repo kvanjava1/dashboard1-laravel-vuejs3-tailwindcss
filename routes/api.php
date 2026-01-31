@@ -36,8 +36,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware(['permission:role_management.delete'])->name('roles.destroy')->where('role', '[0-9]+');
 
         // Permission routes
-        Route::get('permissions', [PermissionController::class, 'index'])->middleware(['permission:permission.view']);
-        Route::get('permissions/grouped', [PermissionController::class, 'grouped'])->middleware(['permission:permission.view']);
+        Route::get('permissions', [PermissionController::class, 'index'])->middleware(['permission:role_management.view']);
+        Route::get('permissions/grouped', [PermissionController::class, 'grouped'])->middleware(['permission:role_management.view']);
 
         // Example management routes
         Route::get('examples', [\App\Http\Controllers\Api\ExampleManagementController::class, 'index'])->middleware(['permission:example_management.view'])->name('examples.index');
