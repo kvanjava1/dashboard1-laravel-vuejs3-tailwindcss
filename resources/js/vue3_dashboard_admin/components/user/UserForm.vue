@@ -60,7 +60,8 @@ interface UserFormData {
   password: string
   password_confirmation: string
   role: string
-  status: string
+  is_banned: boolean
+  is_active: boolean
   bio: string
 }
 
@@ -97,7 +98,8 @@ const formData = reactive<UserFormData>({
   password: '',
   password_confirmation: '',
   role: '',
-  status: 'active',
+  is_banned: false,
+  is_active: true,
   bio: ''
 })
 
@@ -114,7 +116,8 @@ const populateFormData = (user: any) => {
   formData.email = user.email || ''
   formData.phone = user.phone || ''
   formData.role = user.role || ''
-  formData.status = user.status || 'active'
+  formData.is_banned = user.is_banned || false
+  formData.is_active = user.is_active || true
   formData.bio = user.bio || ''
 
   // Password fields are left empty for edit mode
@@ -182,11 +185,6 @@ const validateForm = (): boolean => {
     return false
   }
 
-  if (!formData.status) {
-    errorMessages.value.push('Please select account status')
-    return false
-  }
-
   return true
 }
 
@@ -208,7 +206,8 @@ const handleSubmit = async () => {
     submitData.append('email', formData.email)
     submitData.append('phone', formData.phone || '')
     submitData.append('role', formData.role)
-    submitData.append('status', formData.status)
+    submitData.append('is_banned', formData.is_banned ? '1' : '0')
+    submitData.append('is_active', formData.is_active ? '1' : '0')
     submitData.append('bio', formData.bio || '')
 
     // Add password fields if provided
@@ -271,7 +270,8 @@ const resetForm = () => {
   formData.password = ''
   formData.password_confirmation = ''
   formData.role = ''
-  formData.status = 'active'
+  formData.is_banned = false
+  formData.is_active = true
   formData.bio = ''
   profileImage.value = null
   errorMessages.value = []

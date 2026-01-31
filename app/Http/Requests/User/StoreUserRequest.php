@@ -24,12 +24,10 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,NULL,id,deleted_at,NULL|max:255',
-            'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|max:255|confirmed',
-            'role' => 'required|string|exists:roles,name',
-            'status' => 'required|string|exists:user_account_statuses,name',
-            'bio' => 'nullable|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB maximum
+            'is_banned' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -46,11 +44,6 @@ class StoreUserRequest extends FormRequest
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'role.required' => 'User role is required.',
-            'role.exists' => 'Selected role does not exist.',
-            'status.required' => 'Account status is required.',
-            'status.in' => 'Please select a valid account status.',
-            'bio.max' => 'Bio cannot exceed 1000 characters.',
         ];
     }
 }

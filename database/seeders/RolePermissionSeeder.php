@@ -68,7 +68,8 @@ class RolePermissionSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'password' => bcrypt('12345678'),
-                'user_account_status_id' => 2, // Assuming '2' is the ID for 'active' status
+                'is_banned' => false,
+                'is_active' => true,
             ]
         );
 

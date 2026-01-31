@@ -25,15 +25,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'phone',
-        'user_account_status_id',
         'password',
         'profile_image',
-        'username',
-        'bio',
-        'date_of_birth',
-        'location',
-        'timezone',
+        'is_banned',
+        'is_active',
     ];
 
     /**
@@ -96,19 +91,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's account status.
-     */
-    public function accountStatus()
-    {
-        return $this->belongsTo(UserAccountStatus::class, 'user_account_status_id');
-    }
-
-    /**
-     * Get the status attribute (computed from relationship)
+     * Get the status attribute (computed from boolean fields)
      */
     public function getStatusAttribute(): string
     {
-        return $this->accountStatus ? $this->accountStatus->name : 'unknown';
+        if ($this->is_banned) {
+            return 'banned';
+        }
+        return $this->is_active ? 'active' : 'inactive';
     }
 
     /**
@@ -116,7 +106,7 @@ class User extends Authenticatable
      */
     public function isBanned(): bool
     {
-        return $this->accountStatus && $this->accountStatus->name === 'banned';
+        return $this->is_banned;
     }
 
     /**
@@ -134,7 +124,7 @@ class User extends Authenticatable
      */
     public function isPermanentlyBanned(): bool
     {
-        return $this->accountStatus && $this->accountStatus->name === 'banned';
+        return $this->is_banned;
     }
 
     /**
@@ -142,7 +132,7 @@ class User extends Authenticatable
      */
     public function isTemporarilyBanned(): bool
     {
-        // Since we no longer track banned_until, all bans are permanent
+        // All bans are permanent
         return false;
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\UserAccountStatus;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +27,7 @@ class UserService
     {
         try {
             // Start building the query
-            $query = User::with('roles', 'accountStatus')
+            $query = User::with('roles')
                 ->select('users.*');
 
             // Apply search filter (name or email)
@@ -65,17 +64,7 @@ class UserService
 
             // Apply ban status filter
             if ($filters['is_banned'] !== null && $filters['is_banned'] !== '') {
-                if ($filters['is_banned']) {
-                    // Filter for banned users
-                    $query->whereHas('accountStatus', function ($q) {
-                        $q->where('name', 'banned');
-                    });
-                } else {
-                    // Filter for non-banned users
-                    $query->whereHas('accountStatus', function ($q) {
-                        $q->where('name', '!=', 'banned');
-                    });
-                }
+                $query->where('users.is_banned', $filters['is_banned']);
             }
 
             // Apply date of birth range filter
@@ -95,9 +84,17 @@ class UserService
 
             // Apply status filter
             if (!empty($filters['status'])) {
-                $query->whereHas('accountStatus', function ($q) use ($filters) {
-                    $q->where('name', $filters['status']);
-                });
+                switch ($filters['status']) {
+                    case 'banned':
+                        $query->where('users.is_banned', true);
+                        break;
+                    case 'active':
+                        $query->where('users.is_banned', false)->where('users.is_active', true);
+                        break;
+                    case 'inactive':
+                        $query->where('users.is_banned', false)->where('users.is_active', false);
+                        break;
+                }
             }
 
             // Apply date range filter
@@ -151,12 +148,11 @@ class UserService
             ]);
 
             // Get all available account statuses
-            $availableStatuses = UserAccountStatus::active()->ordered()->get()->map(function ($status) {
-                return [
-                    'value' => $status->name,
-                    'label' => $status->display_name,
-                ];
-            })->toArray();
+            $availableStatuses = [
+                ['value' => 'active', 'label' => 'Active'],
+                ['value' => 'inactive', 'label' => 'Inactive'],
+                ['value' => 'banned', 'label' => 'Banned'],
+            ];
 
             return [
                 'users' => $formattedUsers->toArray(),
@@ -186,7 +182,7 @@ class UserService
     public function getUserById(int $userId): array
     {
         try {
-            $user = User::with('roles', 'accountStatus')->findOrFail($userId);
+            $user = User::with('roles')->findOrFail($userId);
 
             $userData = $this->formatUserData($user);
 
@@ -208,12 +204,6 @@ class UserService
     public function createUser(array $data, $request = null): array
     {
         try {
-            // Get the status ID from the status name
-            $status = UserAccountStatus::where('name', $data['status'])->first();
-            if (!$status) {
-                throw new \Exception('Invalid status provided');
-            }
-
             // Check if there's a soft deleted user with this email
             $existingUser = User::withTrashed()->where('email', $data['email'])->first();
 
@@ -225,7 +215,8 @@ class UserService
                 $existingUser->update([
                     'name' => $data['name'],
                     'phone' => $data['phone'] ?? null,
-                    'user_account_status_id' => $status->id,
+                    'is_banned' => $data['is_banned'] ?? false,
+                    'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
                     'bio' => $data['bio'] ?? null,
                 ]);
@@ -243,7 +234,8 @@ class UserService
                     'name' => $data['name'],
                     'email' => $data['email'],
                     'phone' => $data['phone'] ?? null,
-                    'user_account_status_id' => $status->id,
+                    'is_banned' => $data['is_banned'] ?? false,
+                    'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
                     'bio' => $data['bio'] ?? null,
                 ]);
@@ -285,7 +277,8 @@ class UserService
                 'profile_image' => $user->profile_image_url,
                 'bio' => $data['bio'] ?? null,
                 'role' => $data['role'],
-                'status' => $data['status'],
+                'is_banned' => $user->is_banned,
+                'is_active' => $user->is_active,
                 'created_at' => $user->created_at,
                 'restored' => $existingUser && $existingUser->trashed(),
             ];
@@ -363,13 +356,10 @@ class UserService
                 $updateData['email'] = $data['email'];
             if (isset($data['phone']))
                 $updateData['phone'] = $data['phone'];
-            if (isset($data['status'])) {
-                $status = UserAccountStatus::where('name', $data['status'])->first();
-                if (!$status) {
-                    throw new \Exception('Invalid status provided');
-                }
-                $updateData['user_account_status_id'] = $status->id;
-            }
+            if (isset($data['is_banned']))
+                $updateData['is_banned'] = $data['is_banned'];
+            if (isset($data['is_active']))
+                $updateData['is_active'] = $data['is_active'];
             if (isset($data['bio']))
                 $updateData['bio'] = $data['bio'];
             // Update password if provided
@@ -484,7 +474,7 @@ class UserService
 
             // Update user account status to banned
             $user->update([
-                'user_account_status_id' => $bannedStatus->id,
+                'is_banned' => true,
             ]);
 
             // Log the ban action
@@ -497,7 +487,7 @@ class UserService
             );
 
             // Reload user with relationships
-            $user->load('roles', 'accountStatus');
+            $user->load('roles');
 
             Log::info('User banned successfully', [
                 'user_id' => $userId,
@@ -524,23 +514,16 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if user is actually banned (using account status)
-            $bannedStatus = UserAccountStatus::where('name', 'banned')->first();
-            if (!$user->accountStatus || $user->accountStatus->name !== 'banned') {
+            // Check if user is actually banned
+            if (!$user->is_banned) {
                 throw new \Exception('User is not currently banned');
             }
 
             $unbanReason = $reason ?? 'Manual unban';
 
-            // Get the active status
-            $activeStatus = UserAccountStatus::where('name', 'active')->first();
-            if (!$activeStatus) {
-                throw new \Exception('Active status not found in database');
-            }
-
             // Update user account status to active
             $user->update([
-                'user_account_status_id' => $activeStatus->id,
+                'is_banned' => false,
             ]);
 
             // Log the unban action
@@ -553,7 +536,7 @@ class UserService
             );
 
             // Reload user with relationships
-            $user->load('roles', 'accountStatus');
+            $user->load('roles');
 
             Log::info('User unbanned successfully', [
                 'user_id' => $userId,
@@ -599,23 +582,16 @@ class UserService
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'username' => $user->username,
-            'phone' => $user->phone,
             'status' => $user->status,
-            'bio' => $user->bio,
-            'date_of_birth' => $user->date_of_birth,
-            'location' => $user->location,
-            'timezone' => $user->timezone,
             'profile_image' => $user->profile_image,
             'profile_image_url' => $user->profile_image_url,
             'role' => $primaryRole ? $primaryRole->name : null,
             'role_display_name' => $primaryRole ? $this->getRoleDisplayName($primaryRole->name) : null,
+            'is_banned' => $user->is_banned,
+            'is_active' => $user->is_active,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),
-            'is_banned' => $user->accountStatus && $user->accountStatus->name === 'banned', // For backward compatibility
-            'is_currently_banned' => $user->accountStatus && $user->accountStatus->name === 'banned',
-            'ban_status' => $this->getBanStatusText($user),
         ];
     }
 
@@ -640,7 +616,7 @@ class UserService
      */
     private function getBanStatusText(User $user): string
     {
-        if (!$user->accountStatus || $user->accountStatus->name !== 'banned') {
+        if (!$user->is_banned) {
             return 'Not Banned';
         }
 

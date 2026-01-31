@@ -162,70 +162,42 @@
       </ContentBoxBody>
     </ContentBox>
 
-    <!-- Role & Permissions Card -->
+    <!-- Account Status Card -->
     <ContentBox>
       <ContentBoxHeader>
         <template #title>
           <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
-            <ContentBoxTitle title="Role & Permissions" />
+            <span class="material-symbols-outlined text-primary text-xl">admin_panel_settings</span>
+            <ContentBoxTitle title="Account Status" />
           </div>
         </template>
       </ContentBoxHeader>
       <ContentBoxBody>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Role -->
+          <!-- Is Banned -->
           <div>
-            <div v-if="isLoadingRoles" class="flex items-center gap-2 py-2">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              <span class="text-slate-600 text-sm">Loading roles...</span>
-            </div>
-
-            <div v-else-if="roleError" class="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p class="text-red-600 text-sm">{{ roleError }}</p>
-              <Button variant="outline" size="sm" class="mt-2" @click="fetchRoles">
-                Retry
-              </Button>
-            </div>
-
-            <div v-else-if="roles.length === 0" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-yellow-600 text-lg">warning</span>
-                <div>
-                  <p class="text-yellow-800 font-medium">No roles available</p>
-                  <p class="text-yellow-600 text-sm">Please create roles first before adding users.</p>
-                </div>
-              </div>
-            </div>
-
-            <FormField v-else v-model="formData.role" label="User Role" type="select" required>
-              <option value="">Select a role</option>
-              <option v-for="role in roles" :key="role.id" :value="role.name">
-                {{ role.display_name || role.name }}
-              </option>
-            </FormField>
+            <label class="flex items-center gap-2">
+              <input
+                v-model="formData.is_banned"
+                type="checkbox"
+                class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
+              />
+              <span class="text-sm font-semibold text-slate-700">Banned</span>
+            </label>
+            <p class="text-xs text-slate-500 mt-1">Check to ban this user account</p>
           </div>
 
-          <!-- Status -->
+          <!-- Is Active -->
           <div>
-            <div v-if="isLoadingStatuses" class="flex items-center gap-2 py-2">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              <span class="text-slate-600 text-sm">Loading statuses...</span>
-            </div>
-
-            <div v-else-if="statusError" class="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p class="text-red-600 text-sm">{{ statusError }}</p>
-              <Button variant="outline" size="sm" class="mt-2" @click="fetchStatuses">
-                Retry
-              </Button>
-            </div>
-
-            <FormField v-else v-model="formData.status" label="Account Status" type="select" required>
-              <option value="">Select a status</option>
-              <option v-for="status in statuses" :key="status.value" :value="status.value">
-                {{ status.label }}
-              </option>
-            </FormField>
+            <label class="flex items-center gap-2">
+              <input
+                v-model="formData.is_active"
+                type="checkbox"
+                class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
+              />
+              <span class="text-sm font-semibold text-slate-700">Active</span>
+            </label>
+            <p class="text-xs text-slate-500 mt-1">Check to activate this user account</p>
           </div>
         </div>
       </ContentBoxBody>
