@@ -30,9 +30,7 @@ class GuestUserSeeder extends Seeder
             $user = User::create([
                 'name' => "Guest User $i",
                 'email' => "guest$i@example.com",
-                'password' => Hash::make('password'),
-                'user_account_status_id' => $activeStatus->id,
-                // 'profile_image_url' => null, // Do not set avatar, let frontend fallback handle it
+                'password' => Hash::make('password')
             ]);
             $user->assignRole($guestRole);
         }
