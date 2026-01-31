@@ -193,10 +193,10 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useApi } from '../../../composables/useApi'
-import { apiRoutes } from '../../../config/apiRoutes'
-import { showConfirm, showToast } from '../../../composables/useSweetAlert'
-import { useAuthStore } from '../../../stores/auth'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
+import { showConfirm, showToast } from '@/composables/useSweetAlert'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const { get, del } = useApi()

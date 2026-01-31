@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app--UOe29r2.css",
+    "file": "assets/app-Csu7_G5G.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,7 +9,7 @@
     ]
   },
   "resources/js/vue3_dashboard_admin/app.ts": {
-    "file": "assets/app-DZ3sZxsQ.js",
+    "file": "assets/app-C2RmG59S.js",
     "name": "app",
     "src": "resources/js/vue3_dashboard_admin/app.ts",
     "isEntry": true,

@@ -36,278 +36,38 @@
             </div>
         </div>
 
-        <!-- Form Container -->
-        <div v-else class="space-y-6">
-            <!-- Role Information Card -->
-            <ContentBox>
-                <ContentBoxHeader>
-                    <template #title>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
-                            <ContentBoxTitle title="Role Information" />
-                        </div>
-                    </template>
-                </ContentBoxHeader>
-                <ContentBoxBody>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Role Name (Read-only) -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Role Name
-                            </label>
-                            <input
-                                v-model="form.name"
-                                type="text"
-                                readonly
-                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed"
-                            />
-                            <p class="text-xs text-slate-500 mt-1">Role name cannot be changed after creation</p>
-                        </div>
-
-                        <!-- Display Name -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Display Name <span class="text-danger">*</span>
-                            </label>
-                            <input
-                                v-model="form.display_name"
-                                type="text"
-                                placeholder="e.g., Content Editor"
-                                required
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            />
-                            <p class="text-xs text-slate-500 mt-1">Human-readable name for the role</p>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="mt-4">
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">
-                            Description
-                        </label>
-                        <textarea
-                            v-model="form.description"
-                            rows="3"
-                            placeholder="Describe what this role can do..."
-                            class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-                        ></textarea>
-                    </div>
-                </ContentBoxBody>
-            </ContentBox>
-
-            <!-- Permissions Card -->
-            <ContentBox>
-                <ContentBoxHeader>
-                    <template #title>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary text-xl">security</span>
-                            <ContentBoxTitle title="Permissions" subtitle="Select the permissions this role should have" />
-                        </div>
-                    </template>
-                </ContentBoxHeader>
-                <ContentBoxBody>
-                    <!-- Permissions Loading State -->
-                    <LoadingState v-if="isLoadingPermissions" message="Loading permissions..." />
-
-                    <!-- Permissions Error State -->
-                    <div v-else-if="permissionsError" class="bg-red-50 border border-red-200 rounded-lg p-6">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-red-500 text-xl">error</span>
-                            <div>
-                                <p class="text-red-700 font-medium">Failed to load permissions</p>
-                                <p class="text-red-600 text-sm">{{ permissionsError }}</p>
-                                <Button
-                                    variant="danger"
-                                    size="sm"
-                                    class="mt-2"
-                                    @click="fetchPermissions"
-                                >
-                                    Try Again
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Permissions Content -->
-                    <div v-else>
-                        <!-- Quick Select Actions -->
-                        <div class="flex flex-wrap gap-3 mb-6">
-                            <Button
-                                variant="ghost"
-                                left-icon="select_all"
-                                @click="selectAllPermissions"
-                            >
-                                Select All
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                left-icon="clear_all"
-                                @click="clearAllPermissions"
-                            >
-                                Clear All
-                            </Button>
-                        </div>
-
-                        <!-- Dynamic Permission Groups -->
-                        <div class="space-y-6">
-                            <div v-for="(group, groupName) in permissions" :key="groupName">
-                                <h4 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">{{ getGroupIcon(groupName) }}</span>
-                                    {{ formatGroupName(groupName) }}
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <label v-for="permission in group || []" :key="permission.name"
-                                           class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                        <input
-                                            v-model="form.permissions"
-                                            :value="permission.name"
-                                            type="checkbox"
-                                            class="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary/30"
-                                        />
-                                        <div class="flex-1">
-                                            <span class="text-sm font-medium text-slate-700">{{ permission.label }}</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                            <div v-if="Object.values(permissions).every(g => (g || []).length === 0)" class="text-center py-8">
-                                <span class="material-symbols-outlined text-4xl text-slate-400 mb-2 block">security</span>
-                                <p class="text-slate-600">No permissions available</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Selected Permissions Summary -->
-                    <div class="mt-6 p-4 bg-slate-50 rounded-lg">
-                        <h5 class="text-sm font-semibold text-slate-700 mb-2">
-                            Selected Permissions ({{ form.permissions.length }})
-                        </h5>
-                        <div class="flex flex-wrap gap-2">
-                            <span
-                                v-for="permission in form.permissions"
-                                :key="permission"
-                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                            >
-                                {{ permission }}
-                            </span>
-                        </div>
-                        <p v-if="form.permissions.length === 0" class="text-xs text-slate-500">
-                            No permissions selected
-                        </p>
-                    </div>
-                </ContentBoxBody>
-            </ContentBox>
-
-            <!-- Error Message -->
-            <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-red-500 text-lg">error</span>
-                    <p class="text-red-700 text-sm font-medium">{{ errorMessage }}</p>
-                </div>
-            </div>
-
-            <!-- Form Actions Card -->
-            <ContentBox>
-                <ContentBoxBody>
-                    <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
-                        <Button
-                            variant="outline"
-                            class="w-full sm:w-auto"
-                            left-icon="close"
-                            @click="goBack"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="primary"
-                            class="w-full sm:w-auto"
-                            left-icon="save"
-                            :loading="isSubmitting"
-                            @click="handleSubmit"
-                        >
-                            {{ isSubmitting ? 'Updating...' : 'Update Role' }}
-                        </Button>
-                    </div>
-                </ContentBoxBody>
-            </ContentBox>
-        </div>
+        <!-- Role Form -->
+        <RoleForm
+            v-else
+            :is-edit="true"
+            :initial-data="roleData"
+            @cancel="goBack"
+            @success="handleSuccess"
+        />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useApi } from '../../../composables/useApi'
-import { apiRoutes } from '../../../config/apiRoutes'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
 
 const router = useRouter()
 const route = useRoute()
-const { get, put } = useApi()
+const { get } = useApi()
 
 // State
-const isSubmitting = ref(false)
-const errorMessage = ref('')
-const isLoadingPermissions = ref(true)
-const permissionsError = ref('')
 const isLoadingRole = ref(true)
 const roleError = ref('')
+const roleData = ref<any>(null)
 
 // Get role ID from route params
 const roleId = computed(() => route.params.id as string)
 
-// Permissions data
-const permissions = ref<{
-    dashboard: any[]
-    user_management: any[]
-    report: any[]
-    other: any[]
-}>({
-    dashboard: [],
-    user_management: [],
-    report: [],
-    other: []
-})
-
-// Form data
-const form = reactive({
-    name: '',
-    display_name: '',
-    description: '',
-    permissions: [] as string[]
-})
-
-// Computed permissions
-const dashboardPermissions = computed(() => permissions.value?.dashboard || [])
-const userPermissions = computed(() => permissions.value?.user_management || [])
-const reportPermissions = computed(() => permissions.value?.report || [])
-const otherPermissions = computed(() => permissions.value?.other || [])
-
 // Navigation
 const goBack = () => {
     router.push({ name: 'role_management.index' })
-}
-
-// Fetch permissions from API
-const fetchPermissions = async () => {
-    try {
-        isLoadingPermissions.value = true
-        permissionsError.value = ''
-
-        const response = await get(apiRoutes.permissions.grouped)
-
-        if (response.ok) {
-            const data = await response.json()
-            permissions.value = data.permissions
-        } else {
-            const errorData = await response.json()
-            permissionsError.value = errorData.message || 'Failed to load permissions'
-        }
-    } catch (error) {
-        console.error('Error fetching permissions:', error)
-        permissionsError.value = 'An unexpected error occurred while loading permissions'
-    } finally {
-        isLoadingPermissions.value = false
-    }
 }
 
 // Fetch role data
@@ -328,11 +88,14 @@ const fetchRole = async () => {
                 return
             }
 
-            // Populate form with existing data
-            form.name = role.name
-            form.display_name = role.display_name || ''
-            form.description = role.description || ''
-            form.permissions = role.permissions || []
+            // Set role data for form
+            roleData.value = {
+                id: role.id,
+                name: role.name,
+                display_name: role.display_name || '',
+                description: role.description || '',
+                permissions: role.permissions || []
+            }
         } else {
             const errorData = await response.json()
             roleError.value = errorData.message || 'Failed to load role data'
@@ -345,94 +108,14 @@ const fetchRole = async () => {
     }
 }
 
-// Form validation
-const validateForm = (): boolean => {
-    if (!form.display_name.trim()) {
-        errorMessage.value = 'Display name is required'
-        return false
-    }
-
-    if (form.permissions.length === 0) {
-        errorMessage.value = 'Please select at least one permission'
-        return false
-    }
-
-    return true
-}
-
-// Permission selection helpers
-const selectAllPermissions = () => {
-    form.permissions = Object.values(permissions.value)
-        .flat()
-        .map((p: any) => p.name)
-}
-
-// Helpers for dynamic group rendering
-const groupIcons: Record<string, string> = {
-    dashboard: 'dashboard',
-    user_management: 'group',
-    role_management: 'admin_panel_settings',
-    report: 'analytics',
-    other: 'settings',
-}
-
-function getGroupIcon(groupName: string) {
-    return groupIcons[groupName] || 'settings'
-}
-
-function formatGroupName(groupName: string) {
-    return groupName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
-
-const clearAllPermissions = () => {
-    form.permissions = []
-}
-// Handle form submission
-const handleSubmit = async () => {
-    if (!validateForm()) {
-        return
-    }
-
-    isSubmitting.value = true
-    errorMessage.value = ''
-
-    try {
-        // Prepare data for API
-        const roleData = {
-            display_name: form.display_name,
-            description: form.description,
-            permissions: form.permissions
-        }
-
-        // Update role via API
-        const response = await put(apiRoutes.roles.update(roleId.value), roleData)
-
-        if (response.ok) {
-            const data = await response.json()
-            console.log('Role updated successfully:', data)
-
-            // Success - redirect to roles list
-            router.push({ name: 'role_management.index' })
-        } else {
-            // Handle API error
-            const errorData = await response.json()
-            errorMessage.value = errorData.message || 'Failed to update role. Please try again.'
-            console.error('API Error:', errorData)
-        }
-    } catch (error) {
-        console.error('Error updating role:', error)
-        errorMessage.value = 'An unexpected error occurred. Please try again.'
-    } finally {
-        isSubmitting.value = false
-    }
+const handleSuccess = (role: any) => {
+    // Redirect to role list after successful update
+    router.push({ name: 'role_management.index' })
 }
 
 // Lifecycle hook
 onMounted(async () => {
-    await Promise.all([
-        fetchPermissions(),
-        fetchRole()
-    ])
+    await fetchRole()
 })
 
 // Import components
@@ -442,9 +125,6 @@ import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
 import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import Button from '../../../components/ui/Button.vue'
-import ContentBox from '../../../components/ui/ContentBox.vue'
-import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
-import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
-import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import LoadingState from '../../../components/ui/LoadingState.vue'
+import RoleForm from '../../../components/role/RoleForm.vue'
 </script>
