@@ -144,26 +144,6 @@ import UserDetailModal from '../../../components/user/UserDetailModal.vue'
 // User detail modal state
 const showUserDetail = ref(false)
 const selectedUser = ref<User | null>(null)
-
-function openUserDetail(user: User) {
-    // Check permission before opening user detail
-    if (!canViewUserDetail.value) {
-        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to view user details.' })
-        return
-    }
-
-    // Fetch full user details from API
-    get(`/api/v1/users/${user.id}`)
-        .then(async (response) => {
-            const data = await response.json()
-            selectedUser.value = data.user
-            showUserDetail.value = true
-        })
-        .catch((err) => {
-            console.error('Failed to fetch user details:', err)
-            showToast({ icon: 'error', title: 'Failed to load user details', text: err?.message ?? '' })
-        })
-}
 import { ref, reactive, computed, onMounted } from 'vue'
 // Pagination indicator computed properties (like role management)
 const currentStart = computed(() => {
@@ -575,6 +555,36 @@ const handleView = (user: User) => {
     console.log('View user:', user)
     // TODO: Navigate to user detail page
     router.push({ name: 'user_management.view', params: { id: user.id } })
+}
+
+// Open user detail modal (moved here to group with other user actions)
+const openUserDetail = async (user: User) => {
+    if (!canViewUserDetail.value) {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to view user details.' })
+        return
+    }
+
+    try {
+        const response = await get(apiRoutes.users.show(user.id))
+
+        if (!response.ok) {
+            let errorText = ''
+            try {
+                const errorData = await response.json()
+                errorText = errorData.error || errorData.message || response.statusText
+            } catch {
+                errorText = response.statusText
+            }
+            throw new Error(errorText || 'Failed to fetch user details')
+        }
+
+        const data = await response.json()
+        selectedUser.value = data.user
+        showUserDetail.value = true
+    } catch (err: any) {
+        console.error('Failed to fetch user details:', err)
+        showToast({ icon: 'error', title: 'Failed to load user details', text: err?.message ?? '' })
+    }
 }
 
 const goToAddUser = () => {
