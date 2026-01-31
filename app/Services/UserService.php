@@ -65,7 +65,17 @@ class UserService
 
             // Apply ban status filter
             if ($filters['is_banned'] !== null && $filters['is_banned'] !== '') {
-                $query->where('users.is_banned', $filters['is_banned']);
+                if ($filters['is_banned']) {
+                    // Filter for banned users
+                    $query->whereHas('accountStatus', function ($q) {
+                        $q->where('name', 'banned');
+                    });
+                } else {
+                    // Filter for non-banned users
+                    $query->whereHas('accountStatus', function ($q) {
+                        $q->where('name', '!=', 'banned');
+                    });
+                }
             }
 
             // Apply date of birth range filter
@@ -465,13 +475,16 @@ class UserService
             }
 
             $banReason = $banData['reason'] ?? 'No reason provided';
-            $bannedUntil = isset($banData['banned_until']) ? Carbon::parse($banData['banned_until']) : null;
 
-            // Update user ban status
+            // Get the banned status
+            $bannedStatus = UserAccountStatus::where('name', 'banned')->first();
+            if (!$bannedStatus) {
+                throw new \Exception('Banned status not found in database');
+            }
+
+            // Update user account status to banned
             $user->update([
-                'is_banned' => true,
-                'ban_reason' => $banReason,
-                'banned_until' => $bannedUntil,
+                'user_account_status_id' => $bannedStatus->id,
             ]);
 
             // Log the ban action
@@ -479,7 +492,7 @@ class UserService
                 $user->id,
                 'ban',
                 $banReason,
-                $bannedUntil,
+                null, // No longer tracking banned_until
                 $performedBy
             );
 
@@ -490,7 +503,6 @@ class UserService
                 'user_id' => $userId,
                 'email' => $user->email,
                 'reason' => $banReason,
-                'banned_until' => $bannedUntil,
                 'performed_by' => $performedBy
             ]);
 
@@ -512,18 +524,23 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if user is actually banned
-            if (!$user->isBanned()) {
+            // Check if user is actually banned (using account status)
+            $bannedStatus = UserAccountStatus::where('name', 'banned')->first();
+            if (!$user->accountStatus || $user->accountStatus->name !== 'banned') {
                 throw new \Exception('User is not currently banned');
             }
 
             $unbanReason = $reason ?? 'Manual unban';
 
-            // Update user ban status
+            // Get the active status
+            $activeStatus = UserAccountStatus::where('name', 'active')->first();
+            if (!$activeStatus) {
+                throw new \Exception('Active status not found in database');
+            }
+
+            // Update user account status to active
             $user->update([
-                'is_banned' => false,
-                'ban_reason' => null,
-                'banned_until' => null,
+                'user_account_status_id' => $activeStatus->id,
             ]);
 
             // Log the unban action
@@ -596,10 +613,8 @@ class UserService
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),
-            'is_banned' => $user->is_banned,
-            'ban_reason' => $user->ban_reason,
-            'banned_until' => $user->banned_until,
-            'is_currently_banned' => $user->isBanned(),
+            'is_banned' => $user->accountStatus && $user->accountStatus->name === 'banned', // For backward compatibility
+            'is_currently_banned' => $user->accountStatus && $user->accountStatus->name === 'banned',
             'ban_status' => $this->getBanStatusText($user),
         ];
     }
@@ -625,22 +640,11 @@ class UserService
      */
     private function getBanStatusText(User $user): string
     {
-        if (!$user->is_banned) {
+        if (!$user->accountStatus || $user->accountStatus->name !== 'banned') {
             return 'Not Banned';
         }
 
-        if ($user->isPermanentlyBanned()) {
-            return 'Permanently Banned';
-        }
-
-        if ($user->isTemporarilyBanned()) {
-            return 'Temporarily Banned';
-        }
-
-        if ($user->hasExpiredBan()) {
-            return 'Ban Expired';
-        }
-
-        return 'Banned';
+        // All bans are now permanent (no banned_until tracking)
+        return 'Permanently Banned';
     }
 }

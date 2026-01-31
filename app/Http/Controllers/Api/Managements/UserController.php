@@ -193,7 +193,6 @@ class UserController extends Controller
         try {
             $validated = $request->validate([
                 'reason' => 'required|string|max:1000',
-                'banned_until' => 'nullable|date|after:now',
             ]);
 
             $performedBy = $request->user()->id;

@@ -34,9 +34,6 @@ class User extends Authenticatable
         'date_of_birth',
         'location',
         'timezone',
-        'is_banned',
-        'ban_reason',
-        'banned_until',
     ];
 
     /**
@@ -119,7 +116,7 @@ class User extends Authenticatable
      */
     public function isBanned(): bool
     {
-        return $this->is_banned && ($this->banned_until === null || $this->banned_until->isFuture());
+        return $this->accountStatus && $this->accountStatus->name === 'banned';
     }
 
     /**
@@ -127,7 +124,9 @@ class User extends Authenticatable
      */
     public function hasExpiredBan(): bool
     {
-        return $this->is_banned && $this->banned_until !== null && $this->banned_until->isPast();
+        // Since we no longer track banned_until, this is not applicable
+        // All bans are now permanent until manually unbanned
+        return false;
     }
 
     /**
@@ -135,7 +134,7 @@ class User extends Authenticatable
      */
     public function isPermanentlyBanned(): bool
     {
-        return $this->is_banned && $this->banned_until === null;
+        return $this->accountStatus && $this->accountStatus->name === 'banned';
     }
 
     /**
@@ -143,6 +142,7 @@ class User extends Authenticatable
      */
     public function isTemporarilyBanned(): bool
     {
-        return $this->is_banned && $this->banned_until !== null && $this->banned_until->isFuture();
+        // Since we no longer track banned_until, all bans are permanent
+        return false;
     }
 }

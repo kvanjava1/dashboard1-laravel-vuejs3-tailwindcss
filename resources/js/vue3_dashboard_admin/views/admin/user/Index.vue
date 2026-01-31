@@ -281,9 +281,6 @@ interface User {
     last_activity?: string
     last_activity_formatted?: string
     is_banned?: boolean
-    ban_reason?: string | undefined
-    banned_until?: string | undefined
-    banned_until_formatted?: string
     is_currently_banned?: boolean
     ban_status?: string
     profile_image?: string
@@ -482,12 +479,35 @@ const handleBan = async (user: User) => {
             return
         }
 
-        // Update user in local list
+        const result = await response.json()
+        
+        // Update user in local list with returned data
         const userIndex = users.value.findIndex(u => u.id === user.id)
         if (userIndex >= 0) {
-            users.value[userIndex]!.is_banned = true
-            users.value[userIndex]!.ban_reason = reason.trim()
-            users.value[userIndex]!.is_currently_banned = true
+            // Map API data to frontend format
+            users.value[userIndex] = {
+                id: result.data.id,
+                name: result.data.name,
+                email: result.data.email,
+                username: result.data.username,
+                phone: result.data.phone,
+                status: result.data.status,
+                bio: result.data.bio,
+                date_of_birth: result.data.date_of_birth,
+                location: result.data.location,
+                timezone: result.data.timezone,
+                profile_image: result.data.profile_image,
+                profile_image_url: result.data.profile_image_url,
+                role: result.data.role,
+                role_display_name: result.data.role_display_name,
+                created_at: result.data.created_at,
+                updated_at: result.data.updated_at,
+                joined_date: result.data.joined_date,
+                is_banned: result.data.is_banned,
+                is_currently_banned: result.data.is_currently_banned,
+                ban_status: result.data.ban_status,
+                avatar: result.data.profile_image_url || '' // For backward compatibility
+            }
         }
 
         await showToast({ icon: 'success', title: 'User banned successfully', timer: 0 })
@@ -535,13 +555,35 @@ const handleUnban = async (user: User) => {
             return
         }
 
-        // Update user in local list
+        const result = await response.json()
+        
+        // Update user in local list with returned data
         const userIndex = users.value.findIndex(u => u.id === user.id)
         if (userIndex >= 0) {
-            users.value[userIndex]!.is_banned = false
-            users.value[userIndex]!.ban_reason = undefined
-            users.value[userIndex]!.banned_until = undefined
-            users.value[userIndex]!.is_currently_banned = false
+            // Map API data to frontend format
+            users.value[userIndex] = {
+                id: result.data.id,
+                name: result.data.name,
+                email: result.data.email,
+                username: result.data.username,
+                phone: result.data.phone,
+                status: result.data.status,
+                bio: result.data.bio,
+                date_of_birth: result.data.date_of_birth,
+                location: result.data.location,
+                timezone: result.data.timezone,
+                profile_image: result.data.profile_image,
+                profile_image_url: result.data.profile_image_url,
+                role: result.data.role,
+                role_display_name: result.data.role_display_name,
+                created_at: result.data.created_at,
+                updated_at: result.data.updated_at,
+                joined_date: result.data.joined_date,
+                is_banned: result.data.is_banned,
+                is_currently_banned: result.data.is_currently_banned,
+                ban_status: result.data.ban_status,
+                avatar: result.data.profile_image_url || '' // For backward compatibility
+            }
         }
 
         await showToast({ icon: 'success', title: 'User unbanned successfully', timer: 0 })

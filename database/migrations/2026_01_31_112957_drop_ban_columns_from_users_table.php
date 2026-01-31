@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->dropColumn(['is_banned', 'ban_reason', 'banned_until']);
         });
     }
 
@@ -22,7 +22,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->boolean('is_banned')->default(false)->after('location');
+            $table->text('ban_reason')->nullable()->after('is_banned');
+            $table->timestamp('banned_until')->nullable()->after('ban_reason');
         });
     }
 };

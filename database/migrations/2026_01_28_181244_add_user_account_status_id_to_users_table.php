@@ -17,17 +17,6 @@ return new class extends Migration
             $table->foreign('user_account_status_id')->references('id')->on('user_account_statuses');
         });
 
-        // Populate the new column based on existing status values
-        DB::statement("
-            UPDATE users 
-            SET user_account_status_id = (
-                SELECT id FROM user_account_statuses 
-                WHERE name = users.status 
-                LIMIT 1
-            )
-            WHERE status IS NOT NULL
-        ");
-
         // Make the column not nullable after populating
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('user_account_status_id')->nullable(false)->change();

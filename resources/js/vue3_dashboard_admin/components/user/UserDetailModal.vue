@@ -105,10 +105,7 @@
                     <span class="material-symbols-outlined text-red-500 mt-0.5">block</span>
                     <div class="flex-1">
                       <div class="text-sm font-medium text-red-800 mb-1">Account Banned</div>
-                      <div v-if="user.ban_reason" class="text-sm text-red-700 mb-2">{{ user.ban_reason }}</div>
-                      <div v-if="user.banned_until_formatted" class="text-xs text-red-600">
-                        Banned until: {{ user.banned_until_formatted }}
-                      </div>
+                      <div class="text-sm text-red-700">This account has been permanently banned. Check ban history for details.</div>
                     </div>
                   </div>
                 </div>
