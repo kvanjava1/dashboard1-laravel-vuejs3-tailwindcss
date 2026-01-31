@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Managements\UserController;
 use App\Http\Controllers\Api\Managements\RoleController;
 use App\Http\Controllers\Api\Managements\PermissionController;
-use App\Http\Controllers\Api\Managements\ExampleManagementController;
 
 Route::prefix('v1')->group(function () {
     // Public auth routes with rate limiting
@@ -38,13 +37,5 @@ Route::prefix('v1')->group(function () {
         // Permission routes
         Route::get('permissions', [PermissionController::class, 'index'])->middleware(['permission:role_management.view']);
         Route::get('permissions/grouped', [PermissionController::class, 'grouped'])->middleware(['permission:role_management.view']);
-
-        // Example management routes
-        Route::get('examples', [\App\Http\Controllers\Api\ExampleManagementController::class, 'index'])->middleware(['permission:example_management.view'])->name('examples.index');
-        Route::post('examples', [\App\Http\Controllers\Api\ExampleManagementController::class, 'store'])->middleware(['permission:example_management.add'])->name('examples.store');
-        Route::get('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'show'])->middleware(['permission:example_management.view'])->name('examples.show')->where('exampleManagement', '[0-9]+');
-        Route::put('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'update'])->middleware(['permission:example_management.edit'])->name('examples.update')->where('exampleManagement', '[0-9]+');
-        Route::patch('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'update'])->middleware(['permission:example_management.edit']);
-        Route::delete('examples/{exampleManagement}', [\App\Http\Controllers\Api\ExampleManagementController::class, 'destroy'])->middleware(['permission:example_management.delete'])->name('examples.destroy')->where('exampleManagement', '[0-9]+');
     });
 });

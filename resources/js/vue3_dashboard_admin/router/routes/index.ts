@@ -13,27 +13,7 @@ const routes: RouteRecordRaw[] = [
     ...authRoutes,
     ...dashboardRoutes,
     ...userRoutes,
-    ...roleRoutes,
-    {
-      path: '/example-management/index',
-      name: 'admin-example-management',
-      component: () => import('@/views/admin/example_management/Index.vue'),
-      meta: {
-        requiresAuth: true,
-        layout: 'admin',
-        title: 'Example Management'
-      }
-    },
-    {
-      path: '/admin/example-management/add',
-      name: 'admin-example-management-add',
-      component: () => import('@/views/admin/example_management/Add.vue'),
-      meta: {
-        requiresAuth: true,
-        layout: 'admin',
-        title: 'Add Example'
-      }
-    }
+    ...roleRoutes
 ]
 
 const router = createRouter({
