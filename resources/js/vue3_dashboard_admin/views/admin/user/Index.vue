@@ -91,9 +91,14 @@
                                         @edit="handleEdit(user)"
                                         @delete="handleDelete(user)"
                                         @view="() => openUserDetail(user)"
+                                        @ban="handleBan(user)"
+                                        @unban="handleUnban(user)"
                                         :show-edit="canEditUser"
                                         :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
                                         :show-view="canViewUserDetail"
+                                        :show-ban="canBanUser && !user.is_currently_banned"
+                                        :show-unban="canUnbanUser && !!user.is_currently_banned"
+                                        :user="user"
                                     />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
@@ -175,6 +180,7 @@ import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import { useAuthStore } from '@/stores/auth'
+import Swal from 'sweetalert2'
 
 const router = useRouter()
 const { get, del } = useApi()
@@ -186,6 +192,8 @@ const canEditUser = computed(() => authStore.hasPermission('user_management.edit
 const canDeleteUser = computed(() => authStore.hasPermission('user_management.delete'))
 const canViewUserDetail = computed(() => authStore.hasPermission('user_management.view_detail'))
 const canSearchUser = computed(() => authStore.hasPermission('user_management.search'))
+const canBanUser = computed(() => authStore.hasPermission('user_management.ban'))
+const canUnbanUser = computed(() => authStore.hasPermission('user_management.unban'))
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
@@ -293,9 +301,11 @@ interface User {
     last_activity?: string
     last_activity_formatted?: string
     is_banned?: boolean
-    ban_reason?: string
-    banned_until?: string
+    ban_reason?: string | undefined
+    banned_until?: string | undefined
     banned_until_formatted?: string
+    is_currently_banned?: boolean
+    ban_status?: string
     profile_image?: string
     profile_image_url?: string
     role?: string
@@ -444,6 +454,120 @@ const handleDelete = async (user: User) => {
     } catch (err: any) {
         await showToast({ icon: 'error', title: 'Failed to delete user', text: err?.message ?? '', timer: 0 })
         console.error('Error deleting user:', err)
+    }
+}
+
+const handleBan = async (user: User) => {
+    const { value: reason } = await Swal.fire({
+        title: `Ban user "${user.name}"?`,
+        input: 'textarea',
+        inputLabel: 'Reason for ban',
+        inputPlaceholder: 'Enter the reason for banning this user...',
+        inputValidator: (value: string) => {
+            if (!value || value.trim().length < 5) {
+                return 'Please provide a reason (minimum 5 characters)'
+            }
+        },
+        icon: 'warning',
+        confirmButtonText: 'Ban User',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true
+    })
+
+    if (!reason) return
+
+    try {
+        const url = apiRoutes.users.ban(user.id)
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                reason: reason.trim()
+            })
+        })
+
+        if (!response.ok) {
+            let errorText = ''
+            try {
+                const errorData = await response.json()
+                errorText = errorData.error || errorData.message || response.statusText
+            } catch {
+                errorText = response.statusText
+            }
+            await showToast({ icon: 'error', title: 'Failed to ban user', text: errorText, timer: 0 })
+            return
+        }
+
+        // Update user in local list
+        const userIndex = users.value.findIndex(u => u.id === user.id)
+        if (userIndex >= 0) {
+            users.value[userIndex]!.is_banned = true
+            users.value[userIndex]!.ban_reason = reason.trim()
+            users.value[userIndex]!.is_currently_banned = true
+        }
+
+        await showToast({ icon: 'success', title: 'User banned successfully', timer: 0 })
+    } catch (err: any) {
+        await showToast({ icon: 'error', title: 'Failed to ban user', text: err?.message ?? '', timer: 0 })
+        console.error('Error banning user:', err)
+    }
+}
+
+const handleUnban = async (user: User) => {
+    const { value: reason } = await Swal.fire({
+        title: `Unban user "${user.name}"?`,
+        input: 'textarea',
+        inputLabel: 'Reason for unban (optional)',
+        inputPlaceholder: 'Enter the reason for unbanning this user...',
+        icon: 'question',
+        confirmButtonText: 'Unban User',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true
+    })
+
+    try {
+        const url = apiRoutes.users.unban(user.id)
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                reason: reason?.trim() || null
+            })
+        })
+
+        if (!response.ok) {
+            let errorText = ''
+            try {
+                const errorData = await response.json()
+                errorText = errorData.error || errorData.message || response.statusText
+            } catch {
+                errorText = response.statusText
+            }
+            await showToast({ icon: 'error', title: 'Failed to unban user', text: errorText, timer: 0 })
+            return
+        }
+
+        // Update user in local list
+        const userIndex = users.value.findIndex(u => u.id === user.id)
+        if (userIndex >= 0) {
+            users.value[userIndex]!.is_banned = false
+            users.value[userIndex]!.ban_reason = undefined
+            users.value[userIndex]!.banned_until = undefined
+            users.value[userIndex]!.is_currently_banned = false
+        }
+
+        await showToast({ icon: 'success', title: 'User unbanned successfully', timer: 0 })
+    } catch (err: any) {
+        await showToast({ icon: 'error', title: 'Failed to unban user', text: err?.message ?? '', timer: 0 })
+        console.error('Error unbanning user:', err)
     }
 }
 

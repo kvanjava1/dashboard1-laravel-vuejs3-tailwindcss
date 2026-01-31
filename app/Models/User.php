@@ -34,6 +34,9 @@ class User extends Authenticatable
         'date_of_birth',
         'location',
         'timezone',
+        'is_banned',
+        'ban_reason',
+        'banned_until',
     ];
 
     /**
@@ -109,5 +112,37 @@ class User extends Authenticatable
     public function getStatusAttribute(): string
     {
         return $this->accountStatus ? $this->accountStatus->name : 'unknown';
+    }
+
+    /**
+     * Check if the user is currently banned
+     */
+    public function isBanned(): bool
+    {
+        return $this->is_banned && ($this->banned_until === null || $this->banned_until->isFuture());
+    }
+
+    /**
+     * Check if the user has a temporary ban that has expired
+     */
+    public function hasExpiredBan(): bool
+    {
+        return $this->is_banned && $this->banned_until !== null && $this->banned_until->isPast();
+    }
+
+    /**
+     * Check if the user has a permanent ban
+     */
+    public function isPermanentlyBanned(): bool
+    {
+        return $this->is_banned && $this->banned_until === null;
+    }
+
+    /**
+     * Check if the user has a temporary ban
+     */
+    public function isTemporarilyBanned(): bool
+    {
+        return $this->is_banned && $this->banned_until !== null && $this->banned_until->isFuture();
     }
 }

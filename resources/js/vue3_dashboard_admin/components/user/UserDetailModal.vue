@@ -173,8 +173,8 @@ interface User {
   last_activity?: string
   last_activity_formatted?: string
   is_banned?: boolean
-  ban_reason?: string
-  banned_until?: string
+  ban_reason?: string | undefined
+  banned_until?: string | undefined
   banned_until_formatted?: string
   profile_image?: string
   profile_image_url?: string

@@ -7,6 +7,20 @@
             <span class="material-symbols-outlined text-[20px]">edit</span>
         </button>
         <button
+            v-if="showBan !== false && !user?.is_currently_banned"
+            class="p-2 text-slate-600 hover:text-warning hover:bg-slate-100 rounded-full transition-colors"
+            @click="$emit('ban')"
+            title="Ban User">
+            <span class="material-symbols-outlined text-[20px]">block</span>
+        </button>
+        <button
+            v-if="showUnban !== false && user?.is_currently_banned"
+            class="p-2 text-slate-600 hover:text-success hover:bg-slate-100 rounded-full transition-colors"
+            @click="$emit('unban')"
+            title="Unban User">
+            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        </button>
+        <button
             v-if="showDelete !== false"
             class="p-2 text-slate-600 hover:text-danger hover:bg-slate-100 rounded-full transition-colors"
             @click="$emit('delete')">
@@ -22,10 +36,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ showEdit?: boolean; showDelete?: boolean; showView?: boolean }>()
+defineProps<{ 
+    showEdit?: boolean; 
+    showDelete?: boolean; 
+    showView?: boolean;
+    showBan?: boolean;
+    showUnban?: boolean;
+    user?: any;
+}>()
 defineEmits<{
     edit: []
     delete: []
     view: []
+    ban: []
+    unban: []
 }>()
 </script>

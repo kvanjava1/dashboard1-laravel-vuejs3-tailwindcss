@@ -8,14 +8,18 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ProtectionService;
+use App\Services\UserBanHistoryService;
+use Carbon\Carbon;
 
 class UserService
 {
     protected ProtectionService $protectionService;
+    protected UserBanHistoryService $userBanHistoryService;
 
-    public function __construct(ProtectionService $protectionService)
+    public function __construct(ProtectionService $protectionService, UserBanHistoryService $userBanHistoryService)
     {
         $this->protectionService = $protectionService;
+        $this->userBanHistoryService = $userBanHistoryService;
     }
     /**
      * Get filtered and paginated users with their roles
@@ -444,6 +448,130 @@ class UserService
     }
 
     /**
+     * Ban a user
+     */
+    public function banUser(int $userId, array $banData, int $performedBy = null): array
+    {
+        try {
+            $user = User::findOrFail($userId);
+
+            // Check if account is protected from banning
+            if ($this->protectionService->isAccountProtectedFromBan($user)) {
+                $reason = $this->protectionService->getAccountProtectionReason($user);
+                $this->protectionService->throwProtectionException(
+                    'Cannot ban protected account',
+                    $reason
+                );
+            }
+
+            $banReason = $banData['reason'] ?? 'No reason provided';
+            $bannedUntil = isset($banData['banned_until']) ? Carbon::parse($banData['banned_until']) : null;
+
+            // Update user ban status
+            $user->update([
+                'is_banned' => true,
+                'ban_reason' => $banReason,
+                'banned_until' => $bannedUntil,
+            ]);
+
+            // Log the ban action
+            $this->userBanHistoryService->logBanAction(
+                $user->id,
+                'ban',
+                $banReason,
+                $bannedUntil,
+                $performedBy
+            );
+
+            // Reload user with relationships
+            $user->load('roles', 'accountStatus');
+
+            Log::info('User banned successfully', [
+                'user_id' => $userId,
+                'email' => $user->email,
+                'reason' => $banReason,
+                'banned_until' => $bannedUntil,
+                'performed_by' => $performedBy
+            ]);
+
+            return $this->formatUserData($user);
+        } catch (\Exception $e) {
+            Log::error('Failed to ban user', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Unban a user
+     */
+    public function unbanUser(int $userId, string $reason = null, int $performedBy = null): array
+    {
+        try {
+            $user = User::findOrFail($userId);
+
+            // Check if user is actually banned
+            if (!$user->isBanned()) {
+                throw new \Exception('User is not currently banned');
+            }
+
+            $unbanReason = $reason ?? 'Manual unban';
+
+            // Update user ban status
+            $user->update([
+                'is_banned' => false,
+                'ban_reason' => null,
+                'banned_until' => null,
+            ]);
+
+            // Log the unban action
+            $this->userBanHistoryService->logBanAction(
+                $user->id,
+                'unban',
+                $unbanReason,
+                null,
+                $performedBy
+            );
+
+            // Reload user with relationships
+            $user->load('roles', 'accountStatus');
+
+            Log::info('User unbanned successfully', [
+                'user_id' => $userId,
+                'email' => $user->email,
+                'reason' => $unbanReason,
+                'performed_by' => $performedBy
+            ]);
+
+            return $this->formatUserData($user);
+        } catch (\Exception $e) {
+            Log::error('Failed to unban user', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get user's ban history
+     */
+    public function getUserBanHistory(int $userId): array
+    {
+        try {
+            return $this->userBanHistoryService->getUserBanHistory($userId);
+        } catch (\Exception $e) {
+            Log::error('Failed to get user ban history', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Format user data for API response
      */
     private function formatUserData(User $user): array
@@ -468,6 +596,11 @@ class UserService
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'joined_date' => $user->created_at->format('M d, Y'),
+            'is_banned' => $user->is_banned,
+            'ban_reason' => $user->ban_reason,
+            'banned_until' => $user->banned_until,
+            'is_currently_banned' => $user->isBanned(),
+            'ban_status' => $this->getBanStatusText($user),
         ];
     }
 
@@ -485,5 +618,29 @@ class UserService
         ];
 
         return $displayNames[$roleName] ?? ucwords(str_replace('_', ' ', $roleName));
+    }
+
+    /**
+     * Get human-readable ban status text
+     */
+    private function getBanStatusText(User $user): string
+    {
+        if (!$user->is_banned) {
+            return 'Not Banned';
+        }
+
+        if ($user->isPermanentlyBanned()) {
+            return 'Permanently Banned';
+        }
+
+        if ($user->isTemporarilyBanned()) {
+            return 'Temporarily Banned';
+        }
+
+        if ($user->hasExpiredBan()) {
+            return 'Ban Expired';
+        }
+
+        return 'Banned';
     }
 }

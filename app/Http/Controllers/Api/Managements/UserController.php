@@ -186,6 +186,106 @@ class UserController extends Controller
     }
 
     /**
+     * Ban a user.
+     */
+    public function ban(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'reason' => 'required|string|max:1000',
+                'banned_until' => 'nullable|date|after:now',
+            ]);
+
+            $performedBy = $request->user()->id;
+
+            $user = $this->userService->banUser($id, $validated, $performedBy);
+
+            return response()->json([
+                'message' => 'User banned successfully',
+                'data' => $user,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to ban user', [
+                'error' => $e->getMessage(),
+                'user_id' => $id,
+                'performed_by' => $request->user()->id ?? null
+            ]);
+
+            $statusCode = 500;
+            if (str_contains($e->getMessage(), 'protected account')) {
+                $statusCode = 403;
+            }
+
+            return response()->json([
+                'message' => 'Failed to ban user',
+                'error' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * Unban a user.
+     */
+    public function unban(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'reason' => 'nullable|string|max:1000',
+            ]);
+
+            $performedBy = $request->user()->id;
+            $reason = $validated['reason'] ?? null;
+
+            $user = $this->userService->unbanUser($id, $reason, $performedBy);
+
+            return response()->json([
+                'message' => 'User unbanned successfully',
+                'data' => $user,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to unban user', [
+                'error' => $e->getMessage(),
+                'user_id' => $id,
+                'performed_by' => $request->user()->id ?? null
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to unban user',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's ban history.
+     */
+    public function banHistory(int $id): JsonResponse
+    {
+        try {
+            $history = $this->userService->getUserBanHistory($id);
+
+            return response()->json([
+                'message' => 'Ban history retrieved successfully',
+                'data' => $history,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get user ban history', [
+                'error' => $e->getMessage(),
+                'user_id' => $id,
+                'requested_by' => request()->user()->id ?? null
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to get user ban history',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Remove the specified user.
      */
     public function destroy(Request $request, int $id): JsonResponse

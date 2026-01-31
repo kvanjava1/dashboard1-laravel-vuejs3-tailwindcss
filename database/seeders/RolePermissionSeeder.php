@@ -26,6 +26,8 @@ class RolePermissionSeeder extends Seeder
                 'user_management.edit',
                 'user_management.delete',
                 'user_management.search',
+                'user_management.ban',
+                'user_management.unban',
             ],
             'role_management' => [
                 'role_management.view',

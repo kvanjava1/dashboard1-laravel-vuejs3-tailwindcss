@@ -89,7 +89,10 @@ export const apiRoutes = {
     show: (id: string | number) => `/api/v1/users/${id}`,
     store: '/api/v1/users',
     update: (id: string | number) => `/api/v1/users/${id}`,
-    destroy: (id: string | number) => `/api/v1/users/${id}`
+    destroy: (id: string | number) => `/api/v1/users/${id}`,
+    ban: (id: string | number) => `/api/v1/users/${id}/ban`,
+    unban: (id: string | number) => `/api/v1/users/${id}/unban`,
+    banHistory: (id: string | number) => `/api/v1/users/${id}/ban-history`
   },
 
   // Permission routes

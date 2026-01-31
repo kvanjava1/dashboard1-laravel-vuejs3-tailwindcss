@@ -25,6 +25,11 @@ Route::prefix('v1')->group(function () {
         Route::patch('users/{user}', action: [UserController::class, 'update'])->middleware(['permission:user_management.edit']);
         Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware(['permission:user_management.delete'])->name('users.destroy')->where('user', '[0-9]+');
 
+        // User ban management routes
+        Route::post('users/{user}/ban', [UserController::class, 'ban'])->middleware(['permission:user_management.ban'])->name('users.ban')->where('user', '[0-9]+');
+        Route::post('users/{user}/unban', [UserController::class, 'unban'])->middleware(['permission:user_management.unban'])->name('users.unban')->where('user', '[0-9]+');
+        Route::get('users/{user}/ban-history', [UserController::class, 'banHistory'])->middleware(['permission:user_management.view'])->name('users.ban-history')->where('user', '[0-9]+');
+
         // Role management routes
         Route::get('roles/options', [RoleController::class, 'options'])->middleware(['permission:role_management.view'])->name('roles.options');
         Route::get('roles', [RoleController::class, 'index'])->middleware(['permission:role_management.view'])->name('roles.index');

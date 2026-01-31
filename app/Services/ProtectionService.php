@@ -67,6 +67,22 @@ class ProtectionService
     }
 
     /**
+     * Check if a user account is protected from banning
+     */
+    public function isAccountProtectedFromBan(User $user): bool
+    {
+        $protectedAccounts = $this->config['protected_accounts'] ?? [];
+
+        foreach ($protectedAccounts as $email => $settings) {
+            if ($user->email === $email && ($settings['protect_ban'] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Check if a role is protected from deletion
      */
     public function isRoleProtectedFromDeletion(Role $role): bool
