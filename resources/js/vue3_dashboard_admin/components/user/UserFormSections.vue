@@ -250,7 +250,8 @@ interface Props {
     password: string
     password_confirmation: string
     role: string
-    status: string
+    is_banned: boolean
+    is_active: boolean
     bio: string
   }
   isEdit?: boolean

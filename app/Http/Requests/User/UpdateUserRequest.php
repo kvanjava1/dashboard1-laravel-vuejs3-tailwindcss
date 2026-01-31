@@ -65,5 +65,6 @@ class UpdateUserRequest extends FormRequest
             $this->merge([
                 'name' => trim($this->first_name . ' ' . $this->last_name),
             ]);
-        } elseif ($this->has('first_name') || $this->has('last_name')) {
-           No need to merge name since we use 'name' directly now
+        }
+    }
+}
