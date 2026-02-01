@@ -229,7 +229,7 @@ class UserService
 
             // Handle profile image upload (for both restored and new users)
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
-                $imagePath = $data['profile_image']->store('avatars', 'public');
+                $imagePath = $this->storeProfileImage($data['profile_image']);
                 $user->update(['profile_image' => $imagePath]);
             }
 
@@ -318,7 +318,7 @@ class UserService
                 if ($user->profile_image) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
-                $imagePath = $data['profile_image']->store('avatars', 'public');
+                $imagePath = $this->storeProfileImage($data['profile_image']);
                 $user->update(['profile_image' => $imagePath]);
             }
             // Update role if provided
@@ -567,6 +567,64 @@ class UserService
     /**
      * Get human-readable ban status text
      */
+    /**
+     * Store profile image with custom path pattern
+     */
+    private function storeProfileImage(\Illuminate\Http\UploadedFile $file): string
+    {
+        // Generate unique filename with .webp extension
+        $uniqueName = uniqid() . '_' . time() . '.webp';
+
+        // Create date-based directory structure
+        $year = date('Y');
+        $month = date('m');
+        $day = date('d');
+
+        $directory = "avatar/{$year}/{$month}/{$day}";
+        $fullPath = "{$directory}/{$uniqueName}";
+
+        // Ensure directory exists
+        Storage::disk('public')->makeDirectory($directory);
+
+        // Convert and save image as webp
+        $imageContent = $this->convertToWebp($file);
+
+        // Store the converted image
+        Storage::disk('public')->put($fullPath, $imageContent);
+
+        return $fullPath;
+    }
+
+    /**
+     * Convert uploaded image to WebP format
+     */
+    private function convertToWebp(\Illuminate\Http\UploadedFile $file): string
+    {
+        // Get image content
+        $imageContent = file_get_contents($file->getRealPath());
+
+        // Check if GD is available and supports WebP
+        if (function_exists('imagewebp') && function_exists('imagecreatefromstring')) {
+            $image = imagecreatefromstring($imageContent);
+
+            if ($image !== false) {
+                // Start output buffering
+                ob_start();
+                imagewebp($image, null, 80); // 80% quality
+                $webpContent = ob_get_clean();
+
+                // Free memory
+                imagedestroy($image);
+
+                return $webpContent;
+            }
+        }
+
+        // Fallback: return original content if conversion fails
+        // This will still save with .webp extension but keep original format
+        return $imageContent;
+    }
+
     private function getBanStatusText(User $user): string
     {
         if (!$user->is_banned) {
