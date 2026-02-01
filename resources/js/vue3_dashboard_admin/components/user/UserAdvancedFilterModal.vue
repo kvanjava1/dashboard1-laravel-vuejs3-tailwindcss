@@ -56,9 +56,8 @@
                         </FormField>
 
                         <FormField v-model="filters.is_banned" label="Ban Status" type="select">
-                            <option value="">All Users</option>
-                            <option value="1">Banned Only</option>
-                            <option value="0">Not Banned</option>
+                            <option value="">All Status</option>
+                            <option value="1">Banned</option>
                         </FormField>
                     </div>
                 </div>
@@ -164,9 +163,7 @@ const props = withDefaults(defineProps<Props>(), {
     availableRoles: () => [],
     statusOptions: () => [
         { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-        { value: 'pending', label: 'Pending' },
-        { value: 'suspended', label: 'Suspended' }
+        { value: 'inactive', label: 'Inactive' }
     ]
 })
 

@@ -67,6 +67,7 @@
                                 </SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Role</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Status</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Banned Status</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Joined Date</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Actions</SimpleUserTableHeadCol>
                             </SimpleUserTableHeadRow>
@@ -84,6 +85,9 @@
                                     <UserCellStatus :status="user.status" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
+                                    <span class="text-sm text-slate-700">{{ user.is_banned ? 'Banned' : 'Not Banned' }}</span>
+                                </SimpleUserTableBodyCol>
+                                <SimpleUserTableBodyCol>
                                     <span class="text-sm text-slate-700">{{ user.joined_date }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
@@ -96,8 +100,8 @@
                                         :show-edit="canEditUser"
                                         :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
                                         :show-view="canViewUserDetail"
-                                        :show-ban="canBanUser && !user.is_currently_banned"
-                                        :show-unban="canUnbanUser && !!user.is_currently_banned"
+                                        :show-ban="canBanUser && !user.is_banned"
+                                        :show-unban="canUnbanUser && !!user.is_banned"
                                         :user="user"
                                     />
                                 </SimpleUserTableBodyCol>
@@ -265,22 +269,19 @@ interface User {
     id: number
     name: string
     email: string
-    username?: string
-    phone?: string
     status: string
-    bio?: string
-    date_of_birth?: string
-    location?: string
-    timezone?: string
-    last_activity?: string
-    last_activity_formatted?: string
-    is_banned?: boolean
-    is_currently_banned?: boolean
-    ban_status?: string
     profile_image?: string
-    profile_image_url?: string
     role?: string
     role_display_name?: string
+    is_banned: boolean
+    is_active?: boolean
+    protection?: {
+        can_delete: boolean
+        can_edit: boolean
+        can_ban: boolean
+        can_change_role: boolean
+        reason: string
+    }
     created_at: string
     updated_at: string
     joined_date: string
@@ -324,10 +325,17 @@ const fetchUsers = async () => {
             id: user.id,
             name: user.name,
             email: user.email,
-            avatar: user.profile_image_url || '',
-            role: user.role_display_name || user.role || '',
             status: user.status || '',
-            joined_date: user.joined_date
+            profile_image: user.profile_image || undefined,
+            role: user.role || undefined,
+            role_display_name: user.role_display_name || undefined,
+            is_banned: user.is_banned,
+            is_active: user.is_active,
+            protection: user.protection || undefined,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            joined_date: user.joined_date,
+            avatar: user.profile_image ? '/storage/' + user.profile_image : '' // Compute URL from path
         }))
 
         // Update pagination meta
@@ -476,24 +484,17 @@ const handleBan = async (user: User) => {
                 id: result.data.id,
                 name: result.data.name,
                 email: result.data.email,
-                username: result.data.username,
-                phone: result.data.phone,
                 status: result.data.status,
-                bio: result.data.bio,
-                date_of_birth: result.data.date_of_birth,
-                location: result.data.location,
-                timezone: result.data.timezone,
                 profile_image: result.data.profile_image,
-                profile_image_url: result.data.profile_image_url,
                 role: result.data.role,
                 role_display_name: result.data.role_display_name,
+                is_banned: result.data.is_banned,
+                is_active: result.data.is_active,
+                protection: result.data.protection,
                 created_at: result.data.created_at,
                 updated_at: result.data.updated_at,
                 joined_date: result.data.joined_date,
-                is_banned: result.data.is_banned,
-                is_currently_banned: result.data.is_currently_banned,
-                ban_status: result.data.ban_status,
-                avatar: result.data.profile_image_url || '' // For backward compatibility
+                avatar: result.data.profile_image ? '/storage/' + result.data.profile_image : '' // Compute URL
             }
         }
 
@@ -552,24 +553,17 @@ const handleUnban = async (user: User) => {
                 id: result.data.id,
                 name: result.data.name,
                 email: result.data.email,
-                username: result.data.username,
-                phone: result.data.phone,
                 status: result.data.status,
-                bio: result.data.bio,
-                date_of_birth: result.data.date_of_birth,
-                location: result.data.location,
-                timezone: result.data.timezone,
                 profile_image: result.data.profile_image,
-                profile_image_url: result.data.profile_image_url,
                 role: result.data.role,
                 role_display_name: result.data.role_display_name,
+                is_banned: result.data.is_banned,
+                is_active: result.data.is_active,
+                protection: result.data.protection,
                 created_at: result.data.created_at,
                 updated_at: result.data.updated_at,
                 joined_date: result.data.joined_date,
-                is_banned: result.data.is_banned,
-                is_currently_banned: result.data.is_currently_banned,
-                ban_status: result.data.ban_status,
-                avatar: result.data.profile_image_url || '' // For backward compatibility
+                avatar: result.data.profile_image ? '/storage/' + result.data.profile_image : '' // Compute URL
             }
         }
 

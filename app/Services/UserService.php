@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ProtectionService;
 use App\Services\UserBanHistoryService;
-use Carbon\Carbon;
 
 class UserService
 {
@@ -135,7 +134,6 @@ class UserService
             $availableStatuses = [
                 ['value' => 'active', 'label' => 'Active'],
                 ['value' => 'inactive', 'label' => 'Inactive'],
-                ['value' => 'banned', 'label' => 'Banned'],
             ];
 
             return [
@@ -258,7 +256,7 @@ class UserService
                 'last_name' => $nameParts[1] ?? '',
                 'email' => $user->email,
                 'phone' => $data['phone'] ?? null,
-                'profile_image' => $user->profile_image_url,
+                'profile_image' => $user->profile_image,
                 'bio' => $data['bio'] ?? null,
                 'role' => $data['role'],
                 'is_banned' => $user->is_banned,
@@ -533,7 +531,6 @@ class UserService
             'email' => $user->email,
             'status' => $user->status,
             'profile_image' => $user->profile_image,
-            'profile_image_url' => $user->profile_image_url,
             'role' => $primaryRole ? $primaryRole->name : null,
             'role_display_name' => $primaryRole ? $this->getRoleDisplayName($primaryRole->name) : null,
             'is_banned' => $user->is_banned,
