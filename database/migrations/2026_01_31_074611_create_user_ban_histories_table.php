@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('user_ban_histories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('action', ['ban', 'unban']);
+            $table->enum('action', allowed: ['ban', 'unban']);
             $table->text('reason');
             $table->timestamp('banned_until')->nullable();
             $table->boolean('is_forever')->default(false);

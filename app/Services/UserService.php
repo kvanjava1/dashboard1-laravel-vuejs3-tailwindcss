@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\UserAccountStatus;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -419,12 +418,6 @@ class UserService
             // If not forever and no banned_until provided, default to 30 days
             if (!$isForever && !$bannedUntil) {
                 $bannedUntil = now()->addDays(30);
-            }
-
-            // Get the banned status
-            $bannedStatus = UserAccountStatus::where('name', 'banned')->first();
-            if (!$bannedStatus) {
-                throw new \Exception('Banned status not found in database');
             }
 
             // Update user account status to banned
