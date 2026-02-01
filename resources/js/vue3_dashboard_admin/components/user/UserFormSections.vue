@@ -162,6 +162,54 @@
       </ContentBoxBody>
     </ContentBox>
 
+    <!-- Account Role Card -->
+    <ContentBox>
+      <ContentBoxHeader>
+        <template #title>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-xl">group</span>
+            <ContentBoxTitle title="Account Role" />
+          </div>
+        </template>
+      </ContentBoxHeader>
+      <ContentBoxBody>
+        <div class="grid grid-cols-1 gap-4">
+          <!-- User Role -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">
+              User Role <span class="text-danger">*</span>
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-slate-400 text-[20px]">admin_panel_settings</span>
+              </div>
+              <select
+                v-model="formData.role"
+                required
+                :disabled="isLoadingRoles"
+                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none"
+              >
+                <option value="">Select a role...</option>
+                <option
+                  v-for="role in roles"
+                  :key="role.name"
+                  :value="role.name"
+                >
+                  {{ role.display_name }}
+                </option>
+              </select>
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-slate-400 text-[20px]">expand_more</span>
+              </div>
+            </div>
+            <p v-if="roleError" class="text-xs text-danger mt-1">{{ roleError }}</p>
+            <p v-else-if="isLoadingRoles" class="text-xs text-slate-500 mt-1">Loading roles...</p>
+            <p v-else class="text-xs text-slate-500 mt-1">Select the appropriate role for this user</p>
+          </div>
+        </div>
+      </ContentBoxBody>
+    </ContentBox>
+
     <!-- Account Status Card -->
     <ContentBox>
       <ContentBoxHeader>
@@ -173,7 +221,7 @@
         </template>
       </ContentBoxHeader>
       <ContentBoxBody>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4">
           <!-- Is Active -->
           <div>
             <label class="flex items-center gap-2">

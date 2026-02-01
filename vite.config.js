@@ -31,9 +31,10 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         port: 5174,
-        hmr: {
+        // HMR only active during development (npm run dev)
+        hmr: process.env.NODE_ENV === 'development' ? {
             host: 'localhost',
             protocol: 'ws',
-        }
+        } : false,
     },
 });
