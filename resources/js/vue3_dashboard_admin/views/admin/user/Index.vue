@@ -140,11 +140,58 @@
 </template>
 
 <script setup lang="ts">
+// Vue imports
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+// Composables and stores
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
+import { showConfirm, showToast } from '@/composables/useSweetAlert'
+import { useAuthStore } from '@/stores/auth'
+
+// Third-party libraries
+import Swal from 'sweetalert2'
+
+// Component imports
+import AdminLayout from '../../../layouts/AdminLayout.vue'
+import PageHeader from '../../../components/ui/PageHeader.vue'
+import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
+import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
+import ActionButton from '../../../components/ui/ActionButton.vue'
+import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
+import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
+import SimpleUserTable from '../../../components/ui/SimpleUserTable.vue'
+import SimpleUserTableHead from '../../../components/ui/SimpleUserTableHead.vue'
+import SimpleUserTableHeadRow from '../../../components/ui/SimpleUserTableHeadRow.vue'
+import SimpleUserTableHeadCol from '../../../components/ui/SimpleUserTableHeadCol.vue'
+import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
+import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
+import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
+import UserCellUser from '../../../components/ui/UserCellUser.vue'
+import UserCellRole from '../../../components/ui/UserCellRole.vue'
+import UserCellStatus from '../../../components/ui/UserCellStatus.vue'
+import CellActions from '../../../components/ui/CellActions.vue'
+import Pagination from '../../../components/ui/Pagination.vue'
+import ContentBox from '../../../components/ui/ContentBox.vue'
+import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
+import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
+import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
+import ErrorState from '../../../components/ui/ErrorState.vue'
+import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
+import EmptyState from '../../../components/ui/EmptyState.vue'
+import UserAdvancedFilterModal from '../../../components/user/UserAdvancedFilterModal.vue'
 import UserDetailModal from '../../../components/user/UserDetailModal.vue'
+
+const router = useRouter()
+const { get, del } = useApi()
+const authStore = useAuthStore()
+
 // User detail modal state
 const showUserDetail = ref(false)
 const selectedUser = ref<User | null>(null)
-import { ref, reactive, computed, onMounted } from 'vue'
+
 // Pagination indicator computed properties (like role management)
 const currentStart = computed(() => {
     if (users.value.length === 0) return 0
@@ -155,16 +202,6 @@ const currentEnd = computed(() => {
     const end = pagination.current_page * pagination.per_page
     return Math.min(end, pagination.total)
 })
-import { useRouter } from 'vue-router'
-import { useApi } from '@/composables/useApi'
-import { apiRoutes } from '@/config/apiRoutes'
-import { showConfirm, showToast } from '@/composables/useSweetAlert'
-import { useAuthStore } from '@/stores/auth'
-import Swal from 'sweetalert2'
-
-const router = useRouter()
-const { get, del } = useApi()
-const authStore = useAuthStore()
 
 // Permission checks
 const canAddUser = computed(() => authStore.hasPermission('user_management.add'))
@@ -223,35 +260,6 @@ const pagination = reactive({
 // Available roles and status options from API
 const availableRoles = ref([])
 const statusOptions = ref([])
-
-import AdminLayout from '../../../layouts/AdminLayout.vue'
-import PageHeader from '../../../components/ui/PageHeader.vue'
-import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
-import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
-import ActionButton from '../../../components/ui/ActionButton.vue'
-import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
-import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
-import SimpleUserTable from '../../../components/ui/SimpleUserTable.vue'
-import SimpleUserTableHead from '../../../components/ui/SimpleUserTableHead.vue'
-import SimpleUserTableHeadRow from '../../../components/ui/SimpleUserTableHeadRow.vue'
-import SimpleUserTableHeadCol from '../../../components/ui/SimpleUserTableHeadCol.vue'
-import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
-import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
-import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
-import UserCellUser from '../../../components/ui/UserCellUser.vue'
-import UserCellRole from '../../../components/ui/UserCellRole.vue'
-import UserCellStatus from '../../../components/ui/UserCellStatus.vue'
-import CellActions from '../../../components/ui/CellActions.vue'
-import Pagination from '../../../components/ui/Pagination.vue'
-import ContentBox from '../../../components/ui/ContentBox.vue'
-import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
-import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
-import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
-import LoadingState from '../../../components/ui/LoadingState.vue'
-import ErrorState from '../../../components/ui/ErrorState.vue'
-import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
-import EmptyState from '../../../components/ui/EmptyState.vue'
-import UserAdvancedFilterModal from '../../../components/user/UserAdvancedFilterModal.vue'
 
 interface User {
     id: number
