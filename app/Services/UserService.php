@@ -200,7 +200,6 @@ class UserService
                     'is_banned' => $data['is_banned'] ?? false,
                     'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
-                    'bio' => $data['bio'] ?? null,
                 ]);
 
                 $user = $existingUser;
@@ -219,7 +218,6 @@ class UserService
                     'is_banned' => $data['is_banned'] ?? false,
                     'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
-                    'bio' => $data['bio'] ?? null,
                 ]);
 
                 Log::info('New user created', [
@@ -257,7 +255,6 @@ class UserService
                 'email' => $user->email,
                 'phone' => $data['phone'] ?? null,
                 'profile_image' => $user->profile_image,
-                'bio' => $data['bio'] ?? null,
                 'role' => $data['role'],
                 'is_banned' => $user->is_banned,
                 'is_active' => $user->is_active,
@@ -308,8 +305,6 @@ class UserService
                 $updateData['phone'] = $data['phone'];
             if (isset($data['is_active']))
                 $updateData['is_active'] = $data['is_active'];
-            if (isset($data['bio']))
-                $updateData['bio'] = $data['bio'];
             // Update password if provided
             if (!empty($data['password'])) {
                 $updateData['password'] = bcrypt($data['password']);
@@ -523,18 +518,21 @@ class UserService
     /**
      * Format user data for API response
      */
-    private function formatUserData(User $user): array
+    public function formatUserData(User $user): array
     {
         $primaryRole = $user->roles->first();
+        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
 
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'status' => $user->status,
-            'profile_image' => $user->profile_image,
+            'phone' => $user->phone,
+            'status' => $user->is_active ? 'active' : 'inactive',
+            'profile_image' => $user->profile_image ? Storage::disk('public')->url($user->profile_image) : null,
             'role' => $primaryRole ? $primaryRole->name : null,
             'role_display_name' => $primaryRole ? $this->getRoleDisplayName($primaryRole->name) : null,
+            'permissions' => $permissions,
             'is_banned' => $user->is_banned,
             'is_active' => $user->is_active,
             'protection' => [

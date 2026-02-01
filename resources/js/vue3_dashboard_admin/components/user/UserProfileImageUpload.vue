@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Button from '../ui/Button.vue'
 
 // Image cropper
@@ -106,6 +106,7 @@ import 'vue-advanced-cropper/dist/style.css'
 
 interface Props {
   modelValue?: File | null
+  existingImage?: string
   disabled?: boolean
 }
 
@@ -116,6 +117,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
+  existingImage: '',
   disabled: false
 })
 
@@ -133,6 +135,13 @@ const showCropper = ref(false)
 
 // Computed
 const hasImage = computed(() => !!previewImage.value)
+
+// Watch for existing image changes
+watch(() => props.existingImage, (newImage) => {
+  if (newImage && !selectedFile.value) {
+    previewImage.value = newImage
+  }
+}, { immediate: true })
 
 // Methods
 const handleFileSelect = (event: Event) => {

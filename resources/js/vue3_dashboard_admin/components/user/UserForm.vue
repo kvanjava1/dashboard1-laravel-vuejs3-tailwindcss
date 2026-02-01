@@ -13,6 +13,7 @@
       <ContentBoxBody>
         <UserProfileImageUpload
           v-model="profileImage"
+          :existing-image="existingImageUrl"
           @image-selected="handleImageSelected"
           :disabled="loading"
         />
@@ -61,7 +62,6 @@ interface UserFormData {
   password_confirmation: string
   role: string
   is_active: boolean
-  bio: string
 }
 
 interface Props {
@@ -88,6 +88,7 @@ const { post, put } = useApi()
 const loading = ref(false)
 const errorMessages = ref<string[]>([])
 const profileImage = ref<File | null>(null)
+const existingImageUrl = ref<string>('')
 
 // Form data
 const formData = reactive<UserFormData>({
@@ -97,8 +98,7 @@ const formData = reactive<UserFormData>({
   password: '',
   password_confirmation: '',
   role: '',
-  is_active: true,
-  bio: ''
+  is_active: true
 })
 
 // Watch for user prop changes (for edit mode)
@@ -114,9 +114,9 @@ const populateFormData = (user: any) => {
   formData.email = user.email || ''
   formData.phone = user.phone || ''
   formData.role = user.role || ''
-  formData.is_active = user.is_active !== undefined ? user.is_active : true
-  formData.bio = user.bio || ''
-
+  formData.is_active = Boolean(user.is_active)
+  // Set existing image URL for display
+  existingImageUrl.value = user.profile_image || ''
   // Password fields are left empty for edit mode
   formData.password = ''
   formData.password_confirmation = ''
@@ -204,7 +204,6 @@ const handleSubmit = async () => {
     submitData.append('phone', formData.phone || '')
     submitData.append('role', formData.role)
     submitData.append('is_active', formData.is_active ? '1' : '0')
-    submitData.append('bio', formData.bio || '')
 
     // Add password fields if provided
     if (formData.password) {
@@ -267,7 +266,6 @@ const resetForm = () => {
   formData.password_confirmation = ''
   formData.role = ''
   formData.is_active = true
-  formData.bio = ''
   profileImage.value = null
   errorMessages.value = []
 }

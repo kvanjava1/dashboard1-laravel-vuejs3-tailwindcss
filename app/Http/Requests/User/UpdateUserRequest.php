@@ -34,6 +34,8 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($userId),
             ],
             'password' => 'nullable|string|min:8|max:255|confirmed',
+            'role' => 'sometimes|required|string|exists:roles,name',
+            'phone' => 'nullable|string|max:20',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB maximum
             'is_active' => 'boolean',
         ];
@@ -51,6 +53,9 @@ class UpdateUserRequest extends FormRequest
             'email.unique' => 'This email address is already in use.',
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Password confirmation does not match.',
+            'role.required' => 'Please select a user role.',
+            'role.exists' => 'The selected role is invalid.',
+            'phone.max' => 'Phone number must not exceed 20 characters.',
         ];
     }
 

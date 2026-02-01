@@ -226,7 +226,9 @@
           <div>
             <label class="flex items-center gap-2">
               <input
-                v-model="formData.is_active"
+                :key="String(formData.is_active)"
+                :checked="Boolean(formData.is_active)"
+                @change="(e) => { formData.is_active = (e.target as HTMLInputElement).checked }"
                 type="checkbox"
                 class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
               />
@@ -238,36 +240,11 @@
       </ContentBoxBody>
     </ContentBox>
 
-    <!-- Additional Information Card -->
-    <ContentBox>
-      <ContentBoxHeader>
-        <template #title>
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-xl">info</span>
-            <ContentBoxTitle title="Additional Information" />
-          </div>
-        </template>
-      </ContentBoxHeader>
-      <ContentBoxBody>
-        <!-- Bio -->
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">
-            Bio / Description
-          </label>
-          <textarea
-            v-model="formData.bio"
-            rows="3"
-            placeholder="Brief description about the user..."
-            class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
-          ></textarea>
-        </div>
-      </ContentBoxBody>
-    </ContentBox>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import ContentBox from '../ui/ContentBox.vue'
@@ -286,7 +263,6 @@ interface Props {
     password_confirmation: string
     role: string
     is_active: boolean
-    bio: string
   }
   isEdit?: boolean
 }

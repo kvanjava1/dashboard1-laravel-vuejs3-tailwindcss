@@ -96,12 +96,10 @@
                                         @delete="handleDelete(user)"
                                         @view="() => openUserDetail(user)"
                                         @ban="handleBan(user)"
-                                        @unban="handleUnban(user)"
                                         :show-edit="canEditUser"
                                         :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
                                         :show-view="canViewUserDetail"
-                                        :show-ban="canBanUser && !user.is_banned"
-                                        :show-unban="canUnbanUser && !!user.is_banned"
+                                        :show-ban="canBanUser"
                                         :user="user"
                                     />
                                 </SimpleUserTableBodyCol>
@@ -214,7 +212,6 @@ const canDeleteUser = computed(() => authStore.hasPermission('user_management.de
 const canViewUserDetail = computed(() => authStore.hasPermission('user_management.view_detail'))
 const canSearchUser = computed(() => authStore.hasPermission('user_management.search'))
 const canBanUser = computed(() => authStore.hasPermission('user_management.ban'))
-const canUnbanUser = computed(() => authStore.hasPermission('user_management.unban'))
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
@@ -335,7 +332,7 @@ const fetchUsers = async () => {
             created_at: user.created_at,
             updated_at: user.updated_at,
             joined_date: user.joined_date,
-            avatar: user.profile_image ? '/storage/' + user.profile_image : '' // Compute URL from path
+            avatar: user.profile_image || undefined // API returns full URL
         }))
 
         // Update pagination meta
@@ -432,75 +429,6 @@ const handleDelete = async (user: User) => {
 const handleBan = async (user: User) => {
     // Navigate to ban page
     router.push({ name: 'user_management.ban', params: { id: user.id } })
-}
-
-const handleUnban = async (user: User) => {
-    const { value: reason } = await Swal.fire({
-        title: `Unban user "${user.name}"?`,
-        input: 'textarea',
-        inputLabel: 'Reason for unban (optional)',
-        inputPlaceholder: 'Enter the reason for unbanning this user...',
-        icon: 'question',
-        confirmButtonText: 'Unban User',
-        cancelButtonText: 'Cancel',
-        showCancelButton: true
-    })
-
-    try {
-        const url = apiRoutes.users.unban(user.id)
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authStore.token}`,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                reason: reason?.trim() || null
-            })
-        })
-
-        if (!response.ok) {
-            let errorText = ''
-            try {
-                const errorData = await response.json()
-                errorText = errorData.error || errorData.message || response.statusText
-            } catch {
-                errorText = response.statusText
-            }
-            await showToast({ icon: 'error', title: 'Failed to unban user', text: errorText, timer: 0 })
-            return
-        }
-
-        const result = await response.json()
-        
-        // Update user in local list with returned data
-        const userIndex = users.value.findIndex(u => u.id === user.id)
-        if (userIndex >= 0) {
-            // Map API data to frontend format
-            users.value[userIndex] = {
-                id: result.data.id,
-                name: result.data.name,
-                email: result.data.email,
-                status: result.data.status,
-                profile_image: result.data.profile_image,
-                role: result.data.role,
-                role_display_name: result.data.role_display_name,
-                is_banned: result.data.is_banned,
-                is_active: result.data.is_active,
-                protection: result.data.protection,
-                created_at: result.data.created_at,
-                updated_at: result.data.updated_at,
-                joined_date: result.data.joined_date,
-                avatar: result.data.profile_image ? '/storage/' + result.data.profile_image : '' // Compute URL
-            }
-        }
-
-        await showToast({ icon: 'success', title: 'User unbanned successfully', timer: 0 })
-    } catch (err: any) {
-        await showToast({ icon: 'error', title: 'Failed to unban user', text: err?.message ?? '', timer: 0 })
-        console.error('Error unbanning user:', err)
-    }
 }
 
 const handleView = (user: User) => {

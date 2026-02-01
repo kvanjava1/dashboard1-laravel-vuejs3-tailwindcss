@@ -26,16 +26,12 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->phoneNumber(),
-            'status' => fake()->randomElement(['active', 'inactive', 'suspended']),
+            'phone' => fake()->optional()->phoneNumber(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'profile_image' => fake()->optional(0.7)->imageUrl(400, 400, 'people'),
-            'username' => fake()->unique()->userName(),
-            'bio' => fake()->optional()->paragraph(),
-            'date_of_birth' => fake()->optional()->date(),
-            'location' => fake()->optional()->city(),
-            'timezone' => fake()->timezone(),
+            'is_banned' => fake()->boolean(10), // 10% chance of being banned
+            'is_active' => fake()->boolean(90), // 90% chance of being active
             'remember_token' => Str::random(10),
         ];
     }

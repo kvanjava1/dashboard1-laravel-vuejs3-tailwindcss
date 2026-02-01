@@ -21,7 +21,7 @@ class AuthApiTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'phone' => '+1234567890',
-            'status' => 'active',
+            'is_active' => true,
             'profile_image' => 'test-image.jpg',
         ]);
 

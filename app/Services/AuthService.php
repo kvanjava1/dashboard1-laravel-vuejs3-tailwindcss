@@ -6,9 +6,16 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
+use App\Services\UserService;
 
 class AuthService
 {
+    protected UserService $userService;
+
+    public function __construct(UserService $userService)
+    {
+        $this->userService = $userService;
+    }
     /**
      * Authenticate user and generate token
      *
@@ -27,6 +34,26 @@ class AuthService
 
         $user = Auth::user();
 
+        // Check if user account is active
+        if (!$user->is_active) {
+            Log::warning('Login attempt by inactive user', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $meta['ip'] ?? null,
+            ]);
+            throw new \Illuminate\Auth\AuthenticationException('Your account is not active. Please contact administrator.');
+        }
+
+        // Check if user is banned
+        if ($user->is_banned) {
+            Log::warning('Login attempt by banned user', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $meta['ip'] ?? null,
+            ]);
+            throw new \Illuminate\Auth\AuthenticationException('Your account has been banned. Please contact administrator.');
+        }
+
         // Generate Sanctum token
         $token = $user->createToken(
             $meta['user_agent'] ?? 'Device'
@@ -41,30 +68,7 @@ class AuthService
 
         return [
             'token' => $token,
-            'user' => $this->formatUserData($user),
-        ];
-    }
-
-    /**
-     * Format user data with role and permissions
-     *
-     * @param User $user
-     * @return array
-     */
-    public function formatUserData(User $user): array
-    {
-        // Load roles and permissions eagerly
-        $user->load('roles');
-
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'status' => $user->status,
-            'profile_image' => $user->profile_image_url,
-            'role' => $user->roles->first()->name ?? null,
-            'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            'user' => $this->userService->formatUserData($user),
         ];
     }
 
@@ -94,6 +98,6 @@ class AuthService
      */
     public function getCurrentUser(User $user): array
     {
-        return $this->formatUserData($user);
+        return $this->userService->formatUserData($user);
     }
 }

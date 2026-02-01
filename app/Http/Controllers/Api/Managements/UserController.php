@@ -36,7 +36,6 @@ class UserController extends Controller
                 'phone' => $request->input('phone'),
                 'username' => $request->input('username'),
                 'location' => $request->input('location'),
-                'bio' => $request->input('bio'),
                 'role' => $request->input('role'),
                 'status' => $request->input('status'),
                 'is_banned' => $request->input('is_banned'),

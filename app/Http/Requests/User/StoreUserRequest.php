@@ -25,6 +25,8 @@ class StoreUserRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,NULL,id,deleted_at,NULL|max:255',
             'password' => 'required|string|min:8|max:255|confirmed',
+            'role' => 'required|string|exists:roles,name',
+            'phone' => 'nullable|string|max:20',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB maximum
             'is_banned' => 'boolean',
             'is_active' => 'boolean',
@@ -44,6 +46,8 @@ class StoreUserRequest extends FormRequest
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Password confirmation does not match.',
+            'role.required' => 'Please select a user role.',
+            'role.exists' => 'The selected role is invalid.',
         ];
     }
 }
