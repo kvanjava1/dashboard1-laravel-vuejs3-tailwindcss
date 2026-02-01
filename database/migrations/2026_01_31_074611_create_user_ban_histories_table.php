@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('action', ['ban', 'unban']);
             $table->text('reason');
             $table->timestamp('banned_until')->nullable();
+            $table->boolean('is_forever')->default(false);
             $table->foreignId('performed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 

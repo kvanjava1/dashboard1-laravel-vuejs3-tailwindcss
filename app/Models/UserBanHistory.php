@@ -20,6 +20,7 @@ class UserBanHistory extends Model
         'action',
         'reason',
         'banned_until',
+        'is_forever',
         'performed_by',
     ];
 
@@ -32,6 +33,7 @@ class UserBanHistory extends Model
     {
         return [
             'banned_until' => 'datetime',
+            'is_forever' => 'boolean',
         ];
     }
 

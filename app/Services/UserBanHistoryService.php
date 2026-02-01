@@ -11,7 +11,7 @@ class UserBanHistoryService
     /**
      * Log a ban or unban action
      */
-    public function logBanAction(int $userId, string $action, string $reason, $bannedUntil = null, int $performedBy = null): void
+    public function logBanAction(int $userId, string $action, string $reason, $bannedUntil = null, int $performedBy = null, bool $isForever = false): void
     {
         try {
             UserBanHistory::create([
@@ -19,6 +19,7 @@ class UserBanHistoryService
                 'action' => $action,
                 'reason' => $reason,
                 'banned_until' => $bannedUntil,
+                'is_forever' => $isForever,
                 'performed_by' => $performedBy,
             ]);
 
@@ -27,6 +28,7 @@ class UserBanHistoryService
                 'action' => $action,
                 'reason' => $reason,
                 'banned_until' => $bannedUntil,
+                'is_forever' => $isForever,
                 'performed_by' => $performedBy
             ]);
         } catch (\Exception $e) {
@@ -56,6 +58,7 @@ class UserBanHistoryService
                         'action' => $record->action,
                         'reason' => $record->reason,
                         'banned_until' => $record->banned_until,
+                        'is_forever' => $record->is_forever,
                         'performed_by' => $record->performedBy ? [
                             'id' => $record->performedBy->id,
                             'name' => $record->performedBy->name,

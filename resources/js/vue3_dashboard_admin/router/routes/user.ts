@@ -4,6 +4,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import User from '../../views/admin/user/Index.vue'
 import UserAdd from '../../views/admin/user/UserAdd.vue'
 import UserEdit from '../../views/admin/user/UserEdit.vue'
+import UserBan from '../../views/admin/user/UserBan.vue'
 
 const extendRoutes: RouteRecordRaw[] = [
     {
@@ -34,6 +35,16 @@ const extendRoutes: RouteRecordRaw[] = [
             requiresAuth: true,
             requiredPermission: 'user_management.edit',
             title: 'Edit User'
+        }
+    },
+    {
+        path: '/user_management/ban/:id',
+        name: 'user_management.ban',
+        component: UserBan,
+        meta: {
+            requiresAuth: true,
+            requiredPermission: 'user_management.ban',
+            title: 'Ban User'
         }
     },
     // Add more dashboard routes here as needed

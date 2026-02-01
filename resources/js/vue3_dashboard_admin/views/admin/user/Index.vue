@@ -430,79 +430,8 @@ const handleDelete = async (user: User) => {
 }
 
 const handleBan = async (user: User) => {
-    const { value: reason } = await Swal.fire({
-        title: `Ban user "${user.name}"?`,
-        input: 'textarea',
-        inputLabel: 'Reason for ban',
-        inputPlaceholder: 'Enter the reason for banning this user...',
-        inputValidator: (value: string) => {
-            if (!value || value.trim().length < 5) {
-                return 'Please provide a reason (minimum 5 characters)'
-            }
-        },
-        icon: 'warning',
-        confirmButtonText: 'Ban User',
-        cancelButtonText: 'Cancel',
-        showCancelButton: true
-    })
-
-    if (!reason) return
-
-    try {
-        const url = apiRoutes.users.ban(user.id)
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authStore.token}`,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                reason: reason.trim()
-            })
-        })
-
-        if (!response.ok) {
-            let errorText = ''
-            try {
-                const errorData = await response.json()
-                errorText = errorData.error || errorData.message || response.statusText
-            } catch {
-                errorText = response.statusText
-            }
-            await showToast({ icon: 'error', title: 'Failed to ban user', text: errorText, timer: 0 })
-            return
-        }
-
-        const result = await response.json()
-        
-        // Update user in local list with returned data
-        const userIndex = users.value.findIndex(u => u.id === user.id)
-        if (userIndex >= 0) {
-            // Map API data to frontend format
-            users.value[userIndex] = {
-                id: result.data.id,
-                name: result.data.name,
-                email: result.data.email,
-                status: result.data.status,
-                profile_image: result.data.profile_image,
-                role: result.data.role,
-                role_display_name: result.data.role_display_name,
-                is_banned: result.data.is_banned,
-                is_active: result.data.is_active,
-                protection: result.data.protection,
-                created_at: result.data.created_at,
-                updated_at: result.data.updated_at,
-                joined_date: result.data.joined_date,
-                avatar: result.data.profile_image ? '/storage/' + result.data.profile_image : '' // Compute URL
-            }
-        }
-
-        await showToast({ icon: 'success', title: 'User banned successfully', timer: 0 })
-    } catch (err: any) {
-        await showToast({ icon: 'error', title: 'Failed to ban user', text: err?.message ?? '', timer: 0 })
-        console.error('Error banning user:', err)
-    }
+    // Navigate to ban page
+    router.push({ name: 'user_management.ban', params: { id: user.id } })
 }
 
 const handleUnban = async (user: User) => {
