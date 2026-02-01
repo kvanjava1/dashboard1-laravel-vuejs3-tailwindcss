@@ -180,18 +180,11 @@ const hasActiveFilters = computed(() => {
     return currentFilters.search.trim() !== '' ||
            currentFilters.name.trim() !== '' ||
            currentFilters.email.trim() !== '' ||
-           currentFilters.phone.trim() !== '' ||
-           currentFilters.username.trim() !== '' ||
-           currentFilters.location.trim() !== '' ||
-           currentFilters.bio.trim() !== '' ||
            currentFilters.role !== '' ||
            currentFilters.status !== '' ||
            currentFilters.is_banned !== '' ||
-           currentFilters.date_of_birth_from !== '' ||
-           currentFilters.date_of_birth_to !== '' ||
            currentFilters.date_from !== '' ||
            currentFilters.date_to !== '' ||
-           currentFilters.timezone.trim() !== '' ||
            currentFilters.sort_by !== 'created_at' ||
            currentFilters.sort_order !== 'desc'
 })
@@ -204,18 +197,11 @@ const currentFilters = reactive({
     search: '',
     name: '',
     email: '',
-    phone: '',
-    username: '',
-    location: '',
-    bio: '',
     role: '',
     status: '',
     is_banned: '',
-    date_of_birth_from: '',
-    date_of_birth_to: '',
     date_from: '',
     date_to: '',
-    timezone: '',
     sort_by: 'created_at',
     sort_order: 'desc'
 })
@@ -307,18 +293,11 @@ const fetchUsers = async () => {
             search: currentFilters.search,
             name: currentFilters.name,
             email: currentFilters.email,
-            phone: currentFilters.phone,
-            username: currentFilters.username,
-            location: currentFilters.location,
-            bio: currentFilters.bio,
             role: currentFilters.role,
             status: currentFilters.status,
             is_banned: currentFilters.is_banned,
-            date_of_birth_from: currentFilters.date_of_birth_from,
-            date_of_birth_to: currentFilters.date_of_birth_to,
             date_from: currentFilters.date_from,
             date_to: currentFilters.date_to,
-            timezone: currentFilters.timezone,
             sort_by: currentFilters.sort_by,
             sort_order: currentFilters.sort_order
         }
@@ -621,7 +600,7 @@ const openUserDetail = async (user: User) => {
         }
 
         const data = await response.json()
-        selectedUser.value = data.user
+        selectedUser.value = user
         showUserDetail.value = true
     } catch (err: any) {
         console.error('Failed to fetch user details:', err)
@@ -648,18 +627,11 @@ const handleResetFilters = () => {
         search: '',
         name: '',
         email: '',
-        phone: '',
-        username: '',
-        location: '',
-        bio: '',
         role: '',
         status: '',
         is_banned: '',
-        date_of_birth_from: '',
-        date_of_birth_to: '',
         date_from: '',
         date_to: '',
-        timezone: '',
         sort_by: 'created_at',
         sort_order: 'desc'
     })

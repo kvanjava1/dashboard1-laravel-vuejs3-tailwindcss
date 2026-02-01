@@ -35,51 +35,6 @@
                             type="email"
                             placeholder="Enter email address"
                         />
-
-                        <FormField
-                            v-model="filters.phone"
-                            label="Phone Number"
-                            type="text"
-                            placeholder="Enter phone number"
-                        />
-
-                        <FormField
-                            v-model="filters.username"
-                            label="Username"
-                            type="text"
-                            placeholder="Enter username"
-                        />
-                    </div>
-                </div>
-
-                <!-- Profile Information -->
-                <div>
-                    <h4 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">info</span>
-                        Profile Information
-                    </h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                            v-model="filters.location"
-                            label="Location"
-                            type="text"
-                            placeholder="Enter location"
-                        />
-
-                        <FormField
-                            v-model="filters.timezone"
-                            label="Timezone"
-                            type="text"
-                            placeholder="e.g., UTC, America/New_York"
-                        />
-
-                        <FormField
-                            v-model="filters.bio"
-                            label="Bio"
-                            type="textarea"
-                            placeholder="Enter bio content"
-                            class="md:col-span-2"
-                        />
                     </div>
                 </div>
 
@@ -114,46 +69,20 @@
                         <span class="material-symbols-outlined text-lg">calendar_today</span>
                         Date Filters
                     </h4>
-                    <div class="space-y-6">
-                        <!-- Registration Date -->
-                        <div>
-                            <h5 class="text-sm font-medium text-slate-700 mb-3">Registration Date</h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    v-model="filters.date_from"
-                                    label="From Date"
-                                    type="date"
-                                    help="Registration start date"
-                                />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                            v-model="filters.date_from"
+                            label="From Date"
+                            type="date"
+                            help="Registration start date"
+                        />
 
-                                <FormField
-                                    v-model="filters.date_to"
-                                    label="To Date"
-                                    type="date"
-                                    help="Registration end date"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Date of Birth -->
-                        <div>
-                            <h5 class="text-sm font-medium text-slate-700 mb-3">Date of Birth</h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    v-model="filters.date_of_birth_from"
-                                    label="Birth From"
-                                    type="date"
-                                    help="Birth date from"
-                                />
-
-                                <FormField
-                                    v-model="filters.date_of_birth_to"
-                                    label="Birth To"
-                                    type="date"
-                                    help="Birth date to"
-                                />
-                            </div>
-                        </div>
+                        <FormField
+                            v-model="filters.date_to"
+                            label="To Date"
+                            type="date"
+                            help="Registration end date"
+                        />
                     </div>
                 </div>
 
@@ -167,10 +96,6 @@
                         <FormField v-model="filters.sort_by" label="Sort By" type="select">
                             <option value="name">Name</option>
                             <option value="email">Email</option>
-                            <option value="username">Username</option>
-                            <option value="phone">Phone</option>
-                            <option value="location">Location</option>
-                            <option value="date_of_birth">Date of Birth</option>
                             <option value="created_at">Registration Date</option>
                             <option value="updated_at">Last Updated</option>
                         </FormField>
@@ -211,18 +136,11 @@ import FormField from '../ui/FormField.vue'
 interface FilterOptions {
     name: string
     email: string
-    phone: string
-    username: string
-    location: string
-    bio: string
     role: string
     status: string
     is_banned: string
-    date_of_birth_from: string
-    date_of_birth_to: string
     date_from: string
     date_to: string
-    timezone: string
     sort_by: string
     sort_order: string
 }
@@ -259,18 +177,11 @@ const isOpen = ref(false)
 const filters = reactive<FilterOptions>({
     name: props.initialFilters?.name || '',
     email: props.initialFilters?.email || '',
-    phone: props.initialFilters?.phone || '',
-    username: props.initialFilters?.username || '',
-    location: props.initialFilters?.location || '',
-    bio: props.initialFilters?.bio || '',
     role: props.initialFilters?.role || '',
     status: props.initialFilters?.status || '',
     is_banned: props.initialFilters?.is_banned || '',
-    date_of_birth_from: props.initialFilters?.date_of_birth_from || '',
-    date_of_birth_to: props.initialFilters?.date_of_birth_to || '',
     date_from: props.initialFilters?.date_from || '',
     date_to: props.initialFilters?.date_to || '',
-    timezone: props.initialFilters?.timezone || '',
     sort_by: props.initialFilters?.sort_by || 'created_at',
     sort_order: props.initialFilters?.sort_order || 'desc'
 })
@@ -282,18 +193,11 @@ watch(() => props.modelValue, (newValue) => {
         // When modal opens, sync with current initialFilters
         filters.name = props.initialFilters?.name || ''
         filters.email = props.initialFilters?.email || ''
-        filters.phone = props.initialFilters?.phone || ''
-        filters.username = props.initialFilters?.username || ''
-        filters.location = props.initialFilters?.location || ''
-        filters.bio = props.initialFilters?.bio || ''
         filters.role = props.initialFilters?.role || ''
         filters.status = props.initialFilters?.status || ''
         filters.is_banned = props.initialFilters?.is_banned || ''
-        filters.date_of_birth_from = props.initialFilters?.date_of_birth_from || ''
-        filters.date_of_birth_to = props.initialFilters?.date_of_birth_to || ''
         filters.date_from = props.initialFilters?.date_from || ''
         filters.date_to = props.initialFilters?.date_to || ''
-        filters.timezone = props.initialFilters?.timezone || ''
         filters.sort_by = props.initialFilters?.sort_by || 'created_at'
         filters.sort_order = props.initialFilters?.sort_order || 'desc'
     }
@@ -315,18 +219,11 @@ const applyFilters = () => {
 const resetFilters = () => {
     filters.name = ''
     filters.email = ''
-    filters.phone = ''
-    filters.username = ''
-    filters.location = ''
-    filters.bio = ''
     filters.role = ''
     filters.status = ''
     filters.is_banned = ''
-    filters.date_of_birth_from = ''
-    filters.date_of_birth_to = ''
     filters.date_from = ''
     filters.date_to = ''
-    filters.timezone = ''
     filters.sort_by = 'created_at'
     filters.sort_order = 'desc'
     emit('reset')

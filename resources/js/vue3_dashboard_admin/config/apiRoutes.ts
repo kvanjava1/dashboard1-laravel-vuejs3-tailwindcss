@@ -18,16 +18,9 @@ interface UserRouteParams extends RouteParams {
   status?: string
   name?: string
   email?: string
-  phone?: string
-  username?: string
-  location?: string
-  bio?: string
   is_banned?: string
-  date_of_birth_from?: string
-  date_of_birth_to?: string
   date_from?: string
   date_to?: string
-  timezone?: string
   sort_by?: string
   sort_order?: string
 }
@@ -72,16 +65,9 @@ export const apiRoutes = {
       if (params?.status) searchParams.set('status', params.status)
       if (params?.name) searchParams.set('name', params.name)
       if (params?.email) searchParams.set('email', params.email)
-      if (params?.phone) searchParams.set('phone', params.phone)
-      if (params?.username) searchParams.set('username', params.username)
-      if (params?.location) searchParams.set('location', params.location)
-      if (params?.bio) searchParams.set('bio', params.bio)
       if (params?.is_banned) searchParams.set('is_banned', params.is_banned)
-      if (params?.date_of_birth_from) searchParams.set('date_of_birth_from', params.date_of_birth_from)
-      if (params?.date_of_birth_to) searchParams.set('date_of_birth_to', params.date_of_birth_to)
       if (params?.date_from) searchParams.set('date_from', params.date_from)
       if (params?.date_to) searchParams.set('date_to', params.date_to)
-      if (params?.timezone) searchParams.set('timezone', params.timezone)
       if (params?.sort_by) searchParams.set('sort_by', params.sort_by)
       if (params?.sort_order) searchParams.set('sort_order', params.sort_order)
       return `/api/v1/users${searchParams.toString() ? '?' + searchParams.toString() : ''}`

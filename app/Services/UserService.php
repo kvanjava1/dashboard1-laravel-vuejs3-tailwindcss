@@ -26,9 +26,20 @@ class UserService
     public function getFilteredPaginatedUsers(int $perPage = 15, int $page = 1, array $filters = []): array
     {
         try {
-            // Start building the query
-            $query = User::with('roles')
-                ->select('users.*');
+            // Start building the query with only necessary columns
+            $query = User::with(['roles' => function ($query) {
+                $query->select('id', 'name');
+            }])
+            ->select([
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.profile_image',
+                'users.is_banned',
+                'users.is_active',
+                'users.created_at',
+                'users.updated_at'
+            ]);
 
             // Apply search filter (name or email)
             if (!empty($filters['search'])) {
@@ -46,33 +57,10 @@ class UserService
             if (!empty($filters['email'])) {
                 $query->where('users.email', 'LIKE', '%' . $filters['email'] . '%');
             }
-            if (!empty($filters['phone'])) {
-                $query->where('users.phone', 'LIKE', '%' . $filters['phone'] . '%');
-            }
-            if (!empty($filters['username'])) {
-                $query->where('users.username', 'LIKE', '%' . $filters['username'] . '%');
-            }
-            if (!empty($filters['location'])) {
-                $query->where('users.location', 'LIKE', '%' . $filters['location'] . '%');
-            }
-            if (!empty($filters['bio'])) {
-                $query->where('users.bio', 'LIKE', '%' . $filters['bio'] . '%');
-            }
-            if (!empty($filters['timezone'])) {
-                $query->where('users.timezone', 'LIKE', '%' . $filters['timezone'] . '%');
-            }
 
             // Apply ban status filter
             if ($filters['is_banned'] !== null && $filters['is_banned'] !== '') {
                 $query->where('users.is_banned', $filters['is_banned']);
-            }
-
-            // Apply date of birth range filter
-            if (!empty($filters['date_of_birth_from'])) {
-                $query->whereDate('users.date_of_birth', '>=', $filters['date_of_birth_from']);
-            }
-            if (!empty($filters['date_of_birth_to'])) {
-                $query->whereDate('users.date_of_birth', '<=', $filters['date_of_birth_to']);
             }
 
             // Apply role filter
@@ -109,14 +97,10 @@ class UserService
             $sortBy = $filters['sort_by'] ?? 'created_at';
             $sortOrder = $filters['sort_order'] ?? 'desc';
             
-            // Map sort fields to actual database columns
+            // Map sort fields to actual database columns (only for selected columns)
             $sortFieldMap = [
                 'name' => 'users.name',
                 'email' => 'users.email',
-                'username' => 'users.username',
-                'phone' => 'users.phone',
-                'location' => 'users.location',
-                'date_of_birth' => 'users.date_of_birth',
                 'created_at' => 'users.created_at',
                 'updated_at' => 'users.updated_at',
             ];
