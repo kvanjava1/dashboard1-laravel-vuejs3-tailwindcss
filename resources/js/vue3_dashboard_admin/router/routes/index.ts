@@ -7,13 +7,17 @@ import authRoutes from './auth'
 import dashboardRoutes from './dashboard'
 import userRoutes from './user'
 import roleRoutes from './role'
+import galleryRoutes from './gallery'
+import imageRoutes from './image'
 
 // Combine all routes
 const routes: RouteRecordRaw[] = [
     ...authRoutes,
     ...dashboardRoutes,
     ...userRoutes,
-    ...roleRoutes
+    ...roleRoutes,
+    ...galleryRoutes,
+    ...imageRoutes
 ]
 
 const router = createRouter({

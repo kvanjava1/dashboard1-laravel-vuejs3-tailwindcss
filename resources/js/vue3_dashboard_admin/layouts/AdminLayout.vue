@@ -74,6 +74,37 @@
                     </div>
                 </router-link>
 
+                <!-- Images Management Menu -->
+                <div class="menu-item">
+                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        @click="toggleMenu('images-menu')">
+                        <div class="flex items-center gap-4">
+                            <span class="material-symbols-outlined group-hover:text-primary-light transition-colors">image</span>
+                            <p class="text-sm font-medium">Images Management</p>
+                        </div>
+                        <span
+                            :class="['material-symbols-outlined', 'menu-arrow', 'text-sm', { 'rotated': openMenus['images-menu'] }]">chevron_right</span>
+                    </div>
+
+                    <div :id="'images-menu'" :class="['submenu', { 'open': openMenus['images-menu'] }]">
+                        <router-link to="/gallery_management/index"
+                            class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            @click="closeMobileSidebar"
+                        >
+                            <span class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">photo_library</span>
+                            <p class="text-sm font-medium">Gallery</p>
+                        </router-link>
+
+                        <router-link to="/image_management/index"
+                            class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            @click="closeMobileSidebar"
+                        >
+                            <span class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">image</span>
+                            <p class="text-sm font-medium">Image</p>
+                        </router-link>
+                    </div>
+                </div>
+
                 <!-- Analytics Menu -->
                 <div class="menu-item">
                     <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
@@ -235,7 +266,8 @@ const searchQuery = ref('')
 const openMenus = reactive<Record<string, boolean>>({
     'users-menu': true,
     'analytics-menu': false,
-    'settings-menu': false
+    'settings-menu': false,
+    'images-menu': false
 })
 
 // User data from auth store
