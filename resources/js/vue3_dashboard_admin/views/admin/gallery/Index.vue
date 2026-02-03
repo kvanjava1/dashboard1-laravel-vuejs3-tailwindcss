@@ -7,7 +7,7 @@
             </template>
             <template #actions>
                 <PageHeaderActions>
-                    <ActionButton variant="primary" icon="add" @click="showAddModal = true">
+                    <ActionButton variant="primary" icon="add" @click="goToCreateGallery">
                         Add Gallery
                     </ActionButton>
                 </PageHeaderActions>
@@ -93,26 +93,12 @@
                 />
             </ContentBoxBody>
         </ContentBox>
-
-        <!-- Add Gallery Modal (placeholder) -->
-        <BaseModal v-model="showAddModal" title="Add New Gallery">
-            <p class="text-gray-600">Add Gallery modal will be implemented here.</p>
-            <template #footer>
-                <div class="flex justify-end gap-3">
-                    <ActionButton variant="secondary" @click="showAddModal = false">
-                        Cancel
-                    </ActionButton>
-                    <ActionButton variant="primary" @click="showAddModal = false">
-                        Create
-                    </ActionButton>
-                </div>
-            </template>
-        </BaseModal>
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -123,10 +109,9 @@ import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
-import BaseModal from '../../../components/ui/BaseModal.vue'
 
-// Reactive data
-const showAddModal = ref(false)
+// Router
+const router = useRouter()
 
 // Dummy data
 const galleries = ref([
@@ -187,6 +172,10 @@ const galleries = ref([
 ])
 
 // Methods
+const goToCreateGallery = () => {
+    router.push('/gallery_management/create')
+}
+
 const viewGallery = (gallery: any) => {
     console.log('View gallery:', gallery)
     // TODO: Implement view gallery functionality
