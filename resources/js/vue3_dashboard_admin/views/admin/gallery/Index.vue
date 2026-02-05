@@ -25,10 +25,42 @@
 
             <!-- Gallery Grid -->
             <ContentBoxBody>
+                <!-- Filters -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between">
+                        <!-- Search Bar -->
+                        <div class="flex-1 max-w-md">
+                            <div class="relative">
+                                <input
+                                    v-model="currentFilters.search"
+                                    type="text"
+                                    placeholder="Search galleries..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                />
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
+                                    search
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Filter Toggle Button -->
+                        <div class="w-32">
+                            <ActionButton
+                                variant="secondary"
+                                icon="filter_list"
+                                @click="showAdvancedFilter = true"
+                                class="w-full"
+                            >
+                                Filters
+                            </ActionButton>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Gallery Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <div
-                        v-for="gallery in galleries"
+                        v-for="gallery in filteredGalleries"
                         :key="gallery.id"
                         class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 border border-gray-200"
                     >
@@ -86,18 +118,27 @@
 
                 <!-- Empty State -->
                 <EmptyState
-                    v-if="galleries.length === 0"
+                    v-if="filteredGalleries.length === 0"
                     icon="photo_library"
                     message="No Galleries Found"
                     subtitle="Get started by creating your first gallery to showcase your images and media."
                 />
             </ContentBoxBody>
         </ContentBox>
+
+        <!-- Advanced Filter Modal -->
+        <GalleryAdvancedFilterModal
+            v-model="showAdvancedFilter"
+            :initial-filters="currentFilters"
+            :categories="categories"
+            @apply="handleApplyFilters"
+            @reset="handleResetFilters"
+        />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
@@ -109,9 +150,34 @@ import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
+import GalleryAdvancedFilterModal from '../../../components/gallery/GalleryAdvancedFilterModal.vue'
 
 // Router
 const router = useRouter()
+
+// Reactive state
+const showAdvancedFilter = ref(false)
+
+// Current filters
+const currentFilters = reactive({
+    search: '',
+    category: '',
+    status: '',
+    min_items: '',
+    max_items: '',
+    date_from: '',
+    date_to: ''
+})
+
+// Categories data
+const categories = ref([
+    { id: 1, name: 'Photography' },
+    { id: 2, name: 'Architecture' },
+    { id: 3, name: 'Food' },
+    { id: 4, name: 'Travel' },
+    { id: 5, name: 'Art' },
+    { id: 6, name: 'Wildlife' }
+])
 
 // Dummy data
 const galleries = ref([
@@ -170,6 +236,62 @@ const galleries = ref([
         status: 'active'
     }
 ])
+
+// Computed
+const filteredGalleries = computed(() => {
+    let filtered = galleries.value
+
+    // Filter by search term
+    if (currentFilters.search.trim()) {
+        const searchTerm = currentFilters.search.toLowerCase()
+        filtered = filtered.filter(gallery =>
+            gallery.title.toLowerCase().includes(searchTerm) ||
+            gallery.description.toLowerCase().includes(searchTerm) ||
+            gallery.category.toLowerCase().includes(searchTerm)
+        )
+    }
+
+    // Filter by category
+    if (currentFilters.category) {
+        filtered = filtered.filter(gallery => gallery.category === currentFilters.category)
+    }
+
+    // Filter by status
+    if (currentFilters.status) {
+        filtered = filtered.filter(gallery => gallery.status === currentFilters.status)
+    }
+
+    // Filter by minimum items
+    if (currentFilters.min_items) {
+        const minItems = parseInt(currentFilters.min_items)
+        filtered = filtered.filter(gallery => gallery.itemCount >= minItems)
+    }
+
+    // Filter by maximum items
+    if (currentFilters.max_items) {
+        const maxItems = parseInt(currentFilters.max_items)
+        filtered = filtered.filter(gallery => gallery.itemCount <= maxItems)
+    }
+
+    return filtered
+})
+
+// Filter methods
+const handleApplyFilters = (filters: typeof currentFilters) => {
+    Object.assign(currentFilters, filters)
+}
+
+const handleResetFilters = () => {
+    Object.assign(currentFilters, {
+        search: '',
+        category: '',
+        status: '',
+        min_items: '',
+        max_items: '',
+        date_from: '',
+        date_to: ''
+    })
+}
 
 // Methods
 const goToCreateGallery = () => {

@@ -63,6 +63,21 @@
             />
 
             <input
+                v-else-if="type === 'number'"
+                :id="inputId"
+                :value="modelValue"
+                type="number"
+                :placeholder="placeholder"
+                :required="required"
+                :class="[
+                    'w-full rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all',
+                    leftIcon ? 'pl-10 pr-4' : 'px-4',
+                    'py-2.5'
+                ]"
+                @input="$emit('update:modelValue', Number(($event.target as HTMLInputElement).value))"
+            />
+
+            <input
                 v-else
                 :id="inputId"
                 :value="modelValue"
@@ -90,7 +105,7 @@ import { computed } from 'vue'
 interface Props {
     modelValue: string | number
     label?: string
-    type?: 'text' | 'email' | 'password' | 'date' | 'tel' | 'select' | 'textarea'
+    type?: 'text' | 'email' | 'password' | 'date' | 'tel' | 'select' | 'textarea' | 'number'
     placeholder?: string
     help?: string
     required?: boolean

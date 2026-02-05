@@ -25,23 +25,35 @@
 
             <!-- Image Grid -->
             <ContentBoxBody>
-                <!-- Gallery Filter -->
+                <!-- Filters -->
                 <div class="mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="flex-1">
-                            <select
-                                v-model="selectedGallery"
-                                class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                            >
-                                <option value="">All Galleries</option>
-                                <option v-for="gallery in galleries" :key="gallery.id" :value="gallery.id">
-                                    {{ gallery.title }}
-                                </option>
-                            </select>
+                    <div class="flex items-center justify-between">
+                        <!-- Search Bar -->
+                        <div class="flex-1 max-w-md">
+                            <div class="relative">
+                                <input
+                                    v-model="currentFilters.search"
+                                    type="text"
+                                    placeholder="Search images..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                />
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
+                                    search
+                                </span>
+                            </div>
                         </div>
-                        <ActionButton variant="secondary" icon="filter_list" @click="showFilters = !showFilters">
-                            Filters
-                        </ActionButton>
+
+                        <!-- Filter Toggle Button -->
+                        <div class="w-32">
+                            <ActionButton
+                                variant="secondary"
+                                icon="filter_list"
+                                @click="showAdvancedFilter = true"
+                                class="w-full"
+                            >
+                                Filters
+                            </ActionButton>
+                        </div>
                     </div>
                 </div>
 
@@ -177,11 +189,21 @@
                 </div>
             </div>
         </BaseModal>
+
+        <!-- Advanced Filter Modal -->
+        <ImageAdvancedFilterModal
+            v-model="showAdvancedFilter"
+            :initial-filters="currentFilters"
+            :categories="categories"
+            :galleries="galleries"
+            @apply="handleApplyFilters"
+            @reset="handleResetFilters"
+        />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -193,96 +215,209 @@ import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
 import BaseModal from '../../../components/ui/BaseModal.vue'
+import ImageAdvancedFilterModal from '../../../components/image/ImageAdvancedFilterModal.vue'
 
 // Reactive data
 const showUploadModal = ref(false)
 const showViewModal = ref(false)
-const showFilters = ref(false)
+const showAdvancedFilter = ref(false)
+const selectedCategory = ref('')
 const selectedGallery = ref('')
 const selectedImage = ref<any>(null)
 const selectedFiles = ref<File[]>([])
 const fileInput = ref<HTMLInputElement>()
 
+// Current filters
+const currentFilters = reactive({
+    search: '',
+    category: '',
+    gallery: '',
+    date_from: '',
+    date_to: '',
+    file_type: '',
+    size_range: ''
+})
+
 // Upload form
-const uploadForm = ref({
+const uploadForm = reactive({
     galleryId: ''
 })
 
-// Galleries data (same as gallery management)
+// Categories data
+const categories = ref([
+    { id: 1, name: 'Holiday' },
+    { id: 2, name: 'Graduation' },
+    { id: 3, name: 'Wedding' },
+    { id: 4, name: 'Family' },
+    { id: 5, name: 'Travel' },
+    { id: 6, name: 'Events' }
+])
+
+// Galleries data (with category relationships)
 const galleries = ref([
-    { id: 1, title: 'Nature Photography' },
-    { id: 2, title: 'Urban Architecture' },
-    { id: 3, title: 'Food & Cuisine' },
-    { id: 4, title: 'Travel Adventures' },
-    { id: 5, title: 'Art Collection' },
-    { id: 6, title: 'Wildlife' }
+    { id: 1, title: 'Paris Trip 2024', categoryId: 1 },
+    { id: 2, title: 'New York Vacation', categoryId: 1 },
+    { id: 3, title: 'Bachelor\'s Degree Ceremony', categoryId: 2 },
+    { id: 4, title: 'Doctoral Graduation', categoryId: 2 },
+    { id: 5, title: 'Summer Wedding', categoryId: 3 },
+    { id: 6, title: 'Family Reunion', categoryId: 4 },
+    { id: 7, title: 'Japan Adventure', categoryId: 5 },
+    { id: 8, title: 'Corporate Event', categoryId: 6 }
 ])
 
 // Dummy images data
 const images = ref([
     {
         id: 1,
-        name: 'sunset-landscape.jpg',
+        name: 'eiffel-tower.jpg',
         url: 'https://picsum.photos/300/300?random=1',
-        gallery: 'Nature Photography',
+        gallery: 'Paris Trip 2024',
         galleryId: 1,
         uploadDate: '2024-01-15',
         size: '2.4 MB'
     },
     {
         id: 2,
-        name: 'city-skyline.png',
+        name: 'times-square.png',
         url: 'https://picsum.photos/300/300?random=2',
-        gallery: 'Urban Architecture',
+        gallery: 'New York Vacation',
         galleryId: 2,
         uploadDate: '2024-01-14',
         size: '1.8 MB'
     },
     {
         id: 3,
-        name: 'delicious-pasta.jpg',
+        name: 'graduation-cap.jpg',
         url: 'https://picsum.photos/300/300?random=3',
-        gallery: 'Food & Cuisine',
+        gallery: 'Bachelor\'s Degree Ceremony',
         galleryId: 3,
         uploadDate: '2024-01-13',
         size: '3.1 MB'
     },
     {
         id: 4,
-        name: 'mountain-view.jpg',
+        name: 'doctoral-gown.jpg',
         url: 'https://picsum.photos/300/300?random=4',
-        gallery: 'Nature Photography',
-        galleryId: 1,
+        gallery: 'Doctoral Graduation',
+        galleryId: 4,
         uploadDate: '2024-01-12',
         size: '2.9 MB'
     },
     {
         id: 5,
-        name: 'modern-building.gif',
+        name: 'wedding-ceremony.gif',
         url: 'https://picsum.photos/300/300?random=5',
-        gallery: 'Urban Architecture',
-        galleryId: 2,
+        gallery: 'Summer Wedding',
+        galleryId: 5,
         uploadDate: '2024-01-11',
         size: '4.2 MB'
     },
     {
         id: 6,
-        name: 'coffee-art.jpg',
+        name: 'family-gathering.jpg',
         url: 'https://picsum.photos/300/300?random=6',
-        gallery: 'Food & Cuisine',
-        galleryId: 3,
+        gallery: 'Family Reunion',
+        galleryId: 6,
         uploadDate: '2024-01-10',
         size: '1.5 MB'
+    },
+    {
+        id: 7,
+        name: 'tokyo-street.jpg',
+        url: 'https://picsum.photos/300/300?random=7',
+        gallery: 'Japan Adventure',
+        galleryId: 7,
+        uploadDate: '2024-01-09',
+        size: '3.5 MB'
+    },
+    {
+        id: 8,
+        name: 'corporate-event.jpg',
+        url: 'https://picsum.photos/300/300?random=8',
+        gallery: 'Corporate Event',
+        galleryId: 8,
+        uploadDate: '2024-01-08',
+        size: '2.1 MB'
     }
 ])
 
 // Computed
+const filteredGalleries = computed(() => {
+    if (!currentFilters.category) return galleries.value
+    return galleries.value.filter(gallery => gallery.categoryId === parseInt(currentFilters.category))
+})
+
 const filteredImages = computed(() => {
-    if (!selectedGallery.value) return images.value
-    return images.value.filter(image => image.galleryId === parseInt(selectedGallery.value))
+    let filtered = images.value
+
+    // Filter by search term
+    if (currentFilters.search.trim()) {
+        const searchTerm = currentFilters.search.toLowerCase()
+        filtered = filtered.filter(image =>
+            image.name.toLowerCase().includes(searchTerm) ||
+            image.gallery.toLowerCase().includes(searchTerm)
+        )
+    }
+
+    // Filter by category if selected
+    if (currentFilters.category) {
+        const categoryGalleries = galleries.value.filter(g => g.categoryId === parseInt(currentFilters.category))
+        const categoryGalleryIds = categoryGalleries.map(g => g.id)
+        filtered = filtered.filter(image => categoryGalleryIds.includes(image.galleryId))
+    }
+
+    // Filter by gallery if selected
+    if (currentFilters.gallery) {
+        filtered = filtered.filter(image => image.galleryId === parseInt(currentFilters.gallery))
+    }
+
+    // Filter by date range
+    if (currentFilters.date_from) {
+        filtered = filtered.filter(image => image.uploadDate >= currentFilters.date_from)
+    }
+    if (currentFilters.date_to) {
+        filtered = filtered.filter(image => image.uploadDate <= currentFilters.date_to)
+    }
+
+    // Filter by file type
+    if (currentFilters.file_type) {
+        const fileExtension = currentFilters.file_type
+        filtered = filtered.filter(image => image.name.toLowerCase().endsWith(`.${fileExtension}`))
+    }
+
+    // Filter by size range
+    if (currentFilters.size_range) {
+        filtered = filtered.filter(image => {
+            const sizeInMB = parseFloat(image.size.replace(' MB', ''))
+            switch (currentFilters.size_range) {
+                case 'small': return sizeInMB < 1
+                case 'medium': return sizeInMB >= 1 && sizeInMB <= 5
+                case 'large': return sizeInMB > 5
+                default: return true
+            }
+        })
+    }
+
+    return filtered
 })
 
 // Methods
+const handleApplyFilters = (filters: typeof currentFilters) => {
+    Object.assign(currentFilters, filters)
+}
+
+const handleResetFilters = () => {
+    Object.assign(currentFilters, {
+        search: '',
+        category: '',
+        gallery: '',
+        date_from: '',
+        date_to: '',
+        file_type: '',
+        size_range: ''
+    })
+}
+
 const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement
     if (target.files) {
@@ -293,7 +428,7 @@ const handleFileSelect = (event: Event) => {
 const cancelUpload = () => {
     showUploadModal.value = false
     selectedFiles.value = []
-    uploadForm.value.galleryId = ''
+    uploadForm.galleryId = ''
     if (fileInput.value) {
         fileInput.value.value = ''
     }
@@ -301,7 +436,7 @@ const cancelUpload = () => {
 
 const uploadImages = () => {
     console.log('Uploading images:', selectedFiles.value)
-    console.log('To gallery:', uploadForm.value.galleryId)
+    console.log('To gallery:', uploadForm.galleryId)
     // TODO: Implement upload functionality
     cancelUpload()
 }
