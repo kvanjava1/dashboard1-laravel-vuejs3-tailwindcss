@@ -1,22 +1,30 @@
 <template>
     <div class="relative">
-        <ActionButton
-            variant="secondary"
-            icon="more_horiz"
+        <Button
+            type="button"
+            :variant="variant === 'primary' ? 'primary' : 'outline'"
+            :size="size"
             @click="toggleDropdown"
-            :class="{ 'bg-slate-100': isOpen }"
+            :class="[
+                showLabel ? '' : '!p-2',
+                isOpen ? 'bg-slate-100' : ''
+            ]"
+            :title="label"
+            :aria-label="label"
         >
-            More Actions
-        </ActionButton>
+            <span class="material-symbols-outlined text-[18px]">{{ icon }}</span>
+            <span v-if="showLabel" class="hidden sm:inline">{{ label }}</span>
+        </Button>
         <div
             :class="[
-                'absolute top-full left-0 mt-1 bg-white rounded-xl border border-border-light shadow-hard transition-all duration-200 z-10',
+                `absolute top-full ${align === 'right' ? 'right-0' : 'left-0'} mt-1 bg-white rounded-lg border border-border-light shadow-hard transition-all duration-200 z-10`,
+                'min-w-56 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-auto',
                 // Desktop hover behavior
                 'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
                 // Mobile click behavior
                 isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
             ]">
-            <div @click="closeDropdown">
+            <div class="p-1" @click="closeDropdown">
                 <slot />
             </div>
         </div>
@@ -32,7 +40,23 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import ActionButton from './ActionButton.vue'
+import Button from './Button.vue'
+
+withDefaults(defineProps<{
+    label?: string
+    icon?: string
+    variant?: 'primary' | 'secondary'
+    size?: 'xs' | 'sm' | 'md' | 'lg'
+    showLabel?: boolean
+    align?: 'left' | 'right'
+}>(), {
+    label: 'More',
+    icon: 'more_horiz',
+    variant: 'secondary',
+    size: 'sm',
+    showLabel: false,
+    align: 'right'
+})
 
 const isOpen = ref(false)
 

@@ -1,15 +1,22 @@
 <template>
-    <button
-        class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3"
-        @click="handleClick">
-        <span v-if="icon" class="material-symbols-outlined text-slate-600 text-sm">{{ icon }}</span>
+    <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        full-width
+        class="!justify-start !shadow-none"
+        @click="handleClick"
+    >
+        <span v-if="icon" class="material-symbols-outlined text-slate-600 text-sm mr-2">{{ icon }}</span>
         <span class="text-sm text-slate-700">
             <slot />
         </span>
-    </button>
+    </Button>
 </template>
 
 <script setup lang="ts">
+import Button from './Button.vue'
+
 interface Props {
     icon?: string
 }

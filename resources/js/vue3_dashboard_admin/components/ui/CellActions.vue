@@ -1,41 +1,48 @@
 <template>
     <div class="flex items-center gap-2">
-        <button
+        <Button
             v-if="showEdit !== false"
-            class="p-2 text-slate-600 hover:text-primary hover:bg-slate-100 rounded-full transition-colors"
-            @click="$emit('edit')">
-            <span class="material-symbols-outlined text-[20px]">edit</span>
-        </button>
-        <button
+            variant="outline"
+            size="sm"
+            left-icon="edit"
+            @click="$emit('edit')"
+        >
+            Edit
+        </Button>
+        <Button
             v-if="showBan !== false"
-            :class="[
-                'p-2 text-slate-600 rounded-full transition-colors',
-                user?.is_banned 
-                    ? 'hover:text-success hover:bg-slate-100' 
-                    : 'hover:text-warning hover:bg-slate-100'
-            ]"
+            :variant="user?.is_banned ? 'success' : 'warning'"
+            size="sm"
+            :left-icon="user?.is_banned ? 'check_circle' : 'block'"
             @click="$emit('ban')"
-            :title="user?.is_banned ? 'Manage Ban Status' : 'Ban User'">
-            <span class="material-symbols-outlined text-[20px]">
-                {{ user?.is_banned ? 'check_circle' : 'block' }}
-            </span>
-        </button>
-        <button
+            :title="user?.is_banned ? 'Manage Ban Status' : 'Ban User'"
+        >
+            {{ user?.is_banned ? 'Unban' : 'Ban' }}
+        </Button>
+        <Button
             v-if="showDelete !== false"
-            class="p-2 text-slate-600 hover:text-danger hover:bg-slate-100 rounded-full transition-colors"
-            @click="$emit('delete')">
-            <span class="material-symbols-outlined text-[20px]">delete</span>
-        </button>
-        <button
+            variant="danger"
+            size="sm"
+            left-icon="delete"
+            @click="$emit('delete')"
+        >
+            Delete
+        </Button>
+        <Button
             v-if="showView !== false"
-            class="p-2 text-slate-600 hover:text-info hover:bg-slate-100 rounded-full transition-colors"
-            @click="$emit('view')">
-            <span class="material-symbols-outlined text-[20px]">visibility</span>
-        </button>
+            variant="outline"
+            size="sm"
+            left-icon="visibility"
+            @click="$emit('view')"
+        >
+            View
+        </Button>
     </div>
 </template>
 
 <script setup lang="ts">
+import Button from './Button.vue'
+
 defineProps<{ 
     showEdit?: boolean; 
     showDelete?: boolean; 

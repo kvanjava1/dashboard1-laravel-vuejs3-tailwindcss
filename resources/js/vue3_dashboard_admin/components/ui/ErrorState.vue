@@ -2,17 +2,22 @@
     <div class="py-8 text-center">
         <span class="material-symbols-outlined text-danger text-4xl">error</span>
         <p class="mt-2 text-sm text-slate-700">{{ message }}</p>
-        <button
+        <Button
             v-if="showRetry"
+            type="button"
+            variant="primary"
+            size="sm"
             @click="$emit('retry')"
-            class="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
+            class="mt-4"
         >
             Try Again
-        </button>
+        </Button>
     </div>
 </template>
 
 <script setup lang="ts">
+import Button from './Button.vue'
+
 interface Props {
     message?: string
     showRetry?: boolean

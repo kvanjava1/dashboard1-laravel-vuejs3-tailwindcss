@@ -1,8 +1,9 @@
 <template>
     <button
-        :class="buttonClasses"
+        :class="[buttonClasses, attrs.class]"
+        :style="attrs.style"
         :disabled="disabled || loading"
-        v-bind="$attrs"
+        v-bind="passthroughAttrs"
         @click="handleClick"
     >
         <!-- Loading spinner -->
@@ -26,7 +27,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
+
+defineOptions({
+    inheritAttrs: false
+})
 
 interface Props {
     variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'success' | 'warning'
@@ -50,6 +55,13 @@ const emit = defineEmits<{
     click: [event: Event]
 }>()
 
+const attrs = useAttrs()
+
+const passthroughAttrs = computed(() => {
+    const { class: _class, style: _style, ...rest } = attrs
+    return rest
+})
+
 const handleClick = (event: Event) => {
     if (!props.disabled && !props.loading) {
         emit('click', event)
@@ -67,7 +79,7 @@ const buttonClasses = computed(() => {
     // Size classes
     const sizeClasses = {
         xs: 'px-2.5 py-1.5 text-xs rounded',
-        sm: 'px-3 py-2 text-sm rounded-md',
+        sm: 'px-3 py-2 text-sm rounded-lg',
         md: 'px-4 py-2.5 text-sm rounded-lg',
         lg: 'px-6 py-3 text-base rounded-lg'
     }

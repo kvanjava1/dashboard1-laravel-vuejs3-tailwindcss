@@ -96,19 +96,12 @@
 
         <!-- Modal Footer -->
         <template #footer>
-            <button
-                @click="closeModal"
-                class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
+            <Button variant="outline" @click="closeModal">
                 Close
-            </button>
-            <button
-                @click="editRole"
-                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
-            >
-                <span class="material-symbols-outlined text-sm">edit</span>
+            </Button>
+            <Button variant="primary" left-icon="edit" @click="editRole">
                 Edit Role
-            </button>
+            </Button>
         </template>
     </BaseModal>
 </template>
@@ -116,6 +109,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseModal from '../../../components/ui/BaseModal.vue'
+import Button from '../../../components/ui/Button.vue'
 
 interface Role {
     id: number

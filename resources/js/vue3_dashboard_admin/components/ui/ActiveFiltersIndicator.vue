@@ -6,17 +6,16 @@
                 <span class="text-blue-800 font-medium">Filters Active</span>
                 <span class="text-blue-600 text-sm">Showing filtered results</span>
             </div>
-            <button
-                @click="$emit('reset')"
-                class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
-            >
+            <Button type="button" variant="outline" size="sm" @click="$emit('reset')">
                 Clear Filters
-            </button>
+            </Button>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import Button from './Button.vue'
+
 interface Props {
     hasActiveFilters: boolean
 }

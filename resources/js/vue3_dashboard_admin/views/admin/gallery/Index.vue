@@ -8,8 +8,13 @@
             <template #actions>
                 <PageHeaderActions>
                     <ActionButton variant="primary" icon="add" @click="goToCreateGallery">
-                        Add Gallery
+                        Add New
                     </ActionButton>
+                    <ActionDropdown>
+                        <ActionDropdownItem icon="filter_list" @click="showAdvancedFilter = true">
+                            Advanced Filter
+                        </ActionDropdownItem>
+                    </ActionDropdown>
                 </PageHeaderActions>
             </template>
         </PageHeader>
@@ -42,18 +47,6 @@
                                 </span>
                             </div>
                         </div>
-
-                        <!-- Filter Toggle Button -->
-                        <div class="w-32">
-                            <ActionButton
-                                variant="secondary"
-                                icon="filter_list"
-                                @click="showAdvancedFilter = true"
-                                class="w-full"
-                            >
-                                Filters
-                            </ActionButton>
-                        </div>
                     </div>
                 </div>
 
@@ -72,14 +65,7 @@
                                 class="w-full h-full object-cover"
                             />
                             <div class="absolute top-2 right-2">
-                                <span
-                                    :class="[
-                                        'px-2 py-1 text-xs font-medium rounded-full',
-                                        gallery.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    ]"
-                                >
-                                    {{ gallery.status }}
-                                </span>
+                                <StatusBadge :status="gallery.status" />
                             </div>
                         </div>
 
@@ -95,22 +81,22 @@
 
                             <!-- Actions -->
                             <div class="flex gap-2">
-                                <ActionButton
-                                    variant="secondary"
+                                <Button
+                                    variant="outline"
                                     size="sm"
-                                    icon="visibility"
+                                    left-icon="visibility"
                                     @click="viewGallery(gallery)"
                                 >
                                     View
-                                </ActionButton>
-                                <ActionButton
-                                    variant="secondary"
+                                </Button>
+                                <Button
+                                    variant="outline"
                                     size="sm"
-                                    icon="edit"
+                                    left-icon="edit"
                                     @click="editGallery(gallery)"
                                 >
                                     Edit
-                                </ActionButton>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -149,8 +135,12 @@ import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
+import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
+import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
+import Button from '../../../components/ui/Button.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
 import GalleryAdvancedFilterModal from '../../../components/gallery/GalleryAdvancedFilterModal.vue'
+import StatusBadge from '../../../components/ui/StatusBadge.vue'
 
 // Router
 const router = useRouter()

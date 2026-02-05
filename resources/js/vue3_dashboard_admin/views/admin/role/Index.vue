@@ -123,31 +123,34 @@
                                     <div class="flex items-center gap-2">
                                         <Button
                                             v-if="role.name !== 'super_admin' && canEditRole"
-                                            variant="ghost"
-                                            size="xs"
+                                            variant="outline"
+                                            size="sm"
                                             left-icon="edit"
                                             title="Edit role"
                                             @click="editRole(role)"
-                                        />
+                                        >
+                                            Edit
+                                        </Button>
                                         <Button
                                             v-if="canViewRoleDetail"
-                                            variant="ghost"
-                                            size="xs"
+                                            variant="outline"
+                                            size="sm"
                                             left-icon="visibility"
                                             title="View permissions"
                                             @click="viewPermissions(role)"
-                                        />
+                                        >
+                                            View
+                                        </Button>
                                         <Button
                                             v-if="role.name !== 'super_admin' && canDeleteRole"
-                                            variant="ghost"
-                                            size="xs"
+                                            variant="danger"
+                                            size="sm"
+                                            left-icon="delete"
                                             :disabled="isDeleting"
                                             :title="isDeleting ? 'Deleting...' : 'Delete role'"
                                             @click="deleteRole(role)"
                                         >
-                                            <span class="material-symbols-outlined text-base" :class="{ 'animate-spin': isDeleting }">
-                                                {{ isDeleting ? 'refresh' : 'delete' }}
-                                            </span>
+                                            {{ isDeleting ? 'Deleting...' : 'Delete' }}
                                         </Button>
                                     </div>
                                 </SimpleUserTableBodyCol>

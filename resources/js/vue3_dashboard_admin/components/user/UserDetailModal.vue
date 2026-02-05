@@ -142,9 +142,9 @@
       </div>
     </template>
     <template #footer>
-      <button @click="closeModal" class="px-6 py-2.5 rounded-full border border-border-light text-slate-700 text-sm font-semibold hover:bg-slate-100 transition-all duration-200">
+      <Button type="button" variant="outline" @click="closeModal">
         Close
-      </button>
+      </Button>
     </template>
   </BaseModal>
 </template>
@@ -155,6 +155,7 @@ import BaseModal from '../ui/BaseModal.vue'
 import UserCellUser from '../ui/UserCellUser.vue'
 import UserCellRole from '../ui/UserCellRole.vue'
 import UserCellStatus from '../ui/UserCellStatus.vue'
+import Button from '../ui/Button.vue'
 
 interface User {
   id: number

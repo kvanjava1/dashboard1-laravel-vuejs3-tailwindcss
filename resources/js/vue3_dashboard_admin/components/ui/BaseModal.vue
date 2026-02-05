@@ -57,13 +57,16 @@
                   </div>
                 </slot>
               </div>
-              <button
+              <Button
                 @click="closeModal"
-                class="p-2 hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                type="button"
+                variant="ghost"
+                size="xs"
+                class="!p-2 rounded-full"
                 aria-label="Close modal"
               >
                 <span class="material-symbols-outlined text-slate-400 text-xl">close</span>
-              </button>
+              </Button>
             </div>
 
             <!-- Body -->
@@ -95,6 +98,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from 'vue'
+import Button from './Button.vue'
 
 interface Props {
   modelValue: boolean

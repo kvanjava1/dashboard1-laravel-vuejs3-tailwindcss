@@ -225,9 +225,16 @@
                                 class="px-3 py-1.5 rounded-full text-sm font-bold border border-border-light text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center gap-2"
                             >
                                 {{ tag }}
-                                <button @click="removeTag(index)" class="hover:text-red-400 transition-colors">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="xs"
+                                    class="!p-0 hover:!bg-transparent hover:!text-red-500"
+                                    @click="removeTag(index)"
+                                    title="Remove tag"
+                                >
                                     <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
+                                </Button>
                             </span>
                         </div>
                     </div>
@@ -259,6 +266,7 @@ import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
+import Button from '../../../components/ui/Button.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'

@@ -49,24 +49,30 @@
       </div>
 
       <!-- Remove image button -->
-      <button
+      <Button
         v-if="previewImage"
         @click="removeImage"
-        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+        type="button"
+        variant="danger"
+        size="xs"
+        class="absolute -top-2 -right-2 !p-0 w-6 h-6 rounded-full shadow-lg"
         title="Remove image"
       >
         <span class="material-symbols-outlined text-sm">close</span>
-      </button>
+      </Button>
 
       <!-- Edit/Crop button -->
-      <button
+      <Button
         v-if="previewImage"
         @click="editImage"
-        class="absolute -bottom-2 -right-2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center hover:bg-primary-dark transition-colors shadow-lg"
+        type="button"
+        variant="primary"
+        size="xs"
+        class="absolute -bottom-2 -right-2 !p-0 w-6 h-6 rounded-full shadow-lg"
         title="Crop image"
       >
         <span class="material-symbols-outlined text-sm">crop</span>
-      </button>
+      </Button>
     </div>
 
     <!-- Upload controls -->

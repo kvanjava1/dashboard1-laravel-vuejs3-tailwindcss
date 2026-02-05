@@ -26,9 +26,16 @@
                         <p class="text-accent text-xs font-medium tracking-wider">v2.0 PRO</p>
                     </div>
                 </div>
-                <button class="text-white hover:text-primary-light p-2" @click="toggleSidebar">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    class="!p-2 rounded-full text-white hover:!bg-surface-dark"
+                    @click="toggleSidebar"
+                    aria-label="Close sidebar"
+                >
                     <span class="material-symbols-outlined text-2xl">close</span>
-                </button>
+                </Button>
             </div>
 
             <!-- Desktop Sidebar Header -->
@@ -71,6 +78,18 @@
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">manage_accounts</span>
                         <p class="text-sm font-medium">Role Managements</p>
+                    </div>
+                </router-link>
+
+                <!-- Categories Menu (UI preview - no permissions yet) -->
+                <router-link
+                    v-if="authStore.isAuthenticated"
+                    to="/category_management/index"
+                    class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                >
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined group-hover:text-primary-light transition-colors">category</span>
+                        <p class="text-sm font-medium">Category Management</p>
                     </div>
                 </router-link>
 
@@ -131,11 +150,16 @@
             </nav>
 
             <div class="mt-auto pt-6 border-t border-border-dark">
-                <button @click="handleLogout"
-                    class="flex items-center gap-4 px-4 py-3 rounded-full text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 cursor-pointer active:scale-95 w-full text-left">
-                    <span class="material-symbols-outlined">logout</span>
-                    <p class="text-sm font-medium">Logout</p>
-                </button>
+                <Button
+                    type="button"
+                    variant="danger"
+                    full-width
+                    left-icon="logout"
+                    class="!justify-start"
+                    @click="handleLogout"
+                >
+                    Logout
+                </Button>
             </div>
         </aside>
 
@@ -164,21 +188,28 @@
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button
-                        class="relative p-2 text-slate-600 hover:text-primary hover:bg-slate-50 rounded-full transition-colors duration-200 hover:scale-105">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        class="relative !p-2 rounded-full"
+                        aria-label="Notifications"
+                    >
                         <span class="material-symbols-outlined">notifications</span>
                         <span
                             class="absolute top-1.5 right-2 size-2.5 bg-danger rounded-full border-2 border-white animate-pulse"></span>
-                    </button>
+                    </Button>
 
                     <!-- Logout Button -->
-                    <button
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        left-icon="logout"
                         @click="handleLogout"
-                        class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-danger hover:bg-danger/10 rounded-full transition-colors duration-200 hover:scale-105 border border-border-light"
                         title="Logout">
-                        <span class="material-symbols-outlined text-sm">logout</span>
-                        <span class="text-sm font-medium hidden sm:inline">Logout</span>
-                    </button>
+                        Logout
+                    </Button>
 
                     <!-- Profile with Dropdown -->
                     <div class="relative">
@@ -232,11 +263,15 @@
                                 </router-link>
                             </div>
                             <div class="p-3 border-t border-border-light bg-slate-50/50">
-                                <button @click="handleLogout"
-                                    class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white text-danger hover:bg-danger/10 hover:text-danger-dark transition-all cursor-pointer border border-border-light shadow-sm w-full">
-                                    <span class="material-symbols-outlined text-sm">logout</span>
-                                    <span class="text-sm font-medium">Log Out</span>
-                                </button>
+                                <Button
+                                    type="button"
+                                    variant="danger"
+                                    full-width
+                                    left-icon="logout"
+                                    @click="handleLogout"
+                                >
+                                    Log Out
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -255,6 +290,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import Button from '@/components/ui/Button.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

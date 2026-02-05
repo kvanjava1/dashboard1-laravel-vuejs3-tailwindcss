@@ -10,6 +10,11 @@
                     <ActionButton variant="primary" icon="add" @click="showUploadModal = true">
                         Upload Image
                     </ActionButton>
+                    <ActionDropdown>
+                        <ActionDropdownItem icon="filter_list" @click="showAdvancedFilter = true">
+                            Advanced Filter
+                        </ActionDropdownItem>
+                    </ActionDropdown>
                 </PageHeaderActions>
             </template>
         </PageHeader>
@@ -41,18 +46,6 @@
                                     search
                                 </span>
                             </div>
-                        </div>
-
-                        <!-- Filter Toggle Button -->
-                        <div class="w-32">
-                            <ActionButton
-                                variant="secondary"
-                                icon="filter_list"
-                                @click="showAdvancedFilter = true"
-                                class="w-full"
-                            >
-                                Filters
-                            </ActionButton>
                         </div>
                     </div>
                 </div>
@@ -86,18 +79,22 @@
                             <div class="flex items-center justify-between text-xs text-gray-500">
                                 <span>{{ image.uploadDate }}</span>
                                 <div class="flex gap-2">
-                                    <button
+                                    <Button
                                         @click.stop="editImage(image)"
-                                        class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                        variant="outline"
+                                        size="sm"
+                                        left-icon="edit"
                                     >
                                         Edit
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         @click.stop="deleteImage(image)"
-                                        class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                        variant="danger"
+                                        size="sm"
+                                        left-icon="delete"
                                     >
                                         Delete
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -213,6 +210,9 @@ import ContentBoxHeader from '../../../components/ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../../../components/ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
+import Button from '../../../components/ui/Button.vue'
+import ActionDropdown from '../../../components/ui/ActionDropdown.vue'
+import ActionDropdownItem from '../../../components/ui/ActionDropdownItem.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
 import BaseModal from '../../../components/ui/BaseModal.vue'
 import ImageAdvancedFilterModal from '../../../components/image/ImageAdvancedFilterModal.vue'

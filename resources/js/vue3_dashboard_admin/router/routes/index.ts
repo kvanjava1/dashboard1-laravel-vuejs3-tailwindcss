@@ -9,6 +9,7 @@ import userRoutes from './user'
 import roleRoutes from './role'
 import galleryRoutes from './gallery'
 import imageRoutes from './image'
+import categoryRoutes from './category'
 
 // Combine all routes
 const routes: RouteRecordRaw[] = [
@@ -17,7 +18,8 @@ const routes: RouteRecordRaw[] = [
     ...userRoutes,
     ...roleRoutes,
     ...galleryRoutes,
-    ...imageRoutes
+    ...imageRoutes,
+    ...categoryRoutes
 ]
 
 const router = createRouter({

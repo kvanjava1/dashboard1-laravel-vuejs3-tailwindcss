@@ -33,29 +33,32 @@
 
             <!-- Action Buttons -->
             <div class="space-y-3">
-                <button
+                <Button
+                    variant="danger"
+                    full-width
+                    left-icon="logout"
                     @click="handleLogout"
-                    class="w-full px-6 py-3 bg-gradient-to-r from-danger to-danger-dark text-white font-semibold rounded-xl hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                    <span class="material-symbols-outlined text-sm">logout</span>
                     Logout
-                </button>
+                </Button>
                 
-                <button
+                <Button
+                    variant="primary"
+                    full-width
+                    left-icon="arrow_back"
                     @click="goBack"
-                    class="w-full px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-semibold rounded-xl hover:shadow-hard hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                    <span class="material-symbols-outlined text-sm">arrow_back</span>
                     Go Back
-                </button>
+                </Button>
 
-                <button
+                <Button
+                    variant="outline"
+                    full-width
+                    left-icon="home"
                     @click="goHome"
-                    class="w-full px-6 py-3 border border-border-light text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                    <span class="material-symbols-outlined text-sm">home</span>
                     Go to Dashboard
-                </button>
+                </Button>
             </div>
 
             <!-- Contact Info -->
@@ -74,6 +77,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../../stores/auth'
+import Button from '../../../components/ui/Button.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

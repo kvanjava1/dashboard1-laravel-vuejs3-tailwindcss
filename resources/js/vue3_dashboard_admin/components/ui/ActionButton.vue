@@ -1,22 +1,33 @@
 <template>
-    <button :class="{
-        'px-4 lg:px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 flex items-center gap-2 active:scale-95 shadow-md': true,
-        'text-white bg-gradient-to-r from-primary to-primary-dark hover:shadow-hard hover:scale-[1.02]': variant === 'primary',
-        'border border-border-light text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-medium': variant === 'secondary'
-    }"
-        v-bind="$attrs">
-        <span v-if="icon" class="material-symbols-outlined text-[18px]">{{ icon }}</span>
+    <Button
+        :variant="variant === 'primary' ? 'primary' : 'outline'"
+        :size="size"
+        :left-icon="icon"
+        :full-width="fullWidth"
+        v-bind="$attrs"
+        @click="(e) => emit('click', e)"
+    >
         <slot />
-    </button>
+    </Button>
 </template>
 
 <script setup lang="ts">
+import Button from './Button.vue'
+
 interface Props {
     variant?: 'primary' | 'secondary'
     icon?: string
+    size?: 'xs' | 'sm' | 'md' | 'lg'
+    fullWidth?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    variant: 'primary'
+    variant: 'primary',
+    size: 'sm',
+    fullWidth: false
 })
+
+const emit = defineEmits<{
+    click: [event: Event]
+}>()
 </script>

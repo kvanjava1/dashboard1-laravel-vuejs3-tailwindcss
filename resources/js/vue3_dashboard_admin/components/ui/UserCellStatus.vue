@@ -1,33 +1,18 @@
 <template>
-    <div class="flex items-center gap-2">
-        <span :class="[
-            'size-2 rounded-full',
-            statusColor(status),
-            { 'animate-pulse': status === 'active' || status === 'Active' }
-        ]">
-        </span>
-        <span class="text-sm text-slate-700">{{ formatStatus(status) }}</span>
-    </div>
+    <StatusBadge :status="normalizedStatus" :label="formatStatus(status)" />
 </template>
 
 <script setup lang="ts" define-props>
+import { computed } from 'vue'
+import StatusBadge from './StatusBadge.vue'
+
 interface Props {
     status: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-function statusColor(status: string): string {
-    const statusColors: Record<string, string> = {
-        'active': 'bg-success',
-        'Active': 'bg-success',
-        'pending': 'bg-warning',
-        'Pending': 'bg-warning',
-        'inactive': 'bg-danger',
-        'Inactive': 'bg-danger'
-    }
-    return statusColors[status] || 'bg-slate-400'
-}
+const normalizedStatus = computed(() => (props.status || '').toString().trim().toLowerCase())
 
 function formatStatus(status: string): string {
     if (!status) return 'Unknown'

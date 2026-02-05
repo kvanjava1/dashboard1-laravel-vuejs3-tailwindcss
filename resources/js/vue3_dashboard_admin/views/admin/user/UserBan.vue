@@ -44,14 +44,7 @@
                                         <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                             {{ user.role_display_name || user.role }}
                                         </span>
-                                        <span
-                                            :class="[
-                                                'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium',
-                                                user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                            ]"
-                                        >
-                                            {{ user.status.charAt(0).toUpperCase() + user.status.slice(1) }}
-                                        </span>
+                                        <StatusBadge :status="user.status" />
                                     </div>
                                 </div>
                             </div>
@@ -436,6 +429,7 @@ import ContentBox from '../../../components/ui/ContentBox.vue'
 import ContentBoxBody from '../../../components/ui/ContentBoxBody.vue'
 import Button from '../../../components/ui/Button.vue'
 import FormField from '../../../components/ui/FormField.vue'
+import StatusBadge from '../../../components/ui/StatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
