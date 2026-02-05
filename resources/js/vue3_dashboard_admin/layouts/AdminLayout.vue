@@ -67,7 +67,7 @@
                     <div class="flex items-center gap-4">
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">group</span>
-                        <p class="text-sm font-medium">User Managements</p>
+                        <p class="text-sm font-medium">User Management</p>
                     </div>
                 </router-link>
 
@@ -77,7 +77,7 @@
                     <div class="flex items-center gap-4">
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">manage_accounts</span>
-                        <p class="text-sm font-medium">Role Managements</p>
+                        <p class="text-sm font-medium">Role Management</p>
                     </div>
                 </router-link>
 
@@ -99,7 +99,7 @@
                         @click="toggleMenu('images-menu')">
                         <div class="flex items-center gap-4">
                             <span class="material-symbols-outlined group-hover:text-primary-light transition-colors">image</span>
-                            <p class="text-sm font-medium">Images Management</p>
+                            <p class="text-sm font-medium">Image Management</p>
                         </div>
                         <span
                             :class="['material-symbols-outlined', 'menu-arrow', 'text-sm', { 'rotated': openMenus['images-menu'] }]">chevron_right</span>

@@ -27,6 +27,23 @@
                     left-icon="link"
                 />
 
+                <FormField
+                    v-model="form.parent_id"
+                    label="Parent Category"
+                    type="select"
+                    help="Optional. Leave as Root for top-level category."
+                    left-icon="account_tree"
+                >
+                    <option value="">Root (no parent)</option>
+                    <option
+                        v-for="opt in parentOptions"
+                        :key="opt.id"
+                        :value="String(opt.id)"
+                    >
+                        {{ opt.label }}
+                    </option>
+                </FormField>
+
                 <FormField v-model="form.status" label="Status" type="select" left-icon="toggle_on">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -54,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import ContentBox from '../ui/ContentBox.vue'
 import ContentBoxHeader from '../ui/ContentBoxHeader.vue'
 import ContentBoxTitle from '../ui/ContentBoxTitle.vue'
@@ -62,22 +79,14 @@ import ContentBoxBody from '../ui/ContentBoxBody.vue'
 import FormField from '../ui/FormField.vue'
 import Button from '../ui/Button.vue'
 import { showToast } from '@/composables/useSweetAlert'
+import type { Category } from '@/mocks/categories'
 
 type Mode = 'create' | 'edit'
-
-type Category = {
-    id: number
-    name: string
-    slug: string
-    description?: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
 
 const props = defineProps<{
     mode: Mode
     category?: Category | null
+    allCategories?: Category[]
 }>()
 
 const emit = defineEmits<{
@@ -91,6 +100,7 @@ const form = reactive({
     name: '',
     slug: '',
     description: '',
+    parent_id: '',
     status: 'active' as 'active' | 'inactive'
 })
 
@@ -100,6 +110,7 @@ watch(() => props.category, (value) => {
     form.slug = value.slug
     form.description = value.description ?? ''
     form.status = value.is_active ? 'active' : 'inactive'
+    form.parent_id = value.parent_id === null ? '' : String(value.parent_id)
 }, { immediate: true })
 
 const slugify = (value: string) => {
@@ -119,6 +130,24 @@ const handleSubmit = async () => {
     }
 
     const computedSlug = (form.slug.trim() ? slugify(form.slug) : slugify(name)) || 'category'
+    const all = props.allCategories || []
+    const currentId = props.mode === 'edit' ? (props.category?.id ?? null) : null
+    const slugTaken = all.some((c) => c.slug.toLowerCase() === computedSlug.toLowerCase() && c.id !== currentId)
+    if (slugTaken) {
+        await showToast({ icon: 'warning', title: 'Slug already exists', text: 'Slug must be globally unique.' })
+        return
+    }
+
+    const parentId = form.parent_id ? Number(form.parent_id) : null
+    if (form.parent_id && !Number.isFinite(parentId)) {
+        await showToast({ icon: 'warning', title: 'Invalid parent category' })
+        return
+    }
+    if (currentId && parentId === currentId) {
+        await showToast({ icon: 'warning', title: 'Invalid parent category', text: 'A category cannot be its own parent.' })
+        return
+    }
+
     const description = form.description.trim()
     const isActive = form.status === 'active'
 
@@ -134,6 +163,7 @@ const handleSubmit = async () => {
                 ...current,
                 name,
                 slug: computedSlug,
+                parent_id: parentId,
                 is_active: isActive,
                 updated_at: new Date().toISOString(),
                 ...(description ? { description } : {})
@@ -144,6 +174,7 @@ const handleSubmit = async () => {
             const now = new Date().toISOString()
             category = {
                 id: Date.now(),
+                parent_id: parentId,
                 name,
                 slug: computedSlug,
                 is_active: isActive,
@@ -161,4 +192,53 @@ const handleSubmit = async () => {
         isSaving.value = false
     }
 }
+
+type ParentOption = { id: number; label: string }
+
+const parentOptions = computed<ParentOption[]>(() => {
+    const all = props.allCategories || []
+    const currentId = props.mode === 'edit' ? (props.category?.id ?? null) : null
+
+    const byId = new Map<number, Category>()
+    for (const c of all) byId.set(c.id, c)
+
+    const childrenByParent = new Map<number | null, Category[]>()
+    for (const c of all) {
+        const parentKey = c.parent_id !== null && byId.has(c.parent_id) ? c.parent_id : null
+        const bucket = childrenByParent.get(parentKey) || []
+        bucket.push(c)
+        childrenByParent.set(parentKey, bucket)
+    }
+
+    const excluded = new Set<number>()
+    if (currentId) {
+        excluded.add(currentId)
+        const stack = [currentId]
+        while (stack.length) {
+            const id = stack.pop()!
+            const kids = childrenByParent.get(id) || []
+            for (const k of kids) {
+                if (!excluded.has(k.id)) {
+                    excluded.add(k.id)
+                    stack.push(k.id)
+                }
+            }
+        }
+    }
+
+    const result: ParentOption[] = []
+    const walk = (parentId: number | null, depth: number) => {
+        const children = childrenByParent.get(parentId) || []
+        for (const child of children) {
+            if (!excluded.has(child.id)) {
+                const prefix = depth === 0 ? '' : `${'—'.repeat(depth)} `
+                result.push({ id: child.id, label: `${prefix}${child.name}` })
+            }
+            walk(child.id, depth + 1)
+        }
+    }
+
+    walk(null, 0)
+    return result
+})
 </script>

@@ -15,6 +15,7 @@
 
         <CategoryForm
             mode="create"
+            :all-categories="allCategories"
             @cancel="goBack"
             @success="handleSuccess"
         />
@@ -29,8 +30,10 @@ import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
 import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import CategoryForm from '../../../components/category/CategoryForm.vue'
+import { makeDummyCategories } from '@/mocks/categories'
 
 const router = useRouter()
+const allCategories = makeDummyCategories()
 
 const goBack = () => {
     router.push({ name: 'category_management.index' })
@@ -40,4 +43,3 @@ const handleSuccess = () => {
     router.push({ name: 'category_management.index' })
 }
 </script>
-

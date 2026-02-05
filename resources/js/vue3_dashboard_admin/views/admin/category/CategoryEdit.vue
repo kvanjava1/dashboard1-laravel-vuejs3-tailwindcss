@@ -23,6 +23,7 @@
             v-else
             mode="edit"
             :category="category"
+            :all-categories="allCategories"
             @cancel="goBack"
             @success="handleSuccess"
         />
@@ -39,41 +40,19 @@ import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
 import ErrorState from '../../../components/ui/ErrorState.vue'
 import CategoryForm from '../../../components/category/CategoryForm.vue'
+import { makeDummyCategories } from '@/mocks/categories'
+import type { Category } from '@/mocks/categories'
 
 const router = useRouter()
 const route = useRoute()
 
 const categoryId = computed(() => Number(route.params.id))
 
-type Category = {
-    id: number
-    name: string
-    slug: string
-    description?: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
-
-const nowIso = () => new Date().toISOString()
-
-const dummyById = (id: number): Category | null => {
-    const now = nowIso()
-    const map: Record<number, Omit<Category, 'created_at' | 'updated_at'>> = {
-        1: { id: 1, name: 'Announcements', slug: 'announcements', description: 'Important updates for all users.', is_active: true },
-        2: { id: 2, name: 'Tutorials', slug: 'tutorials', description: 'Guides and tutorials for onboarding.', is_active: true },
-        3: { id: 3, name: 'Events', slug: 'events', description: 'Company and community events.', is_active: false },
-        4: { id: 4, name: 'News', slug: 'news', description: 'Latest news and product updates.', is_active: true }
-    }
-
-    const base = map[id]
-    if (!base) return null
-    return { ...base, created_at: now, updated_at: now }
-}
+const allCategories = makeDummyCategories()
 
 const category = computed(() => {
     if (!Number.isFinite(categoryId.value) || categoryId.value <= 0) return null
-    return dummyById(categoryId.value)
+    return allCategories.find((c) => c.id === categoryId.value) || null
 })
 
 const goBack = () => {
