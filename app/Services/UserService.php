@@ -6,26 +6,42 @@ use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use App\Services\ProtectionService;
 use App\Services\UserBanHistoryService;
+use App\Traits\CanVersionCache;
 
 class UserService
 {
+    use CanVersionCache;
+
     protected ProtectionService $protectionService;
     protected UserBanHistoryService $userBanHistoryService;
+
+    private const CACHE_SCOPE = 'users';
+    private const CACHE_TTL = 3600; // 1 hour
 
     public function __construct(ProtectionService $protectionService, UserBanHistoryService $userBanHistoryService)
     {
         $this->protectionService = $protectionService;
         $this->userBanHistoryService = $userBanHistoryService;
     }
+
     /**
      * Get filtered and paginated users with their roles
      */
     public function getFilteredPaginatedUsers(int $perPage = 15, int $page = 1, array $filters = []): array
     {
         try {
-            // Start building the query with only necessary columns
+            // 1. Check cache first
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, array_merge(['perPage' => $perPage, 'page' => $page], $filters));
+            $cached = Cache::get($cacheKey);
+
+            if ($cached !== null) {
+                return $cached;
+            }
+
+            // 2. No cache, process the data
             $query = User::with(['roles' => function ($query) {
                 $query->select('id', 'name');
             }])
@@ -58,7 +74,7 @@ class UserService
             }
 
             // Apply ban status filter
-            if ($filters['is_banned'] !== null && $filters['is_banned'] !== '') {
+            if (isset($filters['is_banned']) && $filters['is_banned'] !== null && $filters['is_banned'] !== '') {
                 $query->where('users.is_banned', $filters['is_banned']);
             }
 
@@ -96,7 +112,6 @@ class UserService
             $sortBy = $filters['sort_by'] ?? 'created_at';
             $sortOrder = $filters['sort_order'] ?? 'desc';
             
-            // Map sort fields to actual database columns (only for selected columns)
             $sortFieldMap = [
                 'name' => 'users.name',
                 'email' => 'users.email',
@@ -122,21 +137,12 @@ class UserService
                 ];
             })->toArray();
 
-            Log::info('Filtered paginated users retrieved successfully', [
-                'page' => $page,
-                'per_page' => $perPage,
-                'filters' => $filters,
-                'total' => $users->total(),
-                'count' => $formattedUsers->count()
-            ]);
-
-            // Get all available account statuses
             $availableStatuses = [
                 ['value' => 'active', 'label' => 'Active'],
                 ['value' => 'inactive', 'label' => 'Inactive'],
             ];
 
-            return [
+            $result = [
                 'users' => $formattedUsers->toArray(),
                 'total' => $users->total(),
                 'total_pages' => $users->lastPage(),
@@ -147,6 +153,13 @@ class UserService
                 'available_roles' => $availableRoles,
                 'status_options' => $availableStatuses,
             ];
+
+            // 3. Save cache
+            Cache::put($cacheKey, $result, self::CACHE_TTL);
+
+            // 4. Return result
+            return $result;
+
         } catch (\Exception $e) {
             Log::error('Failed to retrieve filtered paginated users', [
                 'page' => $page,
@@ -164,13 +177,19 @@ class UserService
     public function getUserById(int $userId): array
     {
         try {
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, ['id' => $userId]);
+            $cached = Cache::get($cacheKey);
+
+            if ($cached !== null) {
+                return $cached;
+            }
+
             $user = User::with('roles')->findOrFail($userId);
+            $result = $this->formatUserData($user);
 
-            $userData = $this->formatUserData($user);
+            Cache::put($cacheKey, $result, self::CACHE_TTL);
 
-            Log::info('User retrieved successfully', ['user_id' => $userId, 'email' => $user->email]);
-
-            return $userData;
+            return $result;
         } catch (\Exception $e) {
             Log::error('Failed to retrieve user', [
                 'user_id' => $userId,
@@ -186,14 +205,10 @@ class UserService
     public function createUser(array $data, $request = null): array
     {
         try {
-            // Check if there's a soft deleted user with this email
             $existingUser = User::withTrashed()->where('email', $data['email'])->first();
 
             if ($existingUser && $existingUser->trashed()) {
-                // Restore the soft deleted user
                 $existingUser->restore();
-                
-                // Update the user with new data
                 $existingUser->update([
                     'name' => $data['name'],
                     'phone' => $data['phone'] ?? null,
@@ -201,16 +216,8 @@ class UserService
                     'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
                 ]);
-
                 $user = $existingUser;
-
-                Log::info('Soft deleted user restored and updated', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'restored_by' => $data['created_by'] ?? 'system'
-                ]);
             } else {
-                // Create new user
                 $user = User::create([
                     'name' => $data['name'],
                     'email' => $data['email'],
@@ -219,54 +226,26 @@ class UserService
                     'is_active' => $data['is_active'] ?? true,
                     'password' => bcrypt($data['password']),
                 ]);
-
-                Log::info('New user created', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'created_by' => $data['created_by'] ?? 'system'
-                ]);
             }
 
-            // Handle profile image upload (for both restored and new users)
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
                 $imagePath = $this->storeProfileImage($data['profile_image']);
                 $user->update(['profile_image' => $imagePath]);
             }
 
-            // Assign role using Spatie Permission (re-assign for restored users, assign for new)
-            $user->syncRoles([$data['role']]); // Use syncRoles to replace existing roles
+            $user->syncRoles([$data['role']]);
 
-            // Log the final action
-            Log::info('User creation/restore completed', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'role' => $data['role'],
-                'action' => $existingUser && $existingUser->trashed() ? 'restored' : 'created',
-                'created_by' => $data['created_by'] ?? 'system'
-            ]);
+            // Clear cache
+            $this->clearVersionedCache(self::CACHE_SCOPE);
+            // Also clear roles because users count might have changed
+            $this->clearVersionedCache('roles');
 
-            // Return formatted user data
-            $nameParts = explode(' ', $data['name'], 2);
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'first_name' => $nameParts[0] ?? '',
-                'last_name' => $nameParts[1] ?? '',
-                'email' => $user->email,
-                'phone' => $data['phone'] ?? null,
-                'profile_image' => $user->profile_image,
-                'role' => $data['role'],
-                'is_banned' => $user->is_banned,
-                'is_active' => $user->is_active,
-                'created_at' => $user->created_at,
-                'restored' => $existingUser && $existingUser->trashed(),
-            ];
+            return $this->formatUserData($user);
 
         } catch (\Exception $e) {
             Log::error('Failed to create/restore user', [
                 'error' => $e->getMessage(),
-                'email' => $data['email'],
-                'created_by' => $data['created_by'] ?? 'system'
+                'email' => $data['email']
             ]);
             throw $e;
         }
@@ -280,7 +259,6 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if account is protected from role changes
             if ($this->protectionService->isAccountProtectedFromRoleChange($user) && isset($data['role'])) {
                 $reason = $this->protectionService->getAccountProtectionReason($user);
                 $this->protectionService->throwProtectionException(
@@ -289,9 +267,7 @@ class UserService
                 );
             }
 
-            // Update basic info
             $updateData = [];
-            // Handle name update from first_name and last_name
             if (isset($data['first_name']) || isset($data['last_name'])) {
                 $firstName = $data['first_name'] ?? '';
                 $lastName = $data['last_name'] ?? '';
@@ -299,39 +275,40 @@ class UserService
             } elseif (isset($data['name'])) {
                 $updateData['name'] = $data['name'];
             }
-            if (isset($data['email']))
-                $updateData['email'] = $data['email'];
-            if (isset($data['phone']))
-                $updateData['phone'] = $data['phone'];
-            if (isset($data['is_active']))
-                $updateData['is_active'] = $data['is_active'];
-            // Update password if provided
-            if (!empty($data['password'])) {
-                $updateData['password'] = bcrypt($data['password']);
-            }
+            if (isset($data['email'])) $updateData['email'] = $data['email'];
+            if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
+            if (isset($data['is_active'])) $updateData['is_active'] = $data['is_active'];
+            if (!empty($data['password'])) $updateData['password'] = bcrypt($data['password']);
+
             if (!empty($updateData)) {
                 $user->update($updateData);
             }
-            // Handle profile image upload
+
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
-                // Delete old image if exists
                 if ($user->profile_image) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
                 $imagePath = $this->storeProfileImage($data['profile_image']);
                 $user->update(['profile_image' => $imagePath]);
             }
-            // Update role if provided
+
+            $roleChanged = false;
             if (isset($data['role'])) {
-                $user->syncRoles([$data['role']]);
+                $currentRoles = $user->getRoleNames()->toArray();
+                if (!in_array($data['role'], $currentRoles)) {
+                    $user->syncRoles([$data['role']]);
+                    $roleChanged = true;
+                }
             }
-            // Reload with roles
+
             $user->load('roles');
-            Log::info('User updated successfully', [
-                'user_id' => $userId,
-                'email' => $user->email,
-                'updated_by' => $data['updated_by'] ?? 'system'
-            ]);
+
+            // Clear cache
+            $this->clearVersionedCache(self::CACHE_SCOPE);
+            if ($roleChanged) {
+                $this->clearVersionedCache('roles');
+            }
+
             return $this->formatUserData($user);
         } catch (\Exception $e) {
             Log::error('Failed to update user', [
@@ -350,7 +327,6 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if account is protected from deletion
             if ($this->protectionService->isAccountProtectedFromDeletion($user)) {
                 $reason = $this->protectionService->getAccountProtectionReason($user);
                 $this->protectionService->throwProtectionException(
@@ -359,25 +335,19 @@ class UserService
                 );
             }
 
-            // Prevent self-deletion
             if ($user->id === $deletedBy) {
                 throw new \Exception('Cannot delete your own account', 403);
             }
 
-            // Delete profile image if exists
             if ($user->profile_image) {
                 Storage::disk('public')->delete($user->profile_image);
             }
 
-            $userEmail = $user->email;
-            // Soft delete user
             $user->delete();
 
-            Log::info('User deleted successfully', [
-                'user_id' => $userId,
-                'user_email' => $userEmail,
-                'deleted_by' => $deletedBy
-            ]);
+            // Clear cache
+            $this->clearVersionedCache(self::CACHE_SCOPE);
+            $this->clearVersionedCache('roles');
 
             return true;
         } catch (\Exception $e) {
@@ -397,7 +367,6 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if account is protected from banning
             if ($this->protectionService->isAccountProtectedFromBan($user)) {
                 $reason = $this->protectionService->getAccountProtectionReason($user);
                 $this->protectionService->throwProtectionException(
@@ -410,35 +379,18 @@ class UserService
             $isForever = $banData['is_forever'] ?? false;
             $bannedUntil = $banData['banned_until'] ?? null;
 
-            // If not forever and no banned_until provided, default to 30 days
             if (!$isForever && !$bannedUntil) {
                 $bannedUntil = now()->addDays(30);
             }
 
-            // Update user account status to banned
-            $user->update([
-                'is_banned' => true,
-            ]);
+            $user->update(['is_banned' => true]);
 
-            // Log the ban action
-            $this->userBanHistoryService->logBanAction(
-                $user->id,
-                'ban',
-                $banReason,
-                $bannedUntil,
-                $performedBy,
-                $isForever
-            );
+            $this->userBanHistoryService->logBanAction($user->id, 'ban', $banReason, $bannedUntil, $performedBy, $isForever);
 
-            // Reload user with relationships
             $user->load('roles');
 
-            Log::info('User banned successfully', [
-                'user_id' => $userId,
-                'email' => $user->email,
-                'reason' => $banReason,
-                'performed_by' => $performedBy
-            ]);
+            // Clear cache
+            $this->clearVersionedCache(self::CACHE_SCOPE);
 
             return $this->formatUserData($user);
         } catch (\Exception $e) {
@@ -458,36 +410,20 @@ class UserService
         try {
             $user = User::findOrFail($userId);
 
-            // Check if user is actually banned
             if (!$user->is_banned) {
                 throw new \Exception('User is not currently banned');
             }
 
             $unbanReason = $reason ?? 'Manual unban';
 
-            // Update user account status to active
-            $user->update([
-                'is_banned' => false,
-            ]);
+            $user->update(['is_banned' => false]);
 
-            // Log the unban action
-            $this->userBanHistoryService->logBanAction(
-                $user->id,
-                'unban',
-                $unbanReason,
-                null,
-                $performedBy
-            );
+            $this->userBanHistoryService->logBanAction($user->id, 'unban', $unbanReason, null, $performedBy);
 
-            // Reload user with relationships
             $user->load('roles');
 
-            Log::info('User unbanned successfully', [
-                'user_id' => $userId,
-                'email' => $user->email,
-                'reason' => $unbanReason,
-                'performed_by' => $performedBy
-            ]);
+            // Clear cache
+            $this->clearVersionedCache(self::CACHE_SCOPE);
 
             return $this->formatUserData($user);
         } catch (\Exception $e) {
@@ -565,17 +501,11 @@ class UserService
     }
 
     /**
-     * Get human-readable ban status text
-     */
-    /**
      * Store profile image with custom path pattern
      */
     private function storeProfileImage(\Illuminate\Http\UploadedFile $file): string
     {
-        // Generate unique filename with .webp extension
         $uniqueName = uniqid() . '_' . time() . '.webp';
-
-        // Create date-based directory structure
         $year = date('Y');
         $month = date('m');
         $day = date('d');
@@ -583,13 +513,8 @@ class UserService
         $directory = "avatar/{$year}/{$month}/{$day}";
         $fullPath = "{$directory}/{$uniqueName}";
 
-        // Ensure directory exists
         Storage::disk('public')->makeDirectory($directory);
-
-        // Convert and save image as webp
         $imageContent = $this->convertToWebp($file);
-
-        // Store the converted image
         Storage::disk('public')->put($fullPath, $imageContent);
 
         return $fullPath;
@@ -600,28 +525,17 @@ class UserService
      */
     private function convertToWebp(\Illuminate\Http\UploadedFile $file): string
     {
-        // Get image content
         $imageContent = file_get_contents($file->getRealPath());
-
-        // Check if GD is available and supports WebP
         if (function_exists('imagewebp') && function_exists('imagecreatefromstring')) {
             $image = imagecreatefromstring($imageContent);
-
             if ($image !== false) {
-                // Start output buffering
                 ob_start();
-                imagewebp($image, null, 80); // 80% quality
+                imagewebp($image, null, 80);
                 $webpContent = ob_get_clean();
-
-                // Free memory
                 imagedestroy($image);
-
                 return $webpContent;
             }
         }
-
-        // Fallback: return original content if conversion fails
-        // This will still save with .webp extension but keep original format
         return $imageContent;
     }
 
@@ -630,8 +544,14 @@ class UserService
         if (!$user->is_banned) {
             return 'Not Banned';
         }
-
-        // All bans are now permanent (no banned_until tracking)
         return 'Permanently Banned';
+    }
+
+    /**
+     * Manually clear the user cache.
+     */
+    public function clearCache(): void
+    {
+        $this->clearVersionedCache(self::CACHE_SCOPE);
     }
 }

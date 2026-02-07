@@ -58,7 +58,8 @@ export const apiRoutes = {
     show: (id: string | number) => `/api/v1/roles/${id}`,
     store: '/api/v1/roles',
     update: (id: string | number) => `/api/v1/roles/${id}`,
-    destroy: (id: string | number) => `/api/v1/roles/${id}`
+    destroy: (id: string | number) => `/api/v1/roles/${id}`,
+    clearCache: '/api/v1/roles/clear-cache'
   },
 
   // User management routes
@@ -85,7 +86,8 @@ export const apiRoutes = {
     destroy: (id: string | number) => `/api/v1/users/${id}`,
     ban: (id: string | number) => `/api/v1/users/${id}/ban`,
     unban: (id: string | number) => `/api/v1/users/${id}/unban`,
-    banHistory: (id: string | number) => `/api/v1/users/${id}/ban-history`
+    banHistory: (id: string | number) => `/api/v1/users/${id}/ban-history`,
+    clearCache: '/api/v1/users/clear-cache'
   },
 
   // Permission routes
@@ -107,7 +109,8 @@ export const apiRoutes = {
     show: (id: string | number) => `/api/v1/categories/${id}`,
     store: '/api/v1/categories',
     update: (id: string | number) => `/api/v1/categories/${id}`,
-    destroy: (id: string | number) => `/api/v1/categories/${id}`
+    destroy: (id: string | number) => `/api/v1/categories/${id}`,
+    clearCache: '/api/v1/categories/clear-cache'
   }
 } as const
 

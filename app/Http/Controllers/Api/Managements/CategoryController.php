@@ -69,4 +69,13 @@ class CategoryController extends Controller
         $this->categoryService->deleteCategory((int)$id);
         return response()->json(['message' => 'Category deleted successfully']);
     }
+
+    /**
+     * Clear category cache manually.
+     */
+    public function clearCache(): JsonResponse
+    {
+        $this->categoryService->clearCache();
+        return response()->json(['message' => 'Category cache cleared successfully']);
+    }
 }

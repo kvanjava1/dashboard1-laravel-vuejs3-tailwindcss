@@ -14,6 +14,9 @@
                         <ActionDropdownItem icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
                         </ActionDropdownItem>
+                        <ActionDropdownItem icon="cleaning_services" @click="handleClearCache">
+                            Clear Cache
+                        </ActionDropdownItem>
                     </ActionDropdown>
                 </PageHeaderActions>
             </template>
@@ -158,7 +161,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoleData, type Role } from '@/composables/role/useRoleData'
 
 const router = useRouter()
-const { get, del } = useApi()
+const { get, del, post } = useApi()
 const authStore = useAuthStore()
 const { fetchRoles: fetchRolesList, loading: fetchLoading, error: fetchError } = useRoleData()
 
@@ -335,6 +338,27 @@ const resetFilters = () => {
         permissions: []
     }
     fetchRoles(1) // Refresh data with cleared filters
+}
+
+const handleClearCache = async () => {
+    const ok = await showConfirm({
+        title: 'Clear Roles Cache?',
+        text: 'This will force the system to reload all role data from the database.',
+        icon: 'info',
+        confirmButtonText: 'Yes, clear it'
+    })
+
+    if (!ok) return
+
+    try {
+        const response = await post(apiRoutes.roles.clearCache, {})
+        if (response.ok) {
+            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+            await fetchRoles(1)
+        }
+    } catch (e: any) {
+        await showToast({ icon: 'error', title: 'Error', text: e.message })
+    }
 }
 
 // Manual apply filters handler

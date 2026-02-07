@@ -319,4 +319,13 @@ class UserController extends Controller
             ], $statusCode);
         }
     }
+
+    /**
+     * Clear user cache manually.
+     */
+    public function clearCache(): JsonResponse
+    {
+        $this->userService->clearCache();
+        return response()->json(['message' => 'User cache cleared successfully']);
+    }
 }

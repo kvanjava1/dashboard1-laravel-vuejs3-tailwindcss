@@ -170,4 +170,13 @@ class RoleController extends Controller
             ], $statusCode);
         }
     }
+
+    /**
+     * Clear role cache manually.
+     */
+    public function clearCache(): JsonResponse
+    {
+        $this->roleService->clearCache();
+        return response()->json(['message' => 'Role cache cleared successfully']);
+    }
 }

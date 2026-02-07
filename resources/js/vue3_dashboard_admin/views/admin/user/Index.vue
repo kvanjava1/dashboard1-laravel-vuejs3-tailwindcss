@@ -14,6 +14,9 @@
                         <ActionDropdownItem v-if="canSearchUser" icon="filter_list" @click="openAdvancedFilter">
                             Advanced Filter
                         </ActionDropdownItem>
+                        <ActionDropdownItem icon="cleaning_services" @click="handleClearCache">
+                            Clear Cache
+                        </ActionDropdownItem>
                     </ActionDropdown>
                 </PageHeaderActions>
             </template>
@@ -156,7 +159,7 @@ import UserAdvancedFilterModal from '../../../components/user/UserAdvancedFilter
 import UserDetailModal from '../../../components/user/UserDetailModal.vue'
 
 const router = useRouter()
-const { get, del } = useApi()
+const { get, del, post } = useApi()
 const authStore = useAuthStore()
 const { fetchUsers: fetchUsersList, loading: fetchLoading, error: fetchError } = useUserData()
 
@@ -416,6 +419,27 @@ const handleResetFilters = () => {
     })
     pagination.current_page = 1
     fetchUsers()
+}
+
+const handleClearCache = async () => {
+    const ok = await showConfirm({
+        title: 'Clear Users Cache?',
+        text: 'This will force the system to reload all user data from the database.',
+        icon: 'info',
+        confirmButtonText: 'Yes, clear it'
+    })
+
+    if (!ok) return
+
+    try {
+        const response = await post(apiRoutes.users.clearCache, {})
+        if (response.ok) {
+            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+            await fetchUsers()
+        }
+    } catch (e: any) {
+        await showToast({ icon: 'error', title: 'Error', text: e.message })
+    }
 }
 
 // Initial fetch

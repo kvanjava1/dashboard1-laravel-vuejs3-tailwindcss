@@ -13,6 +13,9 @@
                         <ActionDropdownItem icon="filter_list" @click="showAdvancedFilter = true">
                             Advanced Filter
                         </ActionDropdownItem>
+                        <ActionDropdownItem icon="cleaning_services" @click="handleClearCache">
+                            Clear Cache
+                        </ActionDropdownItem>
                     </ActionDropdown>
                 </PageHeaderActions>
             </template>
@@ -102,7 +105,7 @@
 
                                 <SimpleUserTableBodyCol>
                                     <span class="text-sm text-slate-700">{{ formatDate(row.category.updated_at)
-                                        }}</span>
+                                    }}</span>
                                 </SimpleUserTableBodyCol>
 
                                 <SimpleUserTableBodyCol>
@@ -178,7 +181,7 @@ interface Category {
 
 const router = useRouter()
 const { fetchAllCategories, loading, error } = useCategoryData()
-const { del } = useApi()
+const { del, post } = useApi()
 
 const categories = ref<Category[]>([])
 
@@ -319,6 +322,27 @@ const confirmDelete = async (category: Category) => {
         } else {
             const err = await response.json()
             await showToast({ icon: 'error', title: 'Failed to delete', text: err.message || 'Error occurred' })
+        }
+    } catch (e: any) {
+        await showToast({ icon: 'error', title: 'Error', text: e.message })
+    }
+}
+
+const handleClearCache = async () => {
+    const ok = await showConfirm({
+        title: 'Clear Categories Cache?',
+        text: 'This will force the system to reload all category data from the database.',
+        icon: 'info',
+        confirmButtonText: 'Yes, clear it'
+    })
+
+    if (!ok) return
+
+    try {
+        const response = await post(apiRoutes.categories.clearCache, {})
+        if (response.ok) {
+            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+            await fetchCategories()
         }
     } catch (e: any) {
         await showToast({ icon: 'error', title: 'Error', text: e.message })
