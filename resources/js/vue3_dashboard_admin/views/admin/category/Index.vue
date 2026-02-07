@@ -21,26 +21,32 @@
         <ContentBox>
             <ContentBoxHeader>
                 <template #title>
-                    <ContentBoxTitle
-                        title="Category Management"
-                        subtitle="Review categories and test UI before backend integration"
-                    />
+                    <ContentBoxTitle title="Category Management" subtitle="Manage article and gallery categories" />
                 </template>
             </ContentBoxHeader>
 
             <ContentBoxBody>
-                <ActiveFiltersIndicator
-                    :has-active-filters="hasActiveFilters"
-                    @reset="handleResetAdvancedFilters"
-                />
+                <div class="flex items-center space-x-3 mb-4">
+                    <label class="text-sm font-medium text-slate-700">Show:</label>
+                    <select v-model="filters.type"
+                        class="pl-3 pr-8 py-2 text-sm border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm w-40">
+                        <option value="">All Types</option>
+                        <option value="article">Article</option>
+                        <option value="gallery">Gallery</option>
+                    </select>
+                </div>
+
+                <ActiveFiltersIndicator :has-active-filters="hasActiveFilters" @reset="handleResetAdvancedFilters" />
+
+                <!-- Loading State -->
+                <LoadingState v-if="loading" message="Loading categories..." />
+
+                <!-- Error State -->
+                <ErrorState v-else-if="error" :message="error" @retry="fetchCategories" />
 
                 <!-- Empty State -->
-                <EmptyState
-                    v-if="paginatedCategories.length === 0"
-                    icon="category"
-                    message="No categories found"
-                    subtitle="Try adjusting filters or add a new category"
-                />
+                <EmptyState v-else-if="paginatedCategories.length === 0" icon="category" message="No categories found"
+                    subtitle="Try adjusting filters or add a new category" />
 
                 <!-- Data Table -->
                 <div v-else>
@@ -49,6 +55,7 @@
                             <SimpleUserTableHeadRow>
                                 <SimpleUserTableHeadCol>Category</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Slug</SimpleUserTableHeadCol>
+                                <SimpleUserTableHeadCol>Type</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Status</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Updated</SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Actions</SimpleUserTableHeadCol>
@@ -58,16 +65,22 @@
                         <SimpleUserTableBody>
                             <SimpleUserTableBodyRow v-for="row in paginatedCategories" :key="row.category.id">
                                 <SimpleUserTableBodyCol>
-                                    <div class="flex items-start gap-2" :style="{ paddingLeft: `${row.depth * 16}px` }">
+                                    <div class="flex items-start gap-2" :style="{ paddingLeft: `${row.depth * 32}px` }">
                                         <span v-if="row.depth > 0" class="text-slate-400 mt-0.5 select-none">↳</span>
-	                                        <div class="flex flex-col">
-	                                            <span class="font-semibold text-slate-800">{{ row.category.name }}</span>
-	                                            <span v-if="row.category.description" class="text-xs text-slate-500 mt-1 truncate max-w-[420px]">
-	                                                {{ row.category.description }}
-	                                            </span>
-	                                        </div>
-	                                    </div>
-	                                </SimpleUserTableBodyCol>
+                                        <div class="flex flex-col">
+                                            <span :class="[
+                                                'transition-colors',
+                                                row.depth === 0 ? 'font-bold text-slate-900' : 'font-medium text-slate-700'
+                                            ]">
+                                                {{ row.category.name }}
+                                            </span>
+                                            <span v-if="row.category.description"
+                                                class="text-xs text-slate-500 mt-1 truncate max-w-[420px]">
+                                                {{ row.category.description }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </SimpleUserTableBodyCol>
 
                                 <SimpleUserTableBodyCol>
                                     <span class="text-sm text-slate-700 font-mono">
@@ -76,31 +89,30 @@
                                 </SimpleUserTableBodyCol>
 
                                 <SimpleUserTableBodyCol>
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize"
+                                        :class="row.category.type === 'gallery' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'">
+                                        {{ row.category.type }}
+                                    </span>
+                                </SimpleUserTableBodyCol>
+
+                                <SimpleUserTableBodyCol>
                                     <StatusBadge :status="row.category.is_active" />
                                 </SimpleUserTableBodyCol>
 
                                 <SimpleUserTableBodyCol>
-                                    <span class="text-sm text-slate-700">{{ formatDate(row.category.updated_at) }}</span>
+                                    <span class="text-sm text-slate-700">{{ formatDate(row.category.updated_at)
+                                        }}</span>
                                 </SimpleUserTableBodyCol>
 
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            left-icon="edit"
-                                            title="Edit category"
-                                            @click="goToEditCategory(row.category.id)"
-                                        >
+                                        <Button variant="outline" size="sm" left-icon="edit" title="Edit category"
+                                            @click="goToEditCategory(row.category.id)">
                                             Edit
                                         </Button>
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            left-icon="delete"
-                                            title="Delete category"
-                                            @click="confirmDelete(row.category)"
-                                        >
+                                        <Button variant="danger" size="sm" left-icon="delete" title="Delete category"
+                                            @click="confirmDelete(row.category)">
                                             Delete
                                         </Button>
                                     </div>
@@ -109,34 +121,21 @@
                         </SimpleUserTableBody>
                     </SimpleUserTable>
                 </div>
-
-                <!-- Pagination -->
-	                <Pagination
-	                    :current-start="currentStart"
-	                    :current-end="currentEnd"
-	                    :total="flattenedCategories.length"
-	                    :current-page="pagination.current_page"
-	                    :total-pages="pagination.total_pages"
-	                    :rows-per-page="pagination.per_page"
-	                    @prev="prevPage"
-	                    @next="nextPage"
-	                    @goto="goToPage"
-	                />
             </ContentBoxBody>
         </ContentBox>
 
-        <CategoryAdvancedFilterModal
-            v-model="showAdvancedFilter"
+        <CategoryAdvancedFilterModal v-model="showAdvancedFilter"
             :initial-filters="{ search: filters.search, slug: filters.slug, status: filters.status }"
-            @apply="handleApplyAdvancedFilters"
-            @reset="handleResetAdvancedFilters"
-        />
+            @apply="handleApplyAdvancedFilters" @reset="handleResetAdvancedFilters" />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCategoryData } from '@/composables/category/useCategoryData'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
@@ -155,40 +154,65 @@ import SimpleUserTableHeadCol from '../../../components/ui/SimpleUserTableHeadCo
 import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
 import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
 import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
-import Pagination from '../../../components/ui/Pagination.vue'
 import EmptyState from '../../../components/ui/EmptyState.vue'
 import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicator.vue'
 import StatusBadge from '../../../components/ui/StatusBadge.vue'
 import Button from '../../../components/ui/Button.vue'
+import LoadingState from '../../../components/ui/LoadingState.vue'
+import ErrorState from '../../../components/ui/ErrorState.vue'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import CategoryAdvancedFilterModal from '../../../components/category/CategoryAdvancedFilterModal.vue'
-import { makeDummyCategories } from '@/mocks/categories'
-import type { Category } from '@/mocks/categories'
+
+// Define local interface
+interface Category {
+    id: number
+    name: string
+    slug: string
+    description?: string
+    parent_id: number | null
+    is_active: boolean
+    type: string | { slug: string }
+    created_at?: string
+    updated_at?: string
+}
 
 const router = useRouter()
+const { fetchAllCategories, loading, error } = useCategoryData()
+const { del } = useApi()
 
-const categories = ref<Category[]>(makeDummyCategories())
+const categories = ref<Category[]>([])
+
+const fetchCategories = async () => {
+    // We fetch ALL categories to build the tree structure client-side
+    // This allows searching/filtering without breaking hierarchy in the view if preferred,
+    // or we can just filter the flat list.
+    const data = await fetchAllCategories()
+    // Normalize type if it comes as object
+    categories.value = data.map((c: any) => ({
+        ...c,
+        type: typeof c.type === 'object' && c.type ? c.type.slug : c.type
+    }))
+}
 
 const filters = reactive({
     search: '',
     slug: '',
-    status: '' as '' | 'active' | 'inactive'
-})
-
-const pagination = reactive({
-    current_page: 1,
-    per_page: 5,
-    total_pages: 1
+    status: '' as '' | 'active' | 'inactive',
+    type: '' as '' | 'article' | 'gallery'
 })
 
 const filteredCategories = computed(() => {
     const search = filters.search.trim().toLowerCase()
     const slug = filters.slug.trim().toLowerCase()
     const status = filters.status
+    const type = filters.type
 
     return categories.value.filter((c) => {
         if (status === 'active' && !c.is_active) return false
         if (status === 'inactive' && c.is_active) return false
+
+        // c.type is normalized to string above
+        if (type && (c.type as string) !== type) return false
 
         if (slug && c.slug.toLowerCase() !== slug) return false
 
@@ -227,6 +251,9 @@ const flattenedCategories = computed<FlattenedRow[]>(() => {
 
     const walk = (parentId: number | null, depth: number) => {
         const children = childrenByParent.get(parentId) || []
+        // Sort by name for display
+        children.sort((a, b) => a.name.localeCompare(b.name))
+
         for (const child of children) {
             result.push({ category: child, depth })
             walk(child.id, depth + 1)
@@ -238,44 +265,9 @@ const flattenedCategories = computed<FlattenedRow[]>(() => {
 })
 
 const paginatedCategories = computed(() => {
-    const start = (pagination.current_page - 1) * pagination.per_page
-    const end = start + pagination.per_page
-    return flattenedCategories.value.slice(start, end)
+    // Current implementation does not page client-side, shows all tree
+    return flattenedCategories.value
 })
-
-const recalcPagination = () => {
-    const total = flattenedCategories.value.length
-    pagination.total_pages = Math.max(1, Math.ceil(total / pagination.per_page))
-    pagination.current_page = Math.min(pagination.current_page, pagination.total_pages)
-}
-
-watch(filteredCategories, () => {
-    pagination.current_page = 1
-    recalcPagination()
-}, { immediate: true })
-
-const currentStart = computed(() => {
-    if (flattenedCategories.value.length === 0) return 0
-    return (pagination.current_page - 1) * pagination.per_page + 1
-})
-
-const currentEnd = computed(() => {
-    const end = pagination.current_page * pagination.per_page
-    return Math.min(end, flattenedCategories.value.length)
-})
-
-const prevPage = () => {
-    if (pagination.current_page > 1) pagination.current_page -= 1
-}
-
-const nextPage = () => {
-    if (pagination.current_page < pagination.total_pages) pagination.current_page += 1
-}
-
-const goToPage = (page: number) => {
-    const next = Math.max(1, Math.min(page, pagination.total_pages))
-    pagination.current_page = next
-}
 
 const goToAddCategory = () => {
     router.push({ name: 'category_management.add' })
@@ -306,27 +298,35 @@ const handleResetAdvancedFilters = () => {
 const confirmDelete = async (category: Category) => {
     const childrenCount = categories.value.filter((c) => c.parent_id === category.id).length
 
-	const ok = await showConfirm({
-	    title: 'Delete category?',
-	    text: childrenCount > 0
-	        ? `This category has ${childrenCount === 1 ? 'a child' : 'children'}. Deleting "${category.name}" will move ${childrenCount === 1 ? 'its child' : 'its children'} to the root.`
-	        : `This will remove "${category.name}" from the dummy list.`,
-	    icon: 'warning',
-	    confirmButtonText: childrenCount > 0 ? (childrenCount === 1 ? 'Delete & Move Child' : 'Delete & Move Children') : 'Delete',
-	    cancelButtonText: 'Cancel'
-	})
+    const ok = await showConfirm({
+        title: 'Delete category?',
+        text: childrenCount > 0
+            ? `This category has ${childrenCount === 1 ? 'a child' : 'children'}. Deleting "${category.name}" will move ${childrenCount === 1 ? 'its child' : 'its children'} to the root.`
+            : `Are you sure you want to delete "${category.name}"?`,
+        icon: 'warning',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel'
+    })
 
     if (!ok) return
 
-    const now = new Date().toISOString()
-    categories.value = categories.value
-        .map((c) => (c.parent_id === category.id ? { ...c, parent_id: null, updated_at: now } : c))
-        .filter((c) => c.id !== category.id)
-    recalcPagination()
-    await showToast({ icon: 'success', title: 'Deleted (dummy)', timer: 1200 })
+    try {
+        const response = await del(apiRoutes.categories.destroy(category.id))
+
+        if (response.ok) {
+            await showToast({ icon: 'success', title: 'Category deleted', timer: 1200 })
+            await fetchCategories()
+        } else {
+            const err = await response.json()
+            await showToast({ icon: 'error', title: 'Failed to delete', text: err.message || 'Error occurred' })
+        }
+    } catch (e: any) {
+        await showToast({ icon: 'error', title: 'Error', text: e.message })
+    }
 }
 
-const formatDate = (iso: string) => {
+const formatDate = (iso: string | undefined) => {
+    if (!iso) return '-'
     try {
         return new Date(iso).toLocaleDateString(undefined, {
             year: 'numeric',
@@ -337,4 +337,8 @@ const formatDate = (iso: string) => {
         return iso
     }
 }
+
+onMounted(() => {
+    fetchCategories()
+})
 </script>

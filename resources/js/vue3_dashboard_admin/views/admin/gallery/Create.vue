@@ -19,7 +19,8 @@
             <!-- Card Header -->
             <ContentBoxHeader>
                 <template #title>
-                    <ContentBoxTitle title="Gallery Information" subtitle="Fill in the details to create a new gallery" />
+                    <ContentBoxTitle title="Gallery Information"
+                        subtitle="Fill in the details to create a new gallery" />
                 </template>
             </ContentBoxHeader>
 
@@ -30,21 +31,15 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Gallery Title *</label>
-                            <input
-                                v-model="form.title"
-                                type="text"
+                            <input v-model="form.title" type="text"
                                 class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                placeholder="Enter gallery title"
-                                required
-                            />
+                                placeholder="Enter gallery title" required />
                         </div>
 
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-                            <select
-                                v-model="form.category"
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+                            <select v-model="form.category"
+                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer">
                                 <option value="">Select category</option>
                                 <option value="Photography">Photography</option>
                                 <option value="Architecture">Architecture</option>
@@ -62,12 +57,9 @@
                     <!-- Description -->
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Description</label>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
+                        <textarea v-model="form.description" rows="4"
                             class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            placeholder="Describe your gallery..."
-                        ></textarea>
+                            placeholder="Describe your gallery..."></textarea>
                     </div>
 
                     <!-- Cover Image Upload -->
@@ -75,26 +67,19 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Cover Image *</label>
 
                         <!-- Cropper Modal -->
-                        <div
-                            v-if="showCropper"
-                            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-                        >
+                        <div v-if="showCropper"
+                            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                             <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
                                 <h3 class="text-lg font-semibold mb-4 text-center">Crop Gallery Cover Image</h3>
 
                                 <!-- Vue Advanced Cropper -->
                                 <div class="mb-4">
-                                    <Cropper
-                                        ref="cropperRef"
-                                        :src="cropperImage"
-                                        :stencil-props="{
-                                            aspectRatio: 4/3
-                                        }"
-                                        :canvas="{
-                                            height: 300,
-                                            width: 400
-                                        }"
-                                    />
+                                    <Cropper ref="cropperRef" :src="cropperImage" :stencil-props="{
+                                        aspectRatio: 4 / 3
+                                    }" :canvas="{
+                                        height: 300,
+                                        width: 400
+                                    }" />
                                 </div>
 
                                 <!-- Crop Controls -->
@@ -110,26 +95,20 @@
                             </div>
                         </div>
 
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
-                            <input
-                                type="file"
-                                ref="coverImageInput"
-                                @change="handleCoverImageSelect"
-                                accept="image/jpeg,image/png,image/webp"
-                                class="hidden"
-                            />
-                            <div v-if="!coverImagePreview" @click="() => coverImageInput?.click()" class="cursor-pointer">
+                        <div
+                            class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                            <input type="file" ref="coverImageInput" @change="handleCoverImageSelect"
+                                accept="image/jpeg,image/png,image/webp" class="hidden" />
+                            <div v-if="!coverImagePreview" @click="() => coverImageInput?.click()"
+                                class="cursor-pointer">
                                 <span class="material-symbols-outlined text-gray-400 text-3xl">cloud_upload</span>
                                 <p class="mt-2 text-sm text-gray-600">Click to upload cover image</p>
                                 <p class="text-xs text-gray-400">JPG, PNG, WebP up to 5MB</p>
                                 <p class="text-xs text-gray-400">Will be cropped to 4:3 ratio</p>
                             </div>
                             <div v-else class="space-y-4">
-                                <img
-                                    :src="coverImagePreview"
-                                    alt="Cover preview"
-                                    class="max-w-full max-h-48 mx-auto rounded-lg shadow-md"
-                                />
+                                <img :src="coverImagePreview" alt="Cover preview"
+                                    class="max-w-full max-h-48 mx-auto rounded-lg shadow-md" />
                                 <div class="flex justify-center gap-2">
                                     <ActionButton variant="secondary" size="sm" @click="editImage">
                                         <span class="material-symbols-outlined mr-1">crop</span>
@@ -150,10 +129,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                            <select
-                                v-model="form.status"
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+                            <select v-model="form.status"
+                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
@@ -161,10 +138,8 @@
 
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Visibility</label>
-                            <select
-                                v-model="form.visibility"
-                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+                            <select v-model="form.visibility"
+                                class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer">
                                 <option value="public">Public</option>
                                 <option value="private">Private</option>
                             </select>
@@ -175,64 +150,47 @@
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
                         <div class="relative">
-                            <input
-                                v-model="tagInput"
-                                @input="filterTags"
-                                @keydown="handleTagKeydown"
-                                @focus="showSuggestions = true"
-                                @blur="hideSuggestions"
-                                type="text"
+                            <input v-model="tagInput" @input="filterTags" @keydown="handleTagKeydown"
+                                @focus="showSuggestions = true" @blur="hideSuggestions" type="text"
                                 class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                                placeholder="Type to search or create tags..."
-                            />
+                                placeholder="Type to search or create tags..." />
                             <!-- Suggestions Dropdown -->
-                            <div
-                                v-if="showSuggestions && (filteredTags.length > 0 || (tagInput.trim() && !existingTags.includes(tagInput.trim())))"
-                                class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto"
-                            >
+                            <div v-if="showSuggestions && (filteredTags.length > 0 || (tagInput.trim() && !existingTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase())))"
+                                class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto">
                                 <!-- Existing tags -->
                                 <div v-if="filteredTags.length > 0" class="border-b border-gray-200">
                                     <div class="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
                                         Existing Tags
                                     </div>
-                                    <div
-                                        v-for="tag in filteredTags"
-                                        :key="tag"
+                                    <div v-for="(tag, index) in filteredTags" :key="tag"
                                         @mousedown.prevent="selectTag(tag)"
-                                        class="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                                        :class="{ 'bg-surface-dark text-white': highlightedIndex === filteredTags.indexOf(tag) }"
-                                    >
+                                        class="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
+                                        :class="{ 'bg-primary text-white': highlightedIndex === index }">
                                         <span>{{ tag }}</span>
-                                        <span class="material-symbols-outlined text-xs text-gray-400">add</span>
+                                        <span class="material-symbols-outlined text-xs"
+                                            :class="highlightedIndex === index ? 'text-white' : 'text-gray-400'">add</span>
                                     </div>
                                 </div>
                                 <!-- Create new tag -->
-                                <div
-                                    v-if="tagInput.trim() && !existingTags.includes(tagInput.trim())"
+                                <div v-if="tagInput.trim() && !existingTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase())"
                                     @mousedown.prevent="createNewTag"
-                                    class="px-3 py-2 cursor-pointer flex items-center justify-between"
-                                    :class="{ 'bg-surface-dark': highlightedIndex === -1 }"
-                                >
-                                    <span class="text-white">Create "{{ tagInput.trim() }}"</span>
-                                    <span class="material-symbols-outlined text-xs text-white">add_circle</span>
+                                    class="px-3 py-2 cursor-pointer flex items-center justify-between transition-colors"
+                                    :class="{ 'bg-primary text-white': highlightedIndex === filteredTags.length }">
+                                    <span
+                                        :class="highlightedIndex === filteredTags.length ? 'text-white' : 'text-gray-700'">Create
+                                        "{{ tagInput.trim() }}"</span>
+                                    <span class="material-symbols-outlined text-xs"
+                                        :class="highlightedIndex === filteredTags.length ? 'text-white' : 'text-primary'">add_circle</span>
                                 </div>
                             </div>
                         </div>
                         <div v-if="form.tags.length > 0" class="flex flex-wrap gap-2 mt-2">
-                            <span
-                                v-for="(tag, index) in form.tags"
-                                :key="index"
-                                class="px-3 py-1.5 rounded-full text-sm font-bold border border-border-light text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center gap-2"
-                            >
+                            <span v-for="(tag, index) in form.tags" :key="index"
+                                class="px-3 py-1.5 rounded-full text-sm font-bold border border-border-light text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-medium transition-all duration-200 flex items-center gap-2">
                                 {{ tag }}
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="xs"
-                                    class="!p-0 hover:!bg-transparent hover:!text-red-500"
-                                    @click="removeTag(index)"
-                                    title="Remove tag"
-                                >
+                                <Button type="button" variant="ghost" size="xs"
+                                    class="!p-0 hover:!bg-transparent hover:!text-red-500" @click="removeTag(index)"
+                                    title="Remove tag">
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </Button>
                             </span>
@@ -245,7 +203,8 @@
                             Cancel
                         </ActionButton>
                         <ActionButton variant="primary" type="submit" :disabled="loading">
-                            <span v-if="loading" class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span>
+                            <span v-if="loading"
+                                class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span>
                             Create Gallery
                         </ActionButton>
                     </div>
@@ -439,7 +398,7 @@ const hideSuggestions = () => {
 }
 
 const selectTag = (tag: string) => {
-    if (!form.tags.includes(tag)) {
+    if (!form.tags.some(t => t.toLowerCase() === tag.toLowerCase())) {
         form.tags.push(tag)
     }
     tagInput.value = ''
@@ -450,10 +409,12 @@ const selectTag = (tag: string) => {
 
 const createNewTag = () => {
     const newTag = tagInput.value?.trim() || ''
-    if (newTag && !form.tags.includes(newTag)) {
+    if (newTag && !form.tags.some(t => t.toLowerCase() === newTag.toLowerCase())) {
         form.tags.push(newTag)
         // Add to existing tags for future suggestions
-        existingTags.value.push(newTag)
+        if (!existingTags.value.some(t => t.toLowerCase() === newTag.toLowerCase())) {
+            existingTags.value.push(newTag)
+        }
     }
     tagInput.value = ''
     filteredTags.value = []
@@ -462,27 +423,54 @@ const createNewTag = () => {
 }
 
 const handleTagKeydown = (event: KeyboardEvent) => {
-    if (event.key === 'Enter') {
-        event.preventDefault()
+    if (event.key === 'Enter' || event.key === ',' || (event.key === ' ' && tagInput.value.trim() !== '')) {
+        if (event.key === 'Enter' || event.key === ',' || event.key === ' ') {
+            event.preventDefault()
+        }
+
         const inputValue = tagInput.value?.trim() || ''
-        const selectedTag = highlightedIndex.value >= 0 ? filteredTags.value[highlightedIndex.value] : null
-        if (selectedTag) {
-            selectTag(selectedTag)
-        } else if (inputValue && !existingTags.value.includes(inputValue)) {
+        if (!inputValue) return
+
+        // If something is highlighted in the suggestion list
+        if (highlightedIndex.value >= 0) {
+            const tag = filteredTags.value[highlightedIndex.value]
+            if (tag) {
+                selectTag(tag)
+            } else if (highlightedIndex.value === filteredTags.value.length) {
+                createNewTag()
+            }
+        }
+        // If nothing is highlighted but the input exactly matches an existing (suggested) tag
+        else if (filteredTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())) {
+            const match = filteredTags.value.find(t => t.toLowerCase() === inputValue.toLowerCase())
+            if (match) selectTag(match)
+        }
+        // Otherwise create it as a new tag
+        else {
             createNewTag()
-        } else if (inputValue && existingTags.value.includes(inputValue) && !form.tags.includes(inputValue)) {
-            selectTag(inputValue)
         }
     } else if (event.key === 'ArrowDown') {
         event.preventDefault()
+        if (!showSuggestions.value) {
+            showSuggestions.value = true
+            return
+        }
         const inputValue = tagInput.value?.trim() || ''
-        const totalItems = filteredTags.value.length + (inputValue && !existingTags.value.includes(inputValue) ? 1 : 0)
+        const canCreate = inputValue && !existingTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())
+        const totalItems = filteredTags.value.length + (canCreate ? 1 : 0)
+
         if (totalItems > 0) {
-            highlightedIndex.value = Math.min(highlightedIndex.value + 1, totalItems - 1)
+            highlightedIndex.value = (highlightedIndex.value + 1) % totalItems
         }
     } else if (event.key === 'ArrowUp') {
         event.preventDefault()
-        highlightedIndex.value = Math.max(highlightedIndex.value - 1, -1)
+        if (highlightedIndex.value === -1) return
+
+        const inputValue = tagInput.value?.trim() || ''
+        const canCreate = inputValue && !existingTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())
+        const totalItems = filteredTags.value.length + (canCreate ? 1 : 0)
+
+        highlightedIndex.value = (highlightedIndex.value - 1 + totalItems) % totalItems
     } else if (event.key === 'Escape') {
         showSuggestions.value = false
         highlightedIndex.value = -1
@@ -523,5 +511,4 @@ const createGallery = async () => {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

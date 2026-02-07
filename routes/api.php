@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Managements\UserController;
 use App\Http\Controllers\Api\Managements\RoleController;
 use App\Http\Controllers\Api\Managements\PermissionController;
+use App\Http\Controllers\Api\Managements\CategoryController;
 
 Route::prefix('v1')->group(function () {
     // Public auth routes with rate limiting
@@ -42,5 +43,12 @@ Route::prefix('v1')->group(function () {
         // Permission routes
         Route::get('permissions', [PermissionController::class, 'index'])->middleware(['permission:role_management.view']);
         Route::get('permissions/grouped', [PermissionController::class, 'grouped'])->middleware(['permission:role_management.view']);
+
+        // Category management routes
+        Route::get('categories', [CategoryController::class, 'index'])->middleware('permission:category_management.view')->name('categories.index');
+        Route::post('categories', [CategoryController::class, 'store'])->middleware('permission:category_management.add')->name('categories.store');
+        Route::get('categories/{category}', [CategoryController::class, 'show'])->middleware('permission:category_management.view')->name('categories.show')->where('category', '[0-9]+');
+        Route::put('categories/{category}', [CategoryController::class, 'update'])->middleware('permission:category_management.edit')->name('categories.update')->where('category', '[0-9]+');
+        Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->middleware('permission:category_management.delete')->name('categories.destroy')->where('category', '[0-9]+');
     });
 });

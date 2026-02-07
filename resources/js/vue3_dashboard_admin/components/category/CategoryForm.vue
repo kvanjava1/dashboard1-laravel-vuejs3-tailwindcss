@@ -2,44 +2,35 @@
     <ContentBox>
         <ContentBoxHeader>
             <template #title>
-                <ContentBoxTitle
-                    :title="mode === 'edit' ? 'Edit Category' : 'Create Category'"
-                    subtitle="UI-only for now (dummy local data)"
-                />
+                <ContentBoxTitle :title="mode === 'edit' ? 'Edit Category' : 'Create Category'"
+                    :subtitle="mode === 'edit' ? 'Update category details' : 'Add a new category'" />
             </template>
         </ContentBoxHeader>
 
         <ContentBoxBody>
+            <!-- Error State -->
+            <ErrorState v-if="error" :message="error" @retry="() => { error = null }" />
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    v-model="form.name"
-                    label="Name"
-                    placeholder="e.g. Announcements"
-                    required
-                    left-icon="category"
-                />
+                <!-- Type Selection -->
+                <FormField v-model="form.type" label="Type" type="select" required left-icon="category"
+                    :disabled="mode === 'edit'" help="Category type cannot be changed after creation.">
+                    <option value="article">Article</option>
+                    <option value="gallery">Gallery</option>
+                </FormField>
 
-                <FormField
-                    v-model="form.slug"
-                    label="Slug"
-                    placeholder="e.g. announcements"
-                    help="Leave empty to auto-generate from the name."
-                    left-icon="link"
-                />
+                <FormField v-model="form.name" label="Name" placeholder="e.g. Announcements" required
+                    left-icon="label" />
 
-                <FormField
-                    v-model="form.parent_id"
-                    label="Parent Category"
-                    type="select"
-                    help="Optional. Leave as Root for top-level category."
-                    left-icon="account_tree"
-                >
+                <FormField v-model="form.slug" label="Slug" placeholder="e.g. announcements"
+                    help="Leave empty to auto-generate from the name." left-icon="link"
+                    :error="validationErrors.slug?.[0]" />
+
+                <FormField v-model="form.parent_id" label="Parent Category" type="select"
+                    help="Optional. Leave as Root for top-level category." left-icon="account_tree"
+                    :error="validationErrors.parent_id?.[0]">
                     <option value="">Root (no parent)</option>
-                    <option
-                        v-for="opt in parentOptions"
-                        :key="opt.id"
-                        :value="String(opt.id)"
-                    >
+                    <option v-for="opt in parentOptions" :key="opt.id" :value="String(opt.id)">
                         {{ opt.label }}
                     </option>
                 </FormField>
@@ -50,17 +41,13 @@
                 </FormField>
 
                 <div class="md:col-span-2">
-                    <FormField
-                        v-model="form.description"
-                        label="Description"
-                        type="textarea"
-                        placeholder="Optional short description..."
-                        left-icon="notes"
-                    />
+                    <FormField v-model="form.description" label="Description" type="textarea"
+                        placeholder="Optional short description..." left-icon="notes" />
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-center justify-end gap-3 mt-8 pt-6 border-t border-border-light">
+            <div
+                class="flex flex-col sm:flex-row items-center justify-end gap-3 mt-8 pt-6 border-t border-border-light">
                 <Button variant="outline" @click="$emit('cancel')">Cancel</Button>
                 <Button :loading="isSaving" variant="primary" left-icon="save" @click="handleSubmit">
                     {{ mode === 'edit' ? 'Save Changes' : 'Create' }}
@@ -78,8 +65,22 @@ import ContentBoxTitle from '../ui/ContentBoxTitle.vue'
 import ContentBoxBody from '../ui/ContentBoxBody.vue'
 import FormField from '../ui/FormField.vue'
 import Button from '../ui/Button.vue'
+import ErrorState from '../ui/ErrorState.vue'
 import { showToast } from '@/composables/useSweetAlert'
-import type { Category } from '@/mocks/categories'
+import { useApi } from '@/composables/useApi'
+import { apiRoutes } from '@/config/apiRoutes'
+
+// Define a local interface or import from a shared types file if available
+interface Category {
+    id: number
+    name: string
+    slug: string
+    description?: string
+    parent_id: number | null
+    is_active: boolean
+    type: string | { slug: string }
+    children?: Category[]
+}
 
 type Mode = 'create' | 'edit'
 
@@ -94,14 +95,18 @@ const emit = defineEmits<{
     success: [category: Category]
 }>()
 
+const { post, put } = useApi()
 const isSaving = ref(false)
+const error = ref<string | null>(null)
+const validationErrors = ref<Record<string, string[]>>({})
 
 const form = reactive({
     name: '',
     slug: '',
     description: '',
     parent_id: '',
-    status: 'active' as 'active' | 'inactive'
+    status: 'active' as 'active' | 'inactive',
+    type: 'article' // Default type
 })
 
 watch(() => props.category, (value) => {
@@ -111,6 +116,13 @@ watch(() => props.category, (value) => {
     form.description = value.description ?? ''
     form.status = value.is_active ? 'active' : 'inactive'
     form.parent_id = value.parent_id === null ? '' : String(value.parent_id)
+
+    // Handle type: might be string or object from backend relation
+    if (typeof value.type === 'object' && value.type !== null) {
+        form.type = (value.type as any).slug || 'article'
+    } else {
+        form.type = (value.type as string) || 'article'
+    }
 }, { immediate: true })
 
 const slugify = (value: string) => {
@@ -129,65 +141,59 @@ const handleSubmit = async () => {
         return
     }
 
-    const computedSlug = (form.slug.trim() ? slugify(form.slug) : slugify(name)) || 'category'
-    const all = props.allCategories || []
-    const currentId = props.mode === 'edit' ? (props.category?.id ?? null) : null
-    const slugTaken = all.some((c) => c.slug.toLowerCase() === computedSlug.toLowerCase() && c.id !== currentId)
-    if (slugTaken) {
-        await showToast({ icon: 'warning', title: 'Slug already exists', text: 'Slug must be globally unique.' })
-        return
-    }
+    // Auto-generate slug if empty, but let backend handle validation/uniqueness mostly
+    // We can do simple slug generation here for UX
+    const computedSlug = form.slug.trim() || slugify(name)
 
     const parentId = form.parent_id ? Number(form.parent_id) : null
-    if (form.parent_id && !Number.isFinite(parentId)) {
-        await showToast({ icon: 'warning', title: 'Invalid parent category' })
-        return
-    }
-    if (currentId && parentId === currentId) {
-        await showToast({ icon: 'warning', title: 'Invalid parent category', text: 'A category cannot be its own parent.' })
-        return
-    }
-
     const description = form.description.trim()
     const isActive = form.status === 'active'
 
+    const payload = {
+        name,
+        slug: computedSlug,
+        parent_id: parentId,
+        description,
+        is_active: isActive,
+        type: form.type
+    }
+
     isSaving.value = true
+    error.value = null
+    validationErrors.value = {}
+
     try {
-        let category: Category
-
-        if (props.mode === 'edit') {
-            const current = props.category
-            if (!current) throw new Error('Category not found')
-
-            category = {
-                ...current,
-                name,
-                slug: computedSlug,
-                parent_id: parentId,
-                is_active: isActive,
-                updated_at: new Date().toISOString(),
-                ...(description ? { description } : {})
-            }
-
-            await showToast({ icon: 'success', title: 'Category updated (dummy)', timer: 1200 })
+        let response
+        if (props.mode === 'edit' && props.category) {
+            response = await put(apiRoutes.categories.update(props.category.id), payload)
         } else {
-            const now = new Date().toISOString()
-            category = {
-                id: Date.now(),
-                parent_id: parentId,
-                name,
-                slug: computedSlug,
-                is_active: isActive,
-                created_at: now,
-                updated_at: now,
-                ...(description ? { description } : {})
-            }
-            await showToast({ icon: 'success', title: 'Category created (dummy)', timer: 1200 })
+            response = await post(apiRoutes.categories.store, payload)
         }
 
-        emit('success', category)
-    } catch (err) {
-        await showToast({ icon: 'error', title: 'Failed', text: err instanceof Error ? err.message : 'Unknown error' })
+        if (response.ok) {
+            const data = await response.json()
+            const savedCategory = data.data
+
+            await showToast({
+                icon: 'success',
+                title: props.mode === 'edit' ? 'Category updated' : 'Category created',
+                timer: 1500
+            })
+
+            emit('success', savedCategory)
+        } else {
+            const errorData = await response.json()
+            if (errorData.errors) {
+                validationErrors.value = errorData.errors
+                await showToast({ icon: 'error', title: 'Validation Error', text: 'Please check the form for errors.' })
+            } else {
+                error.value = errorData.message || 'Failed to save category.'
+                await showToast({ icon: 'error', title: 'Error', text: error.value || 'Unknown error' })
+            }
+        }
+    } catch (err: any) {
+        error.value = err.message || 'An unexpected error occurred.'
+        await showToast({ icon: 'error', title: 'Error', text: error.value || 'Unknown error' })
     } finally {
         isSaving.value = false
     }
@@ -199,6 +205,7 @@ const parentOptions = computed<ParentOption[]>(() => {
     const all = props.allCategories || []
     const currentId = props.mode === 'edit' ? (props.category?.id ?? null) : null
 
+    // Helper to build hierarchy options, excluding current node and its children (to prevent cycles)
     const byId = new Map<number, Category>()
     for (const c of all) byId.set(c.id, c)
 
@@ -229,12 +236,14 @@ const parentOptions = computed<ParentOption[]>(() => {
     const result: ParentOption[] = []
     const walk = (parentId: number | null, depth: number) => {
         const children = childrenByParent.get(parentId) || []
+        children.sort((a, b) => a.name.localeCompare(b.name)) // Sort by name
+
         for (const child of children) {
             if (!excluded.has(child.id)) {
                 const prefix = depth === 0 ? '' : `${'—'.repeat(depth)} `
                 result.push({ id: child.id, label: `${prefix}${child.name}` })
+                walk(child.id, depth + 1)
             }
-            walk(child.id, depth + 1)
         }
     }
 

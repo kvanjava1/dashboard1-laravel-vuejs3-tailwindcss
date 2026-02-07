@@ -25,6 +25,13 @@ interface UserRouteParams extends RouteParams {
   sort_order?: string
 }
 
+interface CategoryRouteParams {
+  search?: string
+  type?: 'article' | 'gallery'
+  status?: 'active' | 'inactive'
+  slug?: string
+}
+
 export const apiRoutes = {
   // Authentication routes
   auth: {
@@ -85,6 +92,22 @@ export const apiRoutes = {
   permissions: {
     index: '/api/v1/permissions',
     grouped: '/api/v1/permissions/grouped'
+  },
+
+  // Category management routes
+  categories: {
+    index: (params?: CategoryRouteParams) => {
+      const searchParams = new URLSearchParams()
+      if (params?.search) searchParams.set('search', params.search)
+      if (params?.type) searchParams.set('type', params.type)
+      if (params?.status) searchParams.set('status', params.status)
+      if (params?.slug) searchParams.set('slug', params.slug)
+      return `/api/v1/categories${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+    },
+    show: (id: string | number) => `/api/v1/categories/${id}`,
+    store: '/api/v1/categories',
+    update: (id: string | number) => `/api/v1/categories/${id}`,
+    destroy: (id: string | number) => `/api/v1/categories/${id}`
   }
 } as const
 

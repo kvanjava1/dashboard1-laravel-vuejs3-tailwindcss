@@ -19,6 +19,14 @@ class RolePermissionSeeder extends Seeder
             'dashboard' => [
                 'dashboard.view',
             ],
+            'category_management' => [
+                'category_management.view',
+                'category_management.view_detail',
+                'category_management.add',
+                'category_management.edit',
+                'category_management.delete',
+                'category_management.search',
+            ],
             'user_management' => [
                 'user_management.view',
                 'user_management.view_detail',

@@ -20,7 +20,9 @@
     // Path aliases
     "baseUrl": ".",
     "paths": {
-      "@/*": ["resources/js/vue3_dashboard_admin/*"]
+      "@/*": [
+        "resources/js/vue3_dashboard_admin/*"
+      ]
     },
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
