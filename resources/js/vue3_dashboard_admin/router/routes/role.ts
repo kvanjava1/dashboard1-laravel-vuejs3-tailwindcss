@@ -2,8 +2,8 @@ import type { RouteRecordRaw } from 'vue-router'
 
 // Import views
 import RoleIndex from '../../views/admin/role/Index.vue'
-import RoleAdd from '../../views/admin/role/RoleAdd.vue'
-import RoleEdit from '../../views/admin/role/RoleEdit.vue'
+import RoleAdd from '../../views/admin/role/Add.vue'
+import RoleEdit from '../../views/admin/role/Edit.vue'
 
 const extendRoutes: RouteRecordRaw[] = [
     {

@@ -1,8 +1,5 @@
 <template>
-    <BaseModal
-        v-model="isOpen"
-        size="lg"
-    >
+    <BaseModal v-model="isOpen" size="lg">
         <!-- Modal Header -->
         <template #header>
             <span class="material-symbols-outlined text-2xl text-primary">manage_accounts</span>
@@ -54,28 +51,22 @@
 
                     <div class="grid gap-4">
                         <!-- Dynamic Permission Categories -->
-                        <div
-                            v-for="(permissions, category) in groupedPermissions"
-                            :key="category"
-                            class="border border-slate-200 rounded-lg p-5"
-                            :class="getCategoryStyle(category)"
-                        >
+                        <div v-for="(permissions, category) in groupedPermissions" :key="category"
+                            class="border border-slate-200 rounded-lg p-5" :class="getCategoryStyle(category)">
                             <h5 class="text-md font-semibold text-slate-700 mb-3 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-lg" :class="getCategoryIconClass(category)">
                                     {{ getCategoryIcon(category) }}
                                 </span>
                                 {{ formatCategoryName(category) }}
-                                <span class="text-xs px-2 py-1 rounded-full ml-auto" :class="getCategoryBadgeClass(category)">
+                                <span class="text-xs px-2 py-1 rounded-full ml-auto"
+                                    :class="getCategoryBadgeClass(category)">
                                     {{ permissions.length }}
                                 </span>
                             </h5>
                             <div class="flex flex-wrap gap-2">
-                                <span
-                                    v-for="permission in permissions"
-                                    :key="permission"
+                                <span v-for="permission in permissions" :key="permission"
                                     class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                                    :class="getPermissionBadgeClass(category)"
-                                >
+                                    :class="getPermissionBadgeClass(category)">
                                     {{ permission }}
                                 </span>
                             </div>
@@ -91,7 +82,7 @@
                     <h5 class="text-lg font-medium text-slate-800 mb-2">No Permissions Assigned</h5>
                     <p class="text-slate-600">This role currently has no permissions assigned to it.</p>
                 </div>
-                    </div>
+            </div>
         </template>
 
         <!-- Modal Footer -->
@@ -108,8 +99,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import BaseModal from '../../../components/ui/BaseModal.vue'
-import Button from '../../../components/ui/Button.vue'
+import BaseModal from '../ui/BaseModal.vue'
+import Button from '../ui/Button.vue'
 
 interface Role {
     id: number

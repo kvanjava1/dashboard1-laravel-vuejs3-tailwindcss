@@ -24,12 +24,7 @@
                 <div>
                     <p class="text-red-700 font-medium">Failed to load role</p>
                     <p class="text-red-600 text-sm">{{ roleError }}</p>
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        class="mt-2"
-                        @click="fetchRole"
-                    >
+                    <Button variant="danger" size="sm" class="mt-2" @click="fetchRole">
                         Try Again
                     </Button>
                 </div>
@@ -37,29 +32,25 @@
         </div>
 
         <!-- Role Form -->
-        <RoleForm
-            v-else
-            :is-edit="true"
-            :initial-data="roleData"
-            @cancel="goBack"
-            @success="handleSuccess"
-        />
+        <RoleForm v-else :is-edit="true" :initial-data="roleData" @cancel="goBack" @success="handleSuccess" />
     </AdminLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+// Composables and stores
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
+import { useRoleData } from '@/composables/role/useRoleData'
 
 const router = useRouter()
 const route = useRoute()
-const { get } = useApi()
+const { fetchRole: fetchRoleData, loading: fetchLoading, error: fetchError } = useRoleData()
 
 // State
-const isLoadingRole = ref(true)
-const roleError = ref('')
+const isLoadingRole = fetchLoading
+const roleError = fetchError
 const roleData = ref<any>(null)
 
 // Get role ID from route params
@@ -73,38 +64,30 @@ const goBack = () => {
 // Fetch role data
 const fetchRole = async () => {
     try {
-        isLoadingRole.value = true
-        roleError.value = ''
+        const id = parseInt(roleId.value)
+        if (isNaN(id)) {
+            router.push({ name: 'role_management.index' })
+            return
+        }
 
-        const response = await get(apiRoutes.roles.show(roleId.value))
+        const role = await fetchRoleData(id)
 
-        if (response.ok) {
-            const data = await response.json()
-            const role = data.role
+        // Prevent editing super admin role
+        if (role.name === 'super_admin') {
+            router.push({ name: 'role_management.index' })
+            return
+        }
 
-            // Prevent editing super admin role
-            if (role.name === 'super_admin') {
-                router.push({ name: 'role_management.index' })
-                return
-            }
-
-            // Set role data for form
-            roleData.value = {
-                id: role.id,
-                name: role.name,
-                display_name: role.display_name || '',
-                description: role.description || '',
-                permissions: role.permissions || []
-            }
-        } else {
-            const errorData = await response.json()
-            roleError.value = errorData.message || 'Failed to load role data'
+        // Set role data for form
+        roleData.value = {
+            id: role.id,
+            name: role.name,
+            display_name: role.display_name || '',
+            description: role.description || '',
+            permissions: role.permissions || []
         }
     } catch (error) {
-        console.error('Error fetching role:', error)
-        roleError.value = 'An unexpected error occurred while loading role data'
-    } finally {
-        isLoadingRole.value = false
+        console.error('Error in Edit.vue fetchRole:', error)
     }
 }
 

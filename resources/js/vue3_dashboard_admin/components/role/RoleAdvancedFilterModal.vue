@@ -1,8 +1,5 @@
 <template>
-    <BaseModal
-        v-model="isOpen"
-        size="lg"
-    >
+    <BaseModal v-model="isOpen" size="lg">
         <!-- Modal Header -->
         <template #header>
             <span class="material-symbols-outlined text-2xl text-primary">filter_list</span>
@@ -20,12 +17,8 @@
                     <label class="block text-sm font-semibold text-slate-700 mb-2">
                         Role Name
                     </label>
-                    <input
-                        v-model="localSearch"
-                        type="text"
-                        placeholder="Search by role name..."
-                        class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    />
+                    <input v-model="localSearch" type="text" placeholder="Search by role name..."
+                        class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
                     <p class="text-xs text-slate-500 mt-1">Click "Apply Filters" to search</p>
                     <p class="text-xs text-slate-500 mt-1">Partial matches allowed</p>
                 </div>
@@ -48,40 +41,27 @@
                                 Dashboard
                             </h5>
                             <div class="grid grid-cols-1 gap-2 ml-6">
-                                <label
-                                    v-for="permission in availablePermissions.dashboard"
-                                    :key="permission.name"
-                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1"
-                                >
-                                    <input
-                                        v-model="localPermissions"
-                                        :value="permission.name"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary"
-                                    />
+                                <label v-for="permission in availablePermissions.dashboard" :key="permission.name"
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1">
+                                    <input v-model="localPermissions" :value="permission.name" type="checkbox"
+                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary" />
                                     <span class="text-sm text-slate-700">{{ permission.label }}</span>
                                 </label>
                             </div>
                         </div>
 
                         <!-- User Management Permissions -->
-                        <div v-if="availablePermissions.user_management && availablePermissions.user_management.length > 0">
+                        <div
+                            v-if="availablePermissions.user_management && availablePermissions.user_management.length > 0">
                             <h5 class="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-sm">group</span>
                                 User Management
                             </h5>
                             <div class="grid grid-cols-1 gap-2 ml-6">
-                                <label
-                                    v-for="permission in availablePermissions.user_management"
-                                    :key="permission.name"
-                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1"
-                                >
-                                    <input
-                                        v-model="localPermissions"
-                                        :value="permission.name"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary"
-                                    />
+                                <label v-for="permission in availablePermissions.user_management" :key="permission.name"
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1">
+                                    <input v-model="localPermissions" :value="permission.name" type="checkbox"
+                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary" />
                                     <span class="text-sm text-slate-700">{{ permission.label }}</span>
                                 </label>
                             </div>
@@ -94,17 +74,10 @@
                                 Reports
                             </h5>
                             <div class="grid grid-cols-1 gap-2 ml-6">
-                                <label
-                                    v-for="permission in availablePermissions.report"
-                                    :key="permission.name"
-                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1"
-                                >
-                                    <input
-                                        v-model="localPermissions"
-                                        :value="permission.name"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary"
-                                    />
+                                <label v-for="permission in availablePermissions.report" :key="permission.name"
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1">
+                                    <input v-model="localPermissions" :value="permission.name" type="checkbox"
+                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary" />
                                     <span class="text-sm text-slate-700">{{ permission.label }}</span>
                                 </label>
                             </div>
@@ -117,17 +90,10 @@
                                 Other
                             </h5>
                             <div class="grid grid-cols-1 gap-2 ml-6">
-                                <label
-                                    v-for="permission in availablePermissions.other"
-                                    :key="permission.name"
-                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1"
-                                >
-                                    <input
-                                        v-model="localPermissions"
-                                        :value="permission.name"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary"
-                                    />
+                                <label v-for="permission in availablePermissions.other" :key="permission.name"
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1">
+                                    <input v-model="localPermissions" :value="permission.name" type="checkbox"
+                                        class="w-4 h-4 rounded border-border-light text-primary focus:ring-primary" />
                                     <span class="text-sm text-slate-700">{{ permission.label }}</span>
                                 </label>
                             </div>
@@ -140,36 +106,27 @@
 
         <!-- Modal Footer -->
         <template #footer>
-                <div class="flex justify-between gap-3">
-                    <Button
-                        variant="ghost"
-                        @click="handleReset"
-                    >
-                        Reset All
+            <div class="flex justify-between gap-3">
+                <Button variant="ghost" @click="handleReset">
+                    Reset All
+                </Button>
+                <div class="flex gap-3">
+                    <Button variant="outline" @click="$emit('cancel')">
+                        Cancel
                     </Button>
-                    <div class="flex gap-3">
-                        <Button
-                            variant="outline"
-                            @click="$emit('cancel')"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="primary"
-                            @click="handleApply"
-                        >
-                            Apply Filters
-                        </Button>
-                    </div>
+                    <Button variant="primary" @click="handleApply">
+                        Apply Filters
+                    </Button>
                 </div>
+            </div>
         </template>
     </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import BaseModal from '../../../components/ui/BaseModal.vue'
-import Button from '../../../components/ui/Button.vue'
+import BaseModal from '../ui/BaseModal.vue'
+import Button from '../ui/Button.vue'
 
 // Props
 interface Props {

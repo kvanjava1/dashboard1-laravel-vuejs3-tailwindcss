@@ -34,11 +34,7 @@
                 <LoadingState v-if="isLoading" message="Loading roles..." />
 
                 <!-- Error State -->
-                <ErrorState
-                    v-else-if="errorMessage"
-                    :message="errorMessage"
-                    @retry="() => fetchRoles(1)"
-                />
+                <ErrorState v-else-if="errorMessage" :message="errorMessage" @retry="() => fetchRoles(1)" />
 
                 <!-- Success Message -->
                 <div v-else-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
@@ -49,19 +45,12 @@
                 </div>
 
                 <!-- Active Filters Indicator -->
-                <ActiveFiltersIndicator
-                    v-else
-                    :has-active-filters="hasActiveFilters"
-                    @reset="resetFilters"
-                />
+                <ActiveFiltersIndicator v-else :has-active-filters="hasActiveFilters" @reset="resetFilters" />
 
                 <!-- Empty State -->
-                <EmptyState
-                    v-if="!isLoading && !errorMessage && !successMessage && roles.length === 0"
-                    icon="admin_panel_settings"
-                    message="No roles found"
-                    subtitle="Try adjusting your filters or add a new role"
-                />
+                <EmptyState v-if="!isLoading && !errorMessage && !successMessage && roles.length === 0"
+                    icon="admin_panel_settings" message="No roles found"
+                    subtitle="Try adjusting your filters or add a new role" />
 
                 <!-- Data Table -->
                 <div v-else-if="!isLoading && !errorMessage && !successMessage && roles.length > 0">
@@ -71,7 +60,8 @@
                                 <SimpleUserTableHeadCol>
                                     <div class="flex items-center gap-2">
                                         <span>Role Name</span>
-                                        <span class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
+                                        <span
+                                            class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
                                     </div>
                                 </SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Permissions</SimpleUserTableHeadCol>
@@ -84,9 +74,11 @@
                             <SimpleUserTableBodyRow v-for="role in roles" :key="role.id">
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center">
-                                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 mr-3">
+                                        <div
+                                            class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 mr-3">
                                             <span class="material-symbols-outlined text-primary text-sm">
-                                                {{ role.name === 'super_admin' ? 'admin_panel_settings' : 'manage_accounts' }}
+                                                {{ role.name === 'super_admin' ? 'admin_panel_settings' :
+                                                    'manage_accounts' }}
                                             </span>
                                         </div>
                                         <div>
@@ -99,57 +91,37 @@
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <div class="flex flex-wrap gap-1">
-                                        <span
-                                            v-for="permission in role.permissions.slice(0, 3)"
-                                            :key="permission"
-                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                        >
+                                        <span v-for="permission in role.permissions.slice(0, 3)" :key="permission"
+                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                             {{ permission.replace('_', ' ') }}
                                         </span>
-                                        <span
-                                            v-if="role.permissions.length > 3"
-                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
-                                        >
+                                        <span v-if="role.permissions.length > 3"
+                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
                                             +{{ role.permissions.length - 3 }} more
                                         </span>
                                     </div>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                         {{ role.users_count || 0 }} users
                                     </span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
-                                        <Button
-                                            v-if="role.name !== 'super_admin' && canEditRole"
-                                            variant="outline"
-                                            size="sm"
-                                            left-icon="edit"
-                                            title="Edit role"
-                                            @click="editRole(role)"
-                                        >
+                                        <Button v-if="role.name !== 'super_admin' && canEditRole" variant="outline"
+                                            size="sm" left-icon="edit" title="Edit role" @click="editRole(role)">
                                             Edit
                                         </Button>
-                                        <Button
-                                            v-if="canViewRoleDetail"
-                                            variant="outline"
-                                            size="sm"
-                                            left-icon="visibility"
-                                            title="View permissions"
-                                            @click="viewPermissions(role)"
-                                        >
+                                        <Button v-if="canViewRoleDetail" variant="outline" size="sm"
+                                            left-icon="visibility" title="View permissions"
+                                            @click="viewPermissions(role)">
                                             View
                                         </Button>
-                                        <Button
-                                            v-if="role.name !== 'super_admin' && canDeleteRole"
-                                            variant="danger"
-                                            size="sm"
-                                            left-icon="delete"
-                                            :disabled="isDeleting"
+                                        <Button v-if="role.name !== 'super_admin' && canDeleteRole" variant="danger"
+                                            size="sm" left-icon="delete" :disabled="isDeleting"
                                             :title="isDeleting ? 'Deleting...' : 'Delete role'"
-                                            @click="deleteRole(role)"
-                                        >
+                                            @click="deleteRole(role)">
                                             {{ isDeleting ? 'Deleting...' : 'Delete' }}
                                         </Button>
                                     </div>
@@ -160,36 +132,19 @@
                 </div>
 
                 <!-- Pagination -->
-                <Pagination
-                    :current-start="currentStart"
-                    :current-end="currentEnd"
-                    :total="pagination.total"
-                    :current-page="pagination.current_page"
-                    :total-pages="pagination.total_pages"
-                    :rows-per-page="pagination.per_page"
-                    @prev="prevPage"
-                    @next="nextPage"
-                    @goto="goToPage"
-                />
+                <Pagination :current-start="currentStart" :current-end="currentEnd" :total="pagination.total"
+                    :current-page="pagination.current_page" :total-pages="pagination.total_pages"
+                    :rows-per-page="pagination.per_page" @prev="prevPage" @next="nextPage" @goto="goToPage" />
             </ContentBoxBody>
         </ContentBox>
 
         <!-- Advanced Filter Modal -->
-        <RoleAdvancedFilterModal
-            v-model="showAdvancedFilter"
-            :filters="filters"
-            :available-permissions="availablePermissions"
-            @apply-filters="handleApplyFilters"
-            @cancel="showAdvancedFilter = false"
-            @reset="resetFilters"
-        />
+        <RoleAdvancedFilterModal v-model="showAdvancedFilter" :filters="filters"
+            :available-permissions="availablePermissions" @apply-filters="handleApplyFilters"
+            @cancel="showAdvancedFilter = false" @reset="resetFilters" />
 
         <!-- Role Permissions Modal -->
-        <RolePermissionsModal
-            v-model="showPermissionsModal"
-            :role="selectedRole"
-            @edit-role="editRole"
-        />
+        <RolePermissionsModal v-model="showPermissionsModal" :role="selectedRole" @edit-role="editRole" />
     </AdminLayout>
 </template>
 
@@ -200,10 +155,12 @@ import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import { useAuthStore } from '@/stores/auth'
+import { useRoleData, type Role } from '@/composables/role/useRoleData'
 
 const router = useRouter()
 const { get, del } = useApi()
 const authStore = useAuthStore()
+const { fetchRoles: fetchRolesList, loading: fetchLoading, error: fetchError } = useRoleData()
 
 // Permission checks
 const canAddRole = computed(() => authStore.hasPermission('role_management.add'))
@@ -213,11 +170,11 @@ const canViewRoleDetail = computed(() => authStore.hasPermission('role_managemen
 const canSearchRole = computed(() => authStore.hasPermission('role_management.search'))
 
 const showAdvancedFilter = ref(false)
-const isLoading = ref(true)
+const isLoading = fetchLoading
 const isDeleting = ref(false)
-const errorMessage = ref('')
+const errorMessage = fetchError
 const successMessage = ref('')
-const roles = ref<any[]>([])
+const roles = ref<Role[]>([])
 
 // Permissions modal state
 const showPermissionsModal = ref(false)
@@ -268,49 +225,32 @@ const currentEnd = computed(() => {
 // Fetch roles from API with pagination and filters
 const fetchRoles = async (page = pagination.current_page) => {
     try {
-        isLoading.value = true
-        errorMessage.value = ''
-
-        const filterParams: any = {
+        const params: any = {
             page,
-            per_page: pagination.per_page
+            per_page: pagination.per_page,
+            search: filters.value.search,
+            permissions: filters.value.permissions
         }
 
-        if (filters.value.search) {
-            filterParams.search = filters.value.search
-        }
+        const data = await fetchRolesList(params)
 
-        if (filters.value.permissions.length > 0) {
-            filterParams.permissions = filters.value.permissions
-        }
+        roles.value = data.roles
+        Object.assign(pagination, {
+            total: data.total,
+            total_pages: data.total_pages,
+            current_page: data.current_page,
+            per_page: data.per_page,
+            from: data.from,
+            to: data.to
+        })
 
-        const response = await get(apiRoutes.roles.index(filterParams))
-
-        if (response.ok) {
-            const data = await response.json()
-            roles.value = data.roles || []
-            Object.assign(pagination, {
-                total: data.total || 0,
-                total_pages: data.total_pages || 0,
-                current_page: data.current_page || page,
-                per_page: data.per_page || pagination.per_page,
-                from: data.from || currentStart.value,
-                to: data.to || currentEnd.value
-            })
-
-            // Update available permissions if not already loaded
-            if (Object.keys(availablePermissions.value).length === 0 && data.available_permissions) {
-                availablePermissions.value = data.available_permissions
-            }
-        } else {
-            const errorData = await response.json()
-            errorMessage.value = errorData.message || 'Failed to load roles'
+        // Update available permissions if not already loaded
+        if (Object.keys(availablePermissions.value).length === 0 && data.available_permissions) {
+            availablePermissions.value = data.available_permissions
         }
     } catch (error) {
-        console.error('Error fetching roles:', error)
-        errorMessage.value = 'An unexpected error occurred while loading roles'
-    } finally {
-        isLoading.value = false
+        // Error is handled by composable
+        console.error('Error fetching roles in Index.vue:', error)
     }
 }
 
@@ -461,6 +401,6 @@ import SimpleUserTableBody from '../../../components/ui/SimpleUserTableBody.vue'
 import SimpleUserTableBodyRow from '../../../components/ui/SimpleUserTableBodyRow.vue'
 import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCol.vue'
 
-import RolePermissionsModal from './RolePermissionsModal.vue'
-import RoleAdvancedFilterModal from './RoleAdvancedFilterModal.vue'
+import RolePermissionsModal from '../../../components/role/RolePermissionsModal.vue'
+import RoleAdvancedFilterModal from '../../../components/role/RoleAdvancedFilterModal.vue'
 </script>

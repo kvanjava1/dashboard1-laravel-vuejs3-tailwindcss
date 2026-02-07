@@ -33,26 +33,14 @@
                 <LoadingState v-if="loading" message="Loading users..." />
 
                 <!-- Error State -->
-                <ErrorState
-                    v-else-if="error"
-                    :message="error"
-                    @retry="fetchUsers"
-                />
+                <ErrorState v-else-if="error" :message="error" @retry="fetchUsers" />
 
                 <!-- Active Filters Indicator -->
-                <ActiveFiltersIndicator
-                    v-else
-                    :has-active-filters="hasActiveFilters"
-                    @reset="handleResetFilters"
-                />
+                <ActiveFiltersIndicator v-else :has-active-filters="hasActiveFilters" @reset="handleResetFilters" />
 
                 <!-- Empty State -->
-                <EmptyState
-                    v-if="!loading && !error && users.length === 0"
-                    icon="group"
-                    message="No users found"
-                    subtitle="Try adjusting your filters or add a new user"
-                />
+                <EmptyState v-if="!loading && !error && users.length === 0" icon="group" message="No users found"
+                    subtitle="Try adjusting your filters or add a new user" />
 
                 <!-- Data Table -->
                 <div v-else-if="!loading && !error && users.length > 0">
@@ -62,7 +50,8 @@
                                 <SimpleUserTableHeadCol>
                                     <div class="flex items-center gap-2">
                                         <span>User</span>
-                                        <span class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
+                                        <span
+                                            class="material-symbols-outlined text-slate-400 text-base">arrow_drop_down</span>
                                     </div>
                                 </SimpleUserTableHeadCol>
                                 <SimpleUserTableHeadCol>Role</SimpleUserTableHeadCol>
@@ -85,59 +74,38 @@
                                     <UserCellStatus :status="user.status" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <span class="text-sm text-slate-700">{{ user.is_banned ? 'Banned' : 'Not Banned' }}</span>
+                                    <span class="text-sm text-slate-700">{{ user.is_banned ? 'Banned' : 'Not Banned'
+                                        }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <span class="text-sm text-slate-700">{{ user.joined_date }}</span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <CellActions
-                                        @edit="handleEdit(user)"
-                                        @delete="handleDelete(user)"
-                                        @view="() => openUserDetail(user)"
-                                        @ban="handleBan(user)"
+                                    <CellActions @edit="handleEdit(user)" @delete="handleDelete(user)"
+                                        @view="() => openUserDetail(user)" @ban="handleBan(user)"
                                         :show-edit="canEditUser"
                                         :show-delete="canDeleteUser && user.role !== 'super_admin' && user.email !== 'super@admin.com'"
-                                        :show-view="canViewUserDetail"
-                                        :show-ban="canBanUser"
-                                        :user="user"
-                                    />
+                                        :show-view="canViewUserDetail" :show-ban="canBanUser" :user="user" />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
                         </SimpleUserTableBody>
                     </SimpleUserTable>
 
                     <!-- Pagination -->
-                    <Pagination 
-                        :current-start="currentStart"
-                        :current-end="currentEnd"
-                        :total="pagination.total"
-                        :current-page="pagination.current_page"
-                        :total-pages="pagination.total_pages"
-                        :rows-per-page="pagination.per_page"
-                        @prev="prevPage"
-                        @next="nextPage"
-                        @goto="goToPage"
-                    />
+                    <Pagination :current-start="currentStart" :current-end="currentEnd" :total="pagination.total"
+                        :current-page="pagination.current_page" :total-pages="pagination.total_pages"
+                        :rows-per-page="pagination.per_page" @prev="prevPage" @next="nextPage" @goto="goToPage" />
                 </div>
             </ContentBoxBody>
         </ContentBox>
 
         <!-- Advanced Filter Modal -->
-        <UserAdvancedFilterModal
-            v-model="showAdvancedFilter"
-            :initial-filters="currentFilters"
-            :available-roles="availableRoles"
-            :status-options="statusOptions"
-            @apply="handleApplyFilters"
-            @reset="handleResetFilters"
-        />
+        <UserAdvancedFilterModal v-model="showAdvancedFilter" :initial-filters="currentFilters"
+            :available-roles="availableRoles" :status-options="statusOptions" @apply="handleApplyFilters"
+            @reset="handleResetFilters" />
 
         <!-- User Detail Modal -->
-        <UserDetailModal
-            v-model="showUserDetail"
-            :user="selectedUser"
-        />
+        <UserDetailModal v-model="showUserDetail" :user="selectedUser" />
     </AdminLayout>
 </template>
 
@@ -151,6 +119,7 @@ import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import { useAuthStore } from '@/stores/auth'
+import { useUserData, type User } from '@/composables/user/useUserData'
 
 // Third-party libraries
 import Swal from 'sweetalert2'
@@ -189,6 +158,7 @@ import UserDetailModal from '../../../components/user/UserDetailModal.vue'
 const router = useRouter()
 const { get, del } = useApi()
 const authStore = useAuthStore()
+const { fetchUsers: fetchUsersList, loading: fetchLoading, error: fetchError } = useUserData()
 
 // User detail modal state
 const showUserDetail = ref(false)
@@ -216,15 +186,15 @@ const canBanUser = computed(() => authStore.hasPermission('user_management.ban')
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
     return currentFilters.search.trim() !== '' ||
-           currentFilters.name.trim() !== '' ||
-           currentFilters.email.trim() !== '' ||
-           currentFilters.role !== '' ||
-           currentFilters.status !== '' ||
-           currentFilters.is_banned !== '' ||
-           currentFilters.date_from !== '' ||
-           currentFilters.date_to !== '' ||
-           currentFilters.sort_by !== 'created_at' ||
-           currentFilters.sort_order !== 'desc'
+        currentFilters.name.trim() !== '' ||
+        currentFilters.email.trim() !== '' ||
+        currentFilters.role !== '' ||
+        currentFilters.status !== '' ||
+        currentFilters.is_banned !== '' ||
+        currentFilters.date_from !== '' ||
+        currentFilters.date_to !== '' ||
+        currentFilters.sort_by !== 'created_at' ||
+        currentFilters.sort_order !== 'desc'
 })
 
 // Modal state
@@ -244,9 +214,9 @@ const currentFilters = reactive({
     sort_order: 'desc'
 })
 
-// UI State
-const loading = ref(false)
-const error = ref<string | null>(null)
+// UI State (using composable state)
+const loading = fetchLoading
+const error = fetchError
 
 // Pagination
 const pagination = reactive({
@@ -262,36 +232,10 @@ const pagination = reactive({
 const availableRoles = ref([])
 const statusOptions = ref([])
 
-interface User {
-    id: number
-    name: string
-    email: string
-    status: string
-    profile_image?: string
-    role?: string
-    role_display_name?: string
-    is_banned: boolean
-    is_active?: boolean
-    protection?: {
-        can_delete: boolean
-        can_edit: boolean
-        can_ban: boolean
-        can_change_role: boolean
-        reason: string
-    }
-    created_at: string
-    updated_at: string
-    joined_date: string
-    avatar?: string  // For backward compatibility with existing code
-}
-
 const users = ref<User[]>([])
 
-// Fetch users from API
+// Fetch users from API using composable
 const fetchUsers = async () => {
-    loading.value = true
-    error.value = null
-
     try {
         const params = {
             page: pagination.current_page,
@@ -308,32 +252,10 @@ const fetchUsers = async () => {
             sort_order: currentFilters.sort_order
         }
 
-        const url = apiRoutes.users.index(params)
-        const response = await get(url)
+        const data = await fetchUsersList(params)
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`)
-        }
-
-        const data = await response.json()
-
-        // Map API data to frontend User interface
-        users.value = data.data.map((user: any) => ({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            status: user.status || '',
-            profile_image: user.profile_image || undefined,
-            role: user.role || undefined,
-            role_display_name: user.role_display_name || undefined,
-            is_banned: user.is_banned,
-            is_active: user.is_active,
-            protection: user.protection || undefined,
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-            joined_date: user.joined_date,
-            avatar: user.profile_image || undefined // API returns full URL
-        }))
+        // Map data back to our refs
+        users.value = data.users
 
         // Update pagination meta
         Object.assign(pagination, {
@@ -350,10 +272,8 @@ const fetchUsers = async () => {
         statusOptions.value = data.filters.status_options
 
     } catch (err: any) {
-        error.value = err.message || 'Failed to load users'
-        console.error('Error fetching users:', err)
-    } finally {
-        loading.value = false
+        // Error is handled by the composable's error ref
+        console.error('Error in Index.vue fetchUsers:', err)
     }
 }
 
@@ -415,10 +335,10 @@ const handleDelete = async (user: User) => {
 
         // Remove user from local list
         users.value = users.value.filter(u => u.id !== user.id)
-        
+
         // Refresh user count
         pagination.total--
-        
+
         await showToast({ icon: 'success', title: 'User deleted successfully', timer: 0 })
     } catch (err: any) {
         await showToast({ icon: 'error', title: 'Failed to delete user', text: err?.message ?? '', timer: 0 })
