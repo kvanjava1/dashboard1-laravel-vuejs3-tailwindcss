@@ -5,9 +5,16 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserBanHistory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use App\Traits\CanVersionCache;
 
 class UserBanHistoryService
 {
+    use CanVersionCache;
+
+    private const CACHE_SCOPE = 'users'; // Sharing user scope for synchronized invalidation
+    private const CACHE_TTL = 3600;
+
     /**
      * Log a ban or unban action
      */
@@ -48,6 +55,15 @@ class UserBanHistoryService
     public function getUserBanHistory(int $userId): array
     {
         try {
+            // 1. Check cache first
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, ['type' => 'ban_history', 'user_id' => $userId]);
+            $cached = Cache::get($cacheKey);
+
+            if ($cached !== null) {
+                return $cached;
+            }
+
+            // 2. Fetch from database
             $history = UserBanHistory::where('user_id', $userId)
                 ->with('performedBy:id,name,email')
                 ->orderBy('created_at', 'desc')
@@ -69,9 +85,13 @@ class UserBanHistoryService
                 })
                 ->toArray();
 
+            // 3. Save to cache
+            Cache::put($cacheKey, $history, self::CACHE_TTL);
+
             Log::info('User ban history retrieved successfully', [
                 'user_id' => $userId,
-                'history_count' => count($history)
+                'history_count' => count($history),
+                'cached' => false
             ]);
 
             return $history;

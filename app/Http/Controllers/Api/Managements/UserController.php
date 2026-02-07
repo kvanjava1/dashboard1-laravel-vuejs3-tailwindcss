@@ -28,7 +28,7 @@ class UserController extends Controller
         try {
             $perPage = $request->input('per_page', 15);
             $page = $request->input('page', 1);
-            
+
             $filters = [
                 'search' => $request->input('search'),
                 'name' => $request->input('name'),
@@ -157,7 +157,7 @@ class UserController extends Controller
     {
         try {
             $validated = $request->validated();
-            
+
             // Add who is updating
             $validated['updated_by'] = $request->user()->id;
 

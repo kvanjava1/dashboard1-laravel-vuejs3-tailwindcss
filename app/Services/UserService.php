@@ -42,19 +42,21 @@ class UserService
             }
 
             // 2. No cache, process the data
-            $query = User::with(['roles' => function ($query) {
-                $query->select('id', 'name');
-            }])
-            ->select([
-                'users.id',
-                'users.name',
-                'users.email',
-                'users.profile_image',
-                'users.is_banned',
-                'users.is_active',
-                'users.created_at',
-                'users.updated_at'
-            ]);
+            $query = User::with([
+                'roles' => function ($query) {
+                    $query->select('id', 'name');
+                }
+            ])
+                ->select([
+                    'users.id',
+                    'users.name',
+                    'users.email',
+                    'users.profile_image',
+                    'users.is_banned',
+                    'users.is_active',
+                    'users.created_at',
+                    'users.updated_at'
+                ]);
 
             // Apply search filter (name or email)
             if (!empty($filters['search'])) {
@@ -111,14 +113,14 @@ class UserService
             // Apply sorting
             $sortBy = $filters['sort_by'] ?? 'created_at';
             $sortOrder = $filters['sort_order'] ?? 'desc';
-            
+
             $sortFieldMap = [
                 'name' => 'users.name',
                 'email' => 'users.email',
                 'created_at' => 'users.created_at',
                 'updated_at' => 'users.updated_at',
             ];
-            
+
             $actualSortField = $sortFieldMap[$sortBy] ?? 'users.created_at';
             $query->orderBy($actualSortField, $sortOrder);
 
@@ -275,10 +277,14 @@ class UserService
             } elseif (isset($data['name'])) {
                 $updateData['name'] = $data['name'];
             }
-            if (isset($data['email'])) $updateData['email'] = $data['email'];
-            if (isset($data['phone'])) $updateData['phone'] = $data['phone'];
-            if (isset($data['is_active'])) $updateData['is_active'] = $data['is_active'];
-            if (!empty($data['password'])) $updateData['password'] = bcrypt($data['password']);
+            if (isset($data['email']))
+                $updateData['email'] = $data['email'];
+            if (isset($data['phone']))
+                $updateData['phone'] = $data['phone'];
+            if (isset($data['is_active']))
+                $updateData['is_active'] = $data['is_active'];
+            if (!empty($data['password']))
+                $updateData['password'] = bcrypt($data['password']);
 
             if (!empty($updateData)) {
                 $user->update($updateData);
