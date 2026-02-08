@@ -1,15 +1,8 @@
 <template>
-    <button
-        :class="[buttonClasses, attrs.class]"
-        :style="attrs.style"
-        :disabled="disabled || loading"
-        v-bind="passthroughAttrs"
-        @click="handleClick"
-    >
+    <button :class="[buttonClasses, attrs.class]" :style="attrs.style" :disabled="disabled || loading"
+        v-bind="passthroughAttrs" @click="handleClick">
         <!-- Loading spinner -->
-        <span v-if="loading" class="material-symbols-outlined text-sm animate-spin mr-2">
-            refresh
-        </span>
+        <LoadingSpinner v-if="loading" :size="size === 'xs' ? 'xs' : 'sm'" class="mr-2" />
 
         <!-- Left icon -->
         <span v-if="leftIcon && !loading" class="material-symbols-outlined text-sm mr-2">
@@ -27,7 +20,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue'
+import { computed, useAttrs, type StyleValue } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 defineOptions({
     inheritAttrs: false
@@ -38,8 +32,8 @@ interface Props {
     size?: 'xs' | 'sm' | 'md' | 'lg'
     loading?: boolean
     disabled?: boolean
-    leftIcon?: string
-    rightIcon?: string
+    leftIcon?: string | undefined
+    rightIcon?: string | undefined
     fullWidth?: boolean
 }
 
@@ -55,7 +49,7 @@ const emit = defineEmits<{
     click: [event: Event]
 }>()
 
-const attrs = useAttrs()
+const attrs = useAttrs() as { class?: any, style?: StyleValue, [key: string]: any }
 
 const passthroughAttrs = computed(() => {
     const { class: _class, style: _style, ...rest } = attrs

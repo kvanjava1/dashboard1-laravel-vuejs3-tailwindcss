@@ -106,6 +106,12 @@ export const apiRoutes = {
       if (params?.slug) searchParams.set('slug', params.slug)
       return `/api/v1/categories${searchParams.toString() ? '?' + searchParams.toString() : ''}`
     },
+    options: (params?: CategoryRouteParams) => {
+      const searchParams = new URLSearchParams()
+      if (params?.type) searchParams.set('type', params.type)
+      if (params?.status) searchParams.set('status', params.status)
+      return `/api/v1/categories/options${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+    },
     show: (id: string | number) => `/api/v1/categories/${id}`,
     store: '/api/v1/categories',
     update: (id: string | number) => `/api/v1/categories/${id}`,

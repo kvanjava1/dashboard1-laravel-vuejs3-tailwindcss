@@ -34,6 +34,15 @@ class CategoryController extends Controller
     }
 
     /**
+     * Get categories for dropdown options.
+     */
+    public function options(Request $request): JsonResponse
+    {
+        $options = $this->categoryService->getCategoryOptions($request->all());
+        return response()->json(['data' => $options]);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreCategoryRequest $request): JsonResponse

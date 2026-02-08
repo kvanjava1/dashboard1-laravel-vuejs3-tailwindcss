@@ -15,6 +15,7 @@
                 <!-- Type Selection -->
                 <FormField v-model="form.type" label="Type" type="select" required left-icon="category"
                     :disabled="mode === 'edit'" help="Category type cannot be changed after creation.">
+                    <option value="" disabled selected>Select Type</option>
                     <option value="article">Article</option>
                     <option value="gallery">Gallery</option>
                 </FormField>
@@ -27,9 +28,10 @@
                     :error="validationErrors.slug?.[0]" />
 
                 <FormField v-model="form.parent_id" label="Parent Category" type="select"
-                    help="Optional. Leave as Root for top-level category." left-icon="account_tree"
+                    help="Optional. Select Root for top-level category." left-icon="account_tree"
                     :error="validationErrors.parent_id?.[0]">
-                    <option value="">Root (no parent)</option>
+                    <option value="" disabled selected>Select Parent Category</option>
+                    <option value="root">Root (no parent)</option>
                     <option v-for="opt in parentOptions" :key="opt.id" :value="String(opt.id)">
                         {{ opt.label }}
                     </option>
@@ -106,7 +108,7 @@ const form = reactive({
     description: '',
     parent_id: '',
     status: 'active' as 'active' | 'inactive',
-    type: 'article' // Default type
+    type: '' // No default type to force user awareness
 })
 
 watch(() => props.category, (value) => {
@@ -115,7 +117,7 @@ watch(() => props.category, (value) => {
     form.slug = value.slug
     form.description = value.description ?? ''
     form.status = value.is_active ? 'active' : 'inactive'
-    form.parent_id = value.parent_id === null ? '' : String(value.parent_id)
+    form.parent_id = value.parent_id === null ? 'root' : String(value.parent_id)
 
     // Handle type: might be string or object from backend relation
     if (typeof value.type === 'object' && value.type !== null) {
@@ -134,6 +136,13 @@ const slugify = (value: string) => {
         .replace(/-+/g, '-')
 }
 
+// Watch for type change to reset parent_id
+watch(() => form.type, () => {
+    if (props.mode === 'create') {
+        form.parent_id = ''
+    }
+})
+
 const handleSubmit = async () => {
     const name = form.name.trim()
     if (!name) {
@@ -141,11 +150,21 @@ const handleSubmit = async () => {
         return
     }
 
+    if (!form.type) {
+        await showToast({ icon: 'warning', title: 'Category Type is required' })
+        return
+    }
+
+    if (!form.parent_id) {
+        await showToast({ icon: 'warning', title: 'Parent Category is required', text: 'Please select a parent category or "Root"' })
+        return
+    }
+
     // Auto-generate slug if empty, but let backend handle validation/uniqueness mostly
     // We can do simple slug generation here for UX
     const computedSlug = form.slug.trim() || slugify(name)
 
-    const parentId = form.parent_id ? Number(form.parent_id) : null
+    const parentId = form.parent_id === 'root' ? null : Number(form.parent_id)
     const description = form.description.trim()
     const isActive = form.status === 'active'
 
@@ -202,7 +221,16 @@ const handleSubmit = async () => {
 type ParentOption = { id: number; label: string }
 
 const parentOptions = computed<ParentOption[]>(() => {
-    const all = props.allCategories || []
+    let all = props.allCategories || []
+
+    // Filter by selected type to ensure parent is same type
+    if (form.type) {
+        all = all.filter(c => {
+            const catType = typeof c.type === 'object' && c.type !== null ? (c.type as any).slug : c.type
+            return catType === form.type
+        })
+    }
+
     const currentId = props.mode === 'edit' ? (props.category?.id ?? null) : null
 
     // Helper to build hierarchy options, excluding current node and its children (to prevent cycles)

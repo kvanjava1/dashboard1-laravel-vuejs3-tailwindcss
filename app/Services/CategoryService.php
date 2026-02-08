@@ -38,7 +38,7 @@ class CategoryService
                 $term = $filters['search'];
                 $query->where(function ($q) use ($term) {
                     $q->where('name', 'like', "%{$term}%")
-                      ->orWhere('slug', 'like', "%{$term}%");
+                        ->orWhere('slug', 'like', "%{$term}%");
                 });
             }
 
@@ -61,7 +61,7 @@ class CategoryService
             $query->orderBy('created_at', 'desc');
             $categories = $query->get();
 
-            $result = $categories->map(function ($category) {
+            $result = $categories->map(function (Category $category) {
                 return $this->formatCategory($category);
             })->toArray();
 
@@ -126,7 +126,7 @@ class CategoryService
             if (isset($data['name'])) {
                 $category->name = $data['name'];
             }
-            
+
             if (isset($data['slug'])) {
                 $category->slug = $data['slug'];
             }
@@ -229,5 +229,47 @@ class CategoryService
     public function clearCache(): void
     {
         $this->clearVersionedCache(self::CACHE_SCOPE);
+    }
+
+    /**
+     * Get categories for options (dropdowns).
+     */
+    public function getCategoryOptions(array $filters = []): array
+    {
+        try {
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE . ':options', $filters);
+            $cachedData = Cache::get($cacheKey);
+
+            if ($cachedData !== null) {
+                return $cachedData;
+            }
+
+            $query = Category::where('is_active', true);
+
+            if (!empty($filters['type'])) {
+                $typeSlug = $filters['type'];
+                $query->whereHas('type', function ($q) use ($typeSlug) {
+                    $q->where('slug', $typeSlug);
+                });
+            }
+
+            $categories = $query->with('type')->orderBy('name', 'asc')->get();
+
+            $result = $categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'parent_id' => $category->parent_id,
+                    'type' => $category->type ? $category->type->slug : null,
+                ];
+            })->toArray();
+
+            Cache::put($cacheKey, $result, self::CACHE_TTL);
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve category options', ['error' => $e->getMessage()]);
+            throw $e;
+        }
     }
 }

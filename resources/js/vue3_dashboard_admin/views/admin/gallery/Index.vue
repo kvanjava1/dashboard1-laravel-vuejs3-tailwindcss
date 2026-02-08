@@ -8,7 +8,7 @@
             <template #actions>
                 <PageHeaderActions>
                     <ActionButton variant="primary" icon="add" @click="goToCreateGallery">
-                        Add New Gallery
+                        Add Gallery
                     </ActionButton>
                     <ActionDropdown icon="more_vert" align="right">
                         <ActionDropdownItem icon="filter_list" @click="showAdvancedFilter = true">
@@ -35,44 +35,21 @@
             <!-- Gallery Grid -->
             <ContentBoxBody>
                 <!-- Filters Bar -->
-                <div class="mb-6 space-y-4">
-                    <!-- Search and Quick Filters -->
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <!-- Search Bar -->
-                        <div class="flex-1">
-                            <div class="relative">
-                                <input v-model="currentFilters.search" type="text"
-                                    placeholder="Search galleries by title, description, or category..."
-                                    class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                                    @input="handleSearch" />
-                                <span
-                                    class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">
-                                    search
-                                </span>
-                            </div>
+                <div class="mb-6">
+                    <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
                         </div>
-
-                        <!-- Quick Filters -->
-                        <div class="flex gap-3">
-                            <select v-model="currentFilters.category"
-                                class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
-                                <option value="">All Categories</option>
-                                <option v-for="cat in categories" :key="cat.id" :value="cat.name">
-                                    {{ cat.name }}
-                                </option>
-                            </select>
-
-                            <select v-model="currentFilters.status"
-                                class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
+                        <input v-model="searchInput" type="text"
+                            placeholder="Search galleries by title, description, or category..."
+                            class="block w-full pl-11 pr-4 py-3 bg-white border border-border-light rounded-full text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            @keydown.enter="handleSearch" />
                     </div>
 
                     <!-- Active Filters Indicator -->
-                    <ActiveFiltersIndicator :has-active-filters="hasActiveFilters" @reset="handleResetFilters" />
+                    <div class="mt-4">
+                        <ActiveFiltersIndicator :has-active-filters="hasActiveFilters" @reset="handleResetFilters" />
+                    </div>
                 </div>
 
                 <!-- View Toggle -->
@@ -234,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
@@ -254,15 +231,20 @@ import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicato
 import GalleryAdvancedFilterModal from '../../../components/gallery/GalleryAdvancedFilterModal.vue'
 import GalleryDetailModal from '../../../components/gallery/GalleryDetailModal.vue'
 import StatusBadge from '../../../components/ui/StatusBadge.vue'
+import { galleryMocks } from '@/mocks/gallery/galleryMocks'
+import { useCategoryData } from '@/composables/category/useCategoryData'
+import { debounce } from '@/utils/debounce'
 
 // Router
 const router = useRouter()
+const { fetchCategoryOptions } = useCategoryData()
 
 // Reactive state
 const showAdvancedFilter = ref(false)
 const showDetailModal = ref(false)
 const selectedGallery = ref<any>(null)
 const viewMode = ref<'grid' | 'list'>('grid')
+const searchInput = ref('')
 
 // Current filters
 const currentFilters = reactive({
@@ -276,120 +258,14 @@ const currentFilters = reactive({
 })
 
 // Categories data
-const categories = ref([
-    { id: 1, name: 'Photography' },
-    { id: 2, name: 'Architecture' },
-    { id: 3, name: 'Food' },
-    { id: 4, name: 'Travel' },
-    { id: 5, name: 'Art' },
-    { id: 6, name: 'Wildlife' },
-    { id: 7, name: 'Events' },
-    { id: 8, name: 'Products' }
-])
+const categories = ref<any[]>([])
 
 // Dummy data - Enhanced with more galleries
-const galleries = ref([
-    {
-        id: 1,
-        title: 'Nature Photography Collection',
-        description: 'Beautiful landscapes and natural scenes captured around the world. From majestic mountains to serene beaches.',
-        coverImage: 'https://picsum.photos/seed/nature1/400/300',
-        category: 'Photography',
-        itemCount: 24,
-        status: 'active',
-        createdAt: '2024-01-15'
-    },
-    {
-        id: 2,
-        title: 'Urban Architecture',
-        description: 'Modern and classic architectural designs from city landscapes. Showcasing the beauty of urban structures.',
-        coverImage: 'https://picsum.photos/seed/arch1/400/300',
-        category: 'Architecture',
-        itemCount: 18,
-        status: 'active',
-        createdAt: '2024-01-20'
-    },
-    {
-        id: 3,
-        title: 'Food & Cuisine Masterpieces',
-        description: 'Delicious food photography showcasing culinary arts from around the globe.',
-        coverImage: 'https://picsum.photos/seed/food1/400/300',
-        category: 'Food',
-        itemCount: 32,
-        status: 'active',
-        createdAt: '2024-02-01'
-    },
-    {
-        id: 4,
-        title: 'Travel Adventures 2024',
-        description: 'Memorable moments from travel destinations worldwide. Capturing the essence of different cultures.',
-        coverImage: 'https://picsum.photos/seed/travel1/400/300',
-        category: 'Travel',
-        itemCount: 45,
-        status: 'active',
-        createdAt: '2024-02-10'
-    },
-    {
-        id: 5,
-        title: 'Contemporary Art Collection',
-        description: 'Contemporary and traditional art pieces from various artists. A curated selection of modern masterpieces.',
-        coverImage: 'https://picsum.photos/seed/art1/400/300',
-        category: 'Art',
-        itemCount: 16,
-        status: 'inactive',
-        createdAt: '2024-01-05'
-    },
-    {
-        id: 6,
-        title: 'Wildlife in Natural Habitat',
-        description: 'Amazing wildlife photography capturing animals in their natural habitat. Rare and beautiful moments.',
-        coverImage: 'https://picsum.photos/seed/wild1/400/300',
-        category: 'Wildlife',
-        itemCount: 28,
-        status: 'active',
-        createdAt: '2024-02-15'
-    },
-    {
-        id: 7,
-        title: 'Corporate Events 2024',
-        description: 'Professional coverage of corporate events, conferences, and business gatherings.',
-        coverImage: 'https://picsum.photos/seed/event1/400/300',
-        category: 'Events',
-        itemCount: 52,
-        status: 'active',
-        createdAt: '2024-01-25'
-    },
-    {
-        id: 8,
-        title: 'Product Photography Studio',
-        description: 'High-quality product shots for e-commerce and marketing purposes.',
-        coverImage: 'https://picsum.photos/seed/product1/400/300',
-        category: 'Products',
-        itemCount: 38,
-        status: 'active',
-        createdAt: '2024-02-05'
-    },
-    {
-        id: 9,
-        title: 'Black & White Classics',
-        description: 'Timeless black and white photography showcasing emotion and contrast.',
-        coverImage: 'https://picsum.photos/seed/bw1/400/300',
-        category: 'Photography',
-        itemCount: 21,
-        status: 'active',
-        createdAt: '2024-01-30'
-    },
-    {
-        id: 10,
-        title: 'Street Food Adventures',
-        description: 'Vibrant street food photography from markets around the world.',
-        coverImage: 'https://picsum.photos/seed/street1/400/300',
-        category: 'Food',
-        itemCount: 29,
-        status: 'inactive',
-        createdAt: '2024-02-08'
-    }
-])
+const galleries = ref(galleryMocks)
+
+onMounted(async () => {
+    categories.value = await fetchCategoryOptions({ type: 'gallery' })
+})
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -415,7 +291,10 @@ const filteredGalleries = computed(() => {
 
     // Filter by category
     if (currentFilters.category) {
-        filtered = filtered.filter(gallery => gallery.category === currentFilters.category)
+        // Since mocks use strings but real database uses IDs, we find the name for filtering
+        const selectedCat = categories.value.find(c => String(c.id) === currentFilters.category)
+        const matchValue = selectedCat ? selectedCat.name : currentFilters.category
+        filtered = filtered.filter(gallery => gallery.category === matchValue)
     }
 
     // Filter by status
@@ -440,7 +319,9 @@ const filteredGalleries = computed(() => {
 
 // Filter methods
 const handleSearch = () => {
-    // Debounce could be added here if needed
+    currentFilters.search = searchInput.value
+    // When we implement the API, this is where we will call fetchGalleries()
+    console.log('Searching for:', currentFilters.search)
 }
 
 const handleApplyFilters = (filters: typeof currentFilters) => {
@@ -449,6 +330,7 @@ const handleApplyFilters = (filters: typeof currentFilters) => {
 }
 
 const handleResetFilters = () => {
+    searchInput.value = ''
     Object.assign(currentFilters, {
         search: '',
         category: '',

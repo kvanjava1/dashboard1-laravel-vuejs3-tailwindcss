@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 // Import views
 import Gallery from '../../views/admin/gallery/Index.vue'
-import CreateGallery from '../../views/admin/gallery/Create.vue'
+import CreateGallery from '../../views/admin/gallery/GalleryAdd.vue'
 
 const extendRoutes: RouteRecordRaw[] = [
     {
@@ -21,6 +21,15 @@ const extendRoutes: RouteRecordRaw[] = [
         meta: {
             requiresAuth: true,
             title: 'Create Gallery'
+        }
+    },
+    {
+        path: '/gallery_management/edit/:id',
+        name: 'gallery_management.edit',
+        component: () => import('../../views/admin/gallery/GalleryEdit.vue'),
+        meta: {
+            requiresAuth: true,
+            title: 'Edit Gallery'
         }
     }
 ]

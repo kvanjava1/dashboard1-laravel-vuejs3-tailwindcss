@@ -1,19 +1,21 @@
 <template>
     <AdminLayout>
+        <!-- Header Section -->
         <PageHeader>
             <template #title>
-                <PageHeaderTitle title="Add New Category" />
+                <PageHeaderTitle title="Create Gallery" />
             </template>
             <template #actions>
                 <PageHeaderActions>
-                    <ActionButton icon="arrow_back" @click="goBack">
-                        Back
+                    <ActionButton variant="secondary" icon="arrow_back" @click="goBack">
+                        Back to Galleries
                     </ActionButton>
                 </PageHeaderActions>
             </template>
         </PageHeader>
 
-        <CategoryForm mode="create" :all-categories="allCategories" @cancel="goBack" @success="handleSuccess" />
+        <!-- Gallery Form -->
+        <GalleryForm mode="create" :gallery-categories="allCategories" @cancel="goBack" @success="handleSuccess" />
     </AdminLayout>
 </template>
 
@@ -26,7 +28,7 @@ import PageHeader from '../../../components/ui/PageHeader.vue'
 import PageHeaderTitle from '../../../components/ui/PageHeaderTitle.vue'
 import PageHeaderActions from '../../../components/ui/PageHeaderActions.vue'
 import ActionButton from '../../../components/ui/ActionButton.vue'
-import CategoryForm from '../../../components/category/CategoryForm.vue'
+import GalleryForm from '../../../components/gallery/GalleryForm.vue'
 
 const router = useRouter()
 const { fetchCategoryOptions } = useCategoryData()
@@ -34,14 +36,14 @@ const { fetchCategoryOptions } = useCategoryData()
 const allCategories = ref([])
 
 const goBack = () => {
-    router.push({ name: 'category_management.index' })
+    router.push({ name: 'gallery_management.index' })
 }
 
 const handleSuccess = () => {
-    router.push({ name: 'category_management.index' })
+    router.push({ name: 'gallery_management.index' })
 }
 
 onMounted(async () => {
-    allCategories.value = await fetchCategoryOptions()
+    allCategories.value = await fetchCategoryOptions({ type: 'gallery' })
 })
 </script>

@@ -57,10 +57,34 @@ export const useCategoryData = () => {
         }
     }
 
+    // Fetch category options (simplified list)
+    const fetchCategoryOptions = async (params?: any) => {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await get(apiRoutes.categories.options(params))
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch category options')
+            }
+
+            const data = await response.json()
+            return data.data || []
+        } catch (err: any) {
+            error.value = err.message || 'Failed to fetch category options'
+            console.error('Error fetching category options:', err)
+            return []
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         loading,
         error,
         fetchCategory,
-        fetchAllCategories
+        fetchAllCategories,
+        fetchCategoryOptions
     }
 }

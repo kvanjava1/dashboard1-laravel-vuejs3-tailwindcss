@@ -47,6 +47,7 @@ Route::prefix('v1')->group(function () {
         Route::get('permissions/grouped', [PermissionController::class, 'grouped'])->middleware(['permission:role_management.view']);
 
         // Category management routes
+        Route::get('categories/options', [CategoryController::class, 'options'])->middleware('permission:category_management.view')->name('categories.options');
         Route::get('categories', [CategoryController::class, 'index'])->middleware('permission:category_management.view')->name('categories.index');
         Route::post('categories', [CategoryController::class, 'store'])->middleware('permission:category_management.add')->name('categories.store');
         Route::post('categories/clear-cache', [CategoryController::class, 'clearCache'])->middleware('permission:category_management.edit')->name('categories.clear-cache');

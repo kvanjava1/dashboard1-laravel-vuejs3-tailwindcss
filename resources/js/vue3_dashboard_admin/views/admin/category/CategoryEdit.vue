@@ -37,7 +37,7 @@ import ErrorState from '../../../components/ui/ErrorState.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { fetchCategory, fetchAllCategories, loading, error } = useCategoryData()
+const { fetchCategory, fetchCategoryOptions, loading, error } = useCategoryData()
 
 const category = ref<any>(null)
 const allCategories = ref([])
@@ -61,7 +61,7 @@ const fetchData = async () => {
         // Fetch in parallel
         const [cat, cats] = await Promise.all([
             fetchCategory(id),
-            fetchAllCategories()
+            fetchCategoryOptions()
         ])
         category.value = cat
         allCategories.value = cats

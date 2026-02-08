@@ -1,8 +1,5 @@
 <template>
-    <BaseModal
-        v-model="isOpen"
-        size="lg"
-    >
+    <BaseModal v-model="isOpen" size="lg">
         <!-- Modal Header -->
         <template #header>
             <span class="material-symbols-outlined text-primary text-2xl">filter_list</span>
@@ -22,12 +19,8 @@
                         Search
                     </h4>
                     <div class="grid grid-cols-1 gap-6">
-                        <FormField
-                            v-model="filters.search"
-                            label="Search Galleries"
-                            type="text"
-                            placeholder="Search by gallery title or description"
-                        />
+                        <FormField v-model="filters.search" label="Search Galleries" type="text"
+                            placeholder="Search by gallery title or description" />
                     </div>
                 </div>
 
@@ -40,7 +33,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField v-model="filters.category" label="Category" type="select">
                             <option value="">All Categories</option>
-                            <option v-for="category in categories" :key="category.id" :value="category.name">
+                            <option v-for="category in categories" :key="category.id" :value="String(category.id)">
                                 {{ category.name }}
                             </option>
                         </FormField>
@@ -63,7 +56,8 @@
                         <FormField v-model="filters.min_items" label="Minimum Items" type="number" placeholder="0">
                         </FormField>
 
-                        <FormField v-model="filters.max_items" label="Maximum Items" type="number" placeholder="No limit">
+                        <FormField v-model="filters.max_items" label="Maximum Items" type="number"
+                            placeholder="No limit">
                         </FormField>
                     </div>
                 </div>
@@ -75,17 +69,9 @@
                         Creation Date
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                            v-model="filters.date_from"
-                            label="From Date"
-                            type="date"
-                        />
+                        <FormField v-model="filters.date_from" label="From Date" type="date" />
 
-                        <FormField
-                            v-model="filters.date_to"
-                            label="To Date"
-                            type="date"
-                        />
+                        <FormField v-model="filters.date_to" label="To Date" type="date" />
                     </div>
                 </div>
             </div>
