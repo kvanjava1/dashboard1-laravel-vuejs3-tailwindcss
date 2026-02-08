@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Managements;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCategoryRequest;
-use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Requests\Category\StoreCategoryRequest;
+use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Models\Category;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
@@ -48,7 +48,7 @@ class CategoryController extends Controller
     public function show(string $id): JsonResponse
     {
         // Using ID manually to ensure service handles generic lookup if needed
-        $category = $this->categoryService->getCategoryById((int)$id);
+        $category = $this->categoryService->getCategoryById((int) $id);
         return response()->json(['data' => $category]);
     }
 
@@ -57,7 +57,7 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, string $id): JsonResponse
     {
-        $category = $this->categoryService->updateCategory((int)$id, $request->validated());
+        $category = $this->categoryService->updateCategory((int) $id, $request->validated());
         return response()->json(['data' => $category]);
     }
 
@@ -66,7 +66,7 @@ class CategoryController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
-        $this->categoryService->deleteCategory((int)$id);
+        $this->categoryService->deleteCategory((int) $id);
         return response()->json(['message' => 'Category deleted successfully']);
     }
 
