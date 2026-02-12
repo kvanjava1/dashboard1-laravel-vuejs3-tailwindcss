@@ -238,8 +238,8 @@ import StatusBadge from '../../../components/ui/StatusBadge.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
 import { galleryMocks } from '@/mocks/gallery/galleryMocks'
 import { useCategoryData } from '@/composables/category/useCategoryData'
+import { useGalleryData } from '@/composables/gallery/useGalleryData'
 import { debounce } from '@/utils/debounce'
-
 // Router
 const router = useRouter()
 const { fetchCategoryOptions } = useCategoryData()
@@ -267,11 +267,16 @@ const currentFilters = reactive({
 // Categories data
 const categories = ref<any[]>([])
 
-// Dummy data - Enhanced with more galleries
-const galleries = ref(galleryMocks)
+// Galleries state (server-driven if available, otherwise fall back to mocks)
+const galleries = ref<any[]>([])
+const useServer = ref(false)
+const loading = ref(false)
+
+const { fetchGalleries, deleteGallery } = useGalleryData()
 
 onMounted(async () => {
     categories.value = await fetchCategoryOptions({ type: 'gallery' })
+    await loadGalleries()
 })
 
 // Computed
@@ -284,6 +289,10 @@ const hasActiveFilters = computed(() => {
 })
 
 const filteredGalleries = computed(() => {
+    // If server-driven, server already applied filtering — return what's loaded
+    if (useServer.value) return galleries.value
+
+    // Client-side filtering (fallback / mocks)
     let filtered = galleries.value
 
     // Filter by search term
@@ -298,7 +307,6 @@ const filteredGalleries = computed(() => {
 
     // Filter by category
     if (currentFilters.category) {
-        // Since mocks use strings but real database uses IDs, we find the name for filtering
         const selectedCat = categories.value.find(c => String(c.id) === currentFilters.category)
         const matchValue = selectedCat ? selectedCat.name : currentFilters.category
         filtered = filtered.filter(gallery => gallery.category === matchValue)
@@ -324,15 +332,35 @@ const filteredGalleries = computed(() => {
     return filtered
 })
 
+// Pagination helpers — use server-provided pagination when available
+const serverTotal = ref(0)
+const serverPerPage = ref(itemsPerPage.value)
+const serverCurrentPage = ref(1)
+const serverTotalPages = ref(1)
+
 const paginatedGalleries = computed(() => {
+    // When server-driven, `galleries` already contains current page
+    if (useServer.value) return galleries.value
+
+    // Client-side pagination
     const start = (currentPage.value - 1) * itemsPerPage.value
     const end = start + itemsPerPage.value
     return filteredGalleries.value.slice(start, end)
 })
 
-const totalPages = computed(() => Math.ceil(filteredGalleries.value.length / itemsPerPage.value))
+const totalPages = computed(() => {
+    return useServer.value ? serverTotalPages.value : Math.ceil(filteredGalleries.value.length / itemsPerPage.value)
+})
 
 const showingText = computed(() => {
+    if (useServer.value) {
+        const total = serverTotal.value
+        if (total === 0) return 'No galleries'
+        const start = (serverCurrentPage.value - 1) * serverPerPage.value + 1
+        const end = Math.min(serverCurrentPage.value * serverPerPage.value, total)
+        return `Showing ${start}-${end} of ${total} galleries`
+    }
+
     const total = filteredGalleries.value.length
     if (total === 0) return 'No galleries'
     const start = (currentPage.value - 1) * itemsPerPage.value + 1
@@ -341,21 +369,28 @@ const showingText = computed(() => {
 })
 
 const currentStart = computed(() => {
+    if (useServer.value) return serverTotal.value === 0 ? 0 : (serverCurrentPage.value - 1) * serverPerPage.value + 1
     if (filteredGalleries.value.length === 0) return 0
     return (currentPage.value - 1) * itemsPerPage.value + 1
 })
 
 const currentEnd = computed(() => {
+    if (useServer.value) return Math.min(serverCurrentPage.value * serverPerPage.value, serverTotal.value)
     const end = currentPage.value * itemsPerPage.value
     return Math.min(end, filteredGalleries.value.length)
 })
 
 // Filter methods
-const handleSearch = () => {
+const handleSearch = async () => {
     currentFilters.search = searchInput.value
+    // If using server, request page 1 with search applied
+    if (useServer.value) {
+        serverCurrentPage.value = 1
+        await loadGalleries()
+        return
+    }
+
     currentPage.value = 1
-    // When we implement the API, this is where we will call fetchGalleries()
-    console.log('Searching for:', currentFilters.search)
 }
 
 const handleApplyFilters = (filters: typeof currentFilters) => {
@@ -379,12 +414,13 @@ const handleResetFilters = () => {
 }
 
 const refreshGalleries = async () => {
-    await showToast({
-        icon: 'success',
-        title: 'Refreshed',
-        text: 'Gallery list has been refreshed',
-        timer: 1500
-    })
+    if (useServer.value) {
+        await loadGalleries()
+        await showToast({ icon: 'success', title: 'Refreshed', text: 'Gallery list has been refreshed', timer: 1200 })
+        return
+    }
+
+    await showToast({ icon: 'success', title: 'Refreshed', text: 'Gallery list has been refreshed', timer: 1500 })
 }
 
 // Methods
@@ -401,6 +437,53 @@ const editGallery = (gallery: any) => {
     router.push({ name: 'gallery_management.edit', params: { id: gallery.id } })
 }
 
+// Load galleries from server (or fallback to mocks)
+async function loadGalleries() {
+    loading.value = true
+    try {
+        const params: Record<string, any> = {
+            page: useServer.value ? serverCurrentPage.value : currentPage.value,
+            per_page: itemsPerPage.value
+        }
+        if (currentFilters.search) params.search = currentFilters.search
+        if (currentFilters.category) params.category_id = currentFilters.category
+
+        const result = await fetchGalleries(params).catch(() => null)
+        if (!result) {
+            // fallback to mocks
+            useServer.value = false
+            galleries.value = galleryMocks
+            serverTotal.value = 0
+            return
+        }
+
+        useServer.value = true
+
+        // result contains { galleries: [...], total, per_page, current_page, total_pages }
+        serverTotal.value = result.total || 0
+        serverPerPage.value = result.per_page || itemsPerPage.value
+        serverCurrentPage.value = result.current_page || 1
+        serverTotalPages.value = result.total_pages || 1
+
+        // map API gallery model to UI shape
+        galleries.value = (result.galleries || []).map((g: any) => ({
+            id: g.id,
+            title: g.title,
+            description: g.description || '',
+            category: (categories.value.find((c: any) => c.id === g.category_id)?.name) || '',
+            itemCount: g.item_count || 0,
+            coverImage: g.cover?.url || '',
+            status: g.is_active ? 'active' : 'inactive',
+            createdAt: g.created_at
+        }))
+    } catch (err: any) {
+        useServer.value = false
+        galleries.value = galleryMocks
+        console.error('Failed to load galleries:', err)
+    } finally {
+        loading.value = false
+    }
+}
 const confirmDelete = async (gallery: any) => {
     const confirmed = await showConfirm({
         title: 'Delete Gallery?',
@@ -410,35 +493,65 @@ const confirmDelete = async (gallery: any) => {
         cancelButtonText: 'Cancel'
     })
 
-    if (confirmed) {
-        // Simulate delete
-        const index = galleries.value.findIndex(g => g.id === gallery.id)
-        if (index !== -1) {
-            galleries.value.splice(index, 1)
-            await showToast({
-                icon: 'success',
-                title: 'Deleted!',
-                text: `Gallery "${gallery.title}" has been deleted.`,
-                timer: 2000
-            })
+    if (!confirmed) return
+
+    if (useServer.value) {
+        try {
+            await deleteGallery(gallery.id)
+            await loadGalleries()
+            await showToast({ icon: 'success', title: 'Deleted!', text: `Gallery "${gallery.title}" has been deleted.`, timer: 2000 })
+        } catch (err: any) {
+            await showToast({ icon: 'error', title: 'Error', text: err.message || 'Failed to delete gallery' })
         }
+        return
+    }
+
+    // Client-side (mock) delete
+    const index = galleries.value.findIndex(g => g.id === gallery.id)
+    if (index !== -1) {
+        galleries.value.splice(index, 1)
+        await showToast({ icon: 'success', title: 'Deleted!', text: `Gallery "${gallery.title}" has been deleted.`, timer: 2000 })
     }
 }
 
 // Pagination methods
-const prevPage = () => {
+const prevPage = async () => {
+    if (useServer.value) {
+        if (serverCurrentPage.value > 1) {
+            serverCurrentPage.value--
+            await loadGalleries()
+        }
+        return
+    }
+
     if (currentPage.value > 1) {
         currentPage.value--
     }
 }
 
-const nextPage = () => {
+const nextPage = async () => {
+    if (useServer.value) {
+        if (serverCurrentPage.value < serverTotalPages.value) {
+            serverCurrentPage.value++
+            await loadGalleries()
+        }
+        return
+    }
+
     if (currentPage.value < totalPages.value) {
         currentPage.value++
     }
 }
 
-const goToPage = (page: number) => {
+const goToPage = async (page: number) => {
+    if (useServer.value) {
+        if (page >= 1 && page <= serverTotalPages.value) {
+            serverCurrentPage.value = page
+            await loadGalleries()
+        }
+        return
+    }
+
     if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
     }
