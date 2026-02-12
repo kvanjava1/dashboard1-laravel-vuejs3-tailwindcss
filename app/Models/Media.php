@@ -31,4 +31,13 @@ class Media extends Model
     {
         return $this->belongsTo(Gallery::class);
     }
+
+    /**
+     * Get full public URL for this media record (points to 1200x900 by default)
+     */
+    public function getUrlAttribute(): string
+    {
+        // If filename is already a public path (relative to storage/app/public), return full URL
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->filename);
+    }
 }

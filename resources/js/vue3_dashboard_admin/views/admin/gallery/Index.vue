@@ -55,8 +55,7 @@
                 <!-- View Toggle -->
                 <div class="flex justify-between items-center mb-4">
                     <div class="text-sm text-gray-600">
-                        Showing <span class="font-semibold">{{ filteredGalleries.length }}</span> of <span
-                            class="font-semibold">{{ galleries.length }}</span> galleries
+                        {{ showingText }}
                     </div>
                     <div class="flex gap-2">
                         <button @click="viewMode = 'grid'" :class="[
@@ -75,9 +74,9 @@
                 </div>
 
                 <!-- Grid View -->
-                <div v-if="viewMode === 'grid' && filteredGalleries.length > 0"
+                <div v-if="viewMode === 'grid' && paginatedGalleries.length > 0"
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <div v-for="gallery in filteredGalleries" :key="gallery.id"
+                    <div v-for="gallery in paginatedGalleries" :key="gallery.id"
                         class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 group">
                         <!-- Gallery Image -->
                         <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
@@ -131,8 +130,8 @@
                 </div>
 
                 <!-- List View -->
-                <div v-if="viewMode === 'list' && filteredGalleries.length > 0" class="space-y-3">
-                    <div v-for="gallery in filteredGalleries" :key="gallery.id"
+                <div v-if="viewMode === 'list' && paginatedGalleries.length > 0" class="space-y-3">
+                    <div v-for="gallery in paginatedGalleries" :key="gallery.id"
                         class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 border border-gray-100">
                         <div class="flex gap-4 p-4">
                             <!-- Thumbnail -->
@@ -185,6 +184,11 @@
                     </div>
                 </div>
 
+                <!-- Pagination -->
+                <Pagination v-if="totalPages > 1" :current-start="currentStart" :current-end="currentEnd" :total="filteredGalleries.length"
+                    :current-page="currentPage" :total-pages="totalPages"
+                    :rows-per-page="itemsPerPage" @prev="prevPage" @next="nextPage" @goto="goToPage" />
+
                 <!-- Empty State -->
                 <EmptyState v-if="filteredGalleries.length === 0" icon="photo_library"
                     :message="hasActiveFilters ? 'No galleries match your filters' : 'No Galleries Found'"
@@ -231,6 +235,7 @@ import ActiveFiltersIndicator from '../../../components/ui/ActiveFiltersIndicato
 import GalleryAdvancedFilterModal from '../../../components/gallery/GalleryAdvancedFilterModal.vue'
 import GalleryDetailModal from '../../../components/gallery/GalleryDetailModal.vue'
 import StatusBadge from '../../../components/ui/StatusBadge.vue'
+import Pagination from '../../../components/ui/Pagination.vue'
 import { galleryMocks } from '@/mocks/gallery/galleryMocks'
 import { useCategoryData } from '@/composables/category/useCategoryData'
 import { debounce } from '@/utils/debounce'
@@ -245,6 +250,8 @@ const showDetailModal = ref(false)
 const selectedGallery = ref<any>(null)
 const viewMode = ref<'grid' | 'list'>('grid')
 const searchInput = ref('')
+const currentPage = ref(1)
+const itemsPerPage = ref(5)
 
 // Current filters
 const currentFilters = reactive({
@@ -317,15 +324,43 @@ const filteredGalleries = computed(() => {
     return filtered
 })
 
+const paginatedGalleries = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return filteredGalleries.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(filteredGalleries.value.length / itemsPerPage.value))
+
+const showingText = computed(() => {
+    const total = filteredGalleries.value.length
+    if (total === 0) return 'No galleries'
+    const start = (currentPage.value - 1) * itemsPerPage.value + 1
+    const end = Math.min(currentPage.value * itemsPerPage.value, total)
+    return `Showing ${start}-${end} of ${total} galleries`
+})
+
+const currentStart = computed(() => {
+    if (filteredGalleries.value.length === 0) return 0
+    return (currentPage.value - 1) * itemsPerPage.value + 1
+})
+
+const currentEnd = computed(() => {
+    const end = currentPage.value * itemsPerPage.value
+    return Math.min(end, filteredGalleries.value.length)
+})
+
 // Filter methods
 const handleSearch = () => {
     currentFilters.search = searchInput.value
+    currentPage.value = 1
     // When we implement the API, this is where we will call fetchGalleries()
     console.log('Searching for:', currentFilters.search)
 }
 
 const handleApplyFilters = (filters: typeof currentFilters) => {
     Object.assign(currentFilters, filters)
+    currentPage.value = 1
     showAdvancedFilter.value = false
 }
 
@@ -340,6 +375,7 @@ const handleResetFilters = () => {
         date_from: '',
         date_to: ''
     })
+    currentPage.value = 1
 }
 
 const refreshGalleries = async () => {
@@ -386,6 +422,25 @@ const confirmDelete = async (gallery: any) => {
                 timer: 2000
             })
         }
+    }
+}
+
+// Pagination methods
+const prevPage = () => {
+    if (currentPage.value > 1) {
+        currentPage.value--
+    }
+}
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+        currentPage.value++
+    }
+}
+
+const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page
     }
 }
 </script>

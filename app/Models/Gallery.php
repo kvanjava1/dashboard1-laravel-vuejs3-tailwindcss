@@ -44,6 +44,14 @@ class Gallery extends Model
         return $this->belongsTo(Media::class, 'cover_id');
     }
 
+    /**
+     * Tags associated with the gallery (many-to-many)
+     */
+    public function tags(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'gallery_tag');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-C0OnHEFk.css",
+    "file": "assets/app-ad-oE9sB.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,12 +9,24 @@
     ]
   },
   "resources/js/vue3_dashboard_admin/app.ts": {
-    "file": "assets/app-DHI3ALFK.js",
+    "file": "assets/app-DTqaD1Af.js",
     "name": "app",
     "src": "resources/js/vue3_dashboard_admin/app.ts",
     "isEntry": true,
+    "dynamicImports": [
+      "resources/js/vue3_dashboard_admin/views/admin/gallery/GalleryEdit.vue"
+    ],
     "css": [
-      "assets/app-DBpszL1-.css"
+      "assets/app-BufB-igK.css"
+    ]
+  },
+  "resources/js/vue3_dashboard_admin/views/admin/gallery/GalleryEdit.vue": {
+    "file": "assets/GalleryEdit-CM1quROc.js",
+    "name": "GalleryEdit",
+    "src": "resources/js/vue3_dashboard_admin/views/admin/gallery/GalleryEdit.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/vue3_dashboard_admin/app.ts"
     ]
   }
 }

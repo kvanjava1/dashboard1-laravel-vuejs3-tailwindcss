@@ -21,8 +21,10 @@ class CheckUserStatus
 
             // Check if user account is active
             if (!$user->is_active) {
-                // Delete current access token
-                $user->currentAccessToken()->delete();
+                // Delete current access token if available
+                if ($user->currentAccessToken()) {
+                    $user->currentAccessToken()->delete();
+                }
 
                 return response()->json([
                     'message' => 'Your account has been deactivated. Please contact administrator.',
@@ -31,8 +33,10 @@ class CheckUserStatus
 
             // Check if user is banned
             if ($user->is_banned) {
-                // Delete current access token
-                $user->currentAccessToken()->delete();
+                // Delete current access token if available
+                if ($user->currentAccessToken()) {
+                    $user->currentAccessToken()->delete();
+                }
 
                 return response()->json([
                     'message' => 'Your account has been banned. Please contact administrator.',

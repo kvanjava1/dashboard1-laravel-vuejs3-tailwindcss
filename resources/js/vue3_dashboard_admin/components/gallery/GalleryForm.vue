@@ -145,23 +145,23 @@
                             class="w-full px-4 py-2.5 rounded-lg border border-border-light bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                             placeholder="Type to search or create tags..." />
                         <!-- Suggestions Dropdown -->
-                        <div v-if="showSuggestions && (filteredTags.length > 0 || (tagInput.trim() && !existingTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase())))"
+                        <div v-if="showSuggestions && (filteredTags.length > 0 || (tagInput.trim() && !filteredTags.some(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())))"
                             class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto">
                             <!-- Existing tags -->
                             <div v-if="filteredTags.length > 0" class="border-b border-gray-200">
                                 <div class="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
                                     Existing Tags
                                 </div>
-                                <div v-for="(tag, index) in filteredTags" :key="tag" @mousedown.prevent="selectTag(tag)"
+                                <div v-for="(tag, index) in filteredTags" :key="tag.id" @mousedown.prevent="selectTag(tag)"
                                     class="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
                                     :class="{ 'bg-primary text-white': highlightedIndex === index }">
-                                    <span>{{ tag }}</span>
+                                    <span>{{ tag.name }}</span>
                                     <span class="material-symbols-outlined text-xs"
                                         :class="highlightedIndex === index ? 'text-white' : 'text-gray-400'">add</span>
                                 </div>
                             </div>
                             <!-- Create new tag -->
-                            <div v-if="tagInput.trim() && !existingTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase())"
+                            <div v-if="tagInput.trim() && !filteredTags.some(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())"
                                 @mousedown.prevent="createNewTag"
                                 class="px-3 py-2 cursor-pointer flex items-center justify-between transition-colors"
                                 :class="{ 'bg-primary text-white': highlightedIndex === filteredTags.length }">
@@ -211,7 +211,8 @@ import ActionButton from '../ui/ActionButton.vue'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 import { showToast } from '@/composables/useSweetAlert'
-import { tagMocks } from '@/mocks/gallery/tagMocks'
+import { useGalleryData } from '@/composables/gallery/useGalleryData'
+import { debounce } from '@/utils/debounce'
 import { galleryCategoryMocks } from '@/mocks/gallery/categoryMocks'
 
 interface Props {
@@ -221,7 +222,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits(['cancel', 'success'])
+const emit = defineEmits(['cancel', 'success', 'submit'])
+
+// Allow parent to reset/loading state on error
+const resetLoading = () => { isSaving.value = false }
+
+defineExpose({ resetLoading })
 
 // State
 const isSaving = ref(false)
@@ -235,8 +241,25 @@ const cropperRef = ref()
 const showSuggestions = ref(false)
 const highlightedIndex = ref(-1)
 
-const existingTags = ref(tagMocks)
-const filteredTags = ref<string[]>([])
+const { fetchTagOptions } = useGalleryData()
+
+const existingTags = ref<string[]>([])
+const filteredTags = ref<Array<{id: number, name: string}>>([])
+
+// Debounced fetch for tag suggestions (delegates to composable)
+const fetchTagSuggestions = debounce(async (q: string) => {
+    if (!q) {
+        filteredTags.value = []
+        return
+    }
+
+    try {
+        const opts = await fetchTagOptions(q, 10)
+        filteredTags.value = Array.isArray(opts) ? opts : []
+    } catch (e) {
+        filteredTags.value = []
+    }
+}, 300)
 
 // Form data
 const form = reactive({
@@ -275,6 +298,22 @@ const handleCoverImageSelect = (event: Event) => {
             alert('Please select a valid image file (JPG, PNG, WebP)')
             return
         }
+
+        // Immediately set preview + file so submission is allowed without cropping (hybrid UX)
+        try {
+            // Use object URL for quicker preview and to avoid base64 memory when possible
+            coverImagePreview.value = URL.createObjectURL(file)
+        } catch (e) {
+            // Fallback to FileReader data URL
+            const fr = new FileReader()
+            fr.onload = (ev) => {
+                coverImagePreview.value = ev.target?.result as string
+            }
+            fr.readAsDataURL(file)
+        }
+        coverImageFile.value = file
+
+        // Still load data URL into cropper so user may optionally crop
         const reader = new FileReader()
         reader.onload = (e) => {
             cropperImage.value = e.target?.result as string
@@ -285,6 +324,11 @@ const handleCoverImageSelect = (event: Event) => {
 }
 
 const removeNewImage = () => {
+    // Revoke object URL if we created one earlier
+    if (coverImagePreview.value && coverImagePreview.value.startsWith && coverImagePreview.value.startsWith('blob:')) {
+        try { URL.revokeObjectURL(coverImagePreview.value) } catch (e) { /* ignore */ }
+    }
+
     coverImagePreview.value = ''
     coverImageFile.value = null
     if (coverImageInput.value) {
@@ -321,11 +365,9 @@ const cancelCrop = () => {
 }
 
 const filterTags = () => {
-    const query = tagInput.value?.trim().toLowerCase() || ''
+    const query = tagInput.value?.trim() || ''
     if (query) {
-        filteredTags.value = existingTags.value.filter(tag =>
-            tag.toLowerCase().includes(query) && !form.tags.includes(tag)
-        )
+        fetchTagSuggestions(query)
     } else {
         filteredTags.value = []
     }
@@ -339,15 +381,18 @@ const hideSuggestions = () => {
     }, 150)
 }
 
-const selectTag = (tag: string) => {
-    if (!form.tags.some(t => t.toLowerCase() === tag.toLowerCase())) {
-        form.tags.push(tag)
+// Select tag from suggestions (accepts either name string or object)
+const selectTag = (tag: string | { id: number, name: string }) => {
+    const name = typeof tag === 'string' ? tag : tag.name
+    if (!form.tags.some(t => t.toLowerCase() === name.toLowerCase())) {
+        form.tags.push(name)
     }
     tagInput.value = ''
     filteredTags.value = []
     showSuggestions.value = false
     highlightedIndex.value = -1
 }
+
 
 const createNewTag = () => {
     const newTag = tagInput.value?.trim() || ''
@@ -376,8 +421,8 @@ const handleTagKeydown = (event: KeyboardEvent) => {
             } else if (highlightedIndex.value === filteredTags.value.length) {
                 createNewTag()
             }
-        } else if (filteredTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())) {
-            const match = filteredTags.value.find(t => t.toLowerCase() === inputValue.toLowerCase())
+        } else if (filteredTags.value.some(t => t.name.toLowerCase() === inputValue.toLowerCase())) {
+            const match = filteredTags.value.find(t => t.name.toLowerCase() === inputValue.toLowerCase())
             if (match) selectTag(match)
         } else {
             createNewTag()
@@ -389,13 +434,13 @@ const handleTagKeydown = (event: KeyboardEvent) => {
             return
         }
         const inputValue = tagInput.value?.trim() || ''
-        const canCreate = inputValue && !existingTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())
+        const canCreate = inputValue && !filteredTags.value.some(t => t.name.toLowerCase() === inputValue.toLowerCase())
         const totalItems = filteredTags.value.length + (canCreate ? 1 : 0)
         if (totalItems > 0) highlightedIndex.value = (highlightedIndex.value + 1) % totalItems
     } else if (event.key === 'ArrowUp') {
         event.preventDefault()
         const inputValue = tagInput.value?.trim() || ''
-        const canCreate = inputValue && !existingTags.value.some(t => t.toLowerCase() === inputValue.toLowerCase())
+        const canCreate = inputValue && !filteredTags.value.some(t => t.name.toLowerCase() === inputValue.toLowerCase())
         const totalItems = filteredTags.value.length + (canCreate ? 1 : 0)
         if (totalItems > 0) highlightedIndex.value = (highlightedIndex.value - 1 + totalItems) % totalItems
     } else if (event.key === 'Escape') {
@@ -407,30 +452,83 @@ const removeTag = (index: number) => {
     form.tags.splice(index, 1)
 }
 
+
 const handleSubmit = async () => {
     if (!form.title.trim()) {
         await showToast({ icon: 'warning', title: 'Validation Error', text: 'Title is required.' })
         return
     }
 
+    if (!form.category_id) {
+        await showToast({ icon: 'warning', title: 'Validation Error', text: 'Category is required.' })
+        return
+    }
+
+    if (!coverImageFile.value) {
+        await showToast({ icon: 'warning', title: 'Validation Error', text: 'Cover image is required.' })
+        return
+    }
+
     isSaving.value = true
 
     try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        console.log(props.mode === 'edit' ? 'UPDATING:' : 'CREATING:', { ...form, cover: coverImageFile.value })
+        // Use a differently named payload to avoid accidental collisions with any global/formData variables
+        const payload = typeof globalThis !== 'undefined' && globalThis.FormData ? new globalThis.FormData() : new FormData()
 
-        await showToast({
-            icon: 'success',
-            title: props.mode === 'edit' ? 'Updated!' : 'Created!',
-            text: props.mode === 'edit' ? 'Gallery updated successfully.' : 'Gallery created successfully.',
-            timer: 2000
-        })
+        if (!(payload instanceof FormData)) {
+            throw new Error('Cannot construct FormData in this environment')
+        }
 
-        emit('success')
-    } catch (error) {
-        console.error('Submission failed:', error)
-        await showToast({ icon: 'error', title: 'Error', text: 'Failed to process gallery.' })
+        // Prepare final FormData to send (ensure we append fields whether payload is native FormData or fallback)
+        let formDataToSend: FormData | null = null
+
+        if (payload instanceof FormData && typeof (payload as any).append === 'function') {
+            formDataToSend = payload as FormData
+
+            // Append form fields to the (possibly-empty) FormData instance
+            formDataToSend.append('title', form.title)
+            formDataToSend.append('category_id', form.category_id)
+            if (form.description) formDataToSend.append('description', form.description)
+            formDataToSend.append('status', form.status)
+            formDataToSend.append('visibility', form.visibility)
+            ;(form.tags || []).forEach((t: string) => formDataToSend!.append('tags[]', t))
+            if (coverImageFile.value) formDataToSend.append('cover', coverImageFile.value)
+        } else {
+            const fallback = new FormData()
+            fallback.append('title', form.title)
+            fallback.append('category_id', form.category_id)
+            if (form.description) fallback.append('description', form.description)
+            fallback.append('status', form.status)
+            fallback.append('visibility', form.visibility)
+            ;(form.tags || []).forEach((t: string) => fallback.append('tags[]', t))
+            if (coverImageFile.value) fallback.append('cover', coverImageFile.value)
+            formDataToSend = fallback
+        }
+
+        if (!formDataToSend) throw new Error('Failed to prepare form data for upload')
+
+        // Debugging: log form content in development to help trace issues where server reports missing fields
+
+
+        // Emit FormData to parent — parent will call the API using `useGalleryData`
+        isSaving.value = true
+        emit('submit', formDataToSend)
+        // parent is responsible for calling `emit('success')` on success (or navigation)
+    } catch (error: unknown) {
+        // Safely extract message from unknown error
+        let message = 'Failed to process gallery.'
+        if (typeof error === 'string') {
+            message = error
+        } else if (error && typeof error === 'object') {
+            const errObj = error as any
+            if (typeof errObj.message === 'string') {
+                message = errObj.message
+            } else if (typeof errObj.error === 'string') {
+                message = errObj.error
+            }
+        }
+
+        await showToast({ icon: 'error', title: 'Error', text: message })
     } finally {
         isSaving.value = false
     }

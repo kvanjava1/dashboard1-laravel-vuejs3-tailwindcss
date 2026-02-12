@@ -117,6 +117,26 @@ export const apiRoutes = {
     update: (id: string | number) => `/api/v1/categories/${id}`,
     destroy: (id: string | number) => `/api/v1/categories/${id}`,
     clearCache: '/api/v1/categories/clear-cache'
+  },
+
+  // Gallery management routes
+  galleries: {
+    index: (params?: RouteParams) => {
+      const searchParams = new URLSearchParams()
+      if (params?.page) searchParams.set('page', params.page.toString())
+      if (params?.per_page) searchParams.set('per_page', params.per_page.toString())
+      if (params?.search) searchParams.set('search', params.search)
+      return `/api/v1/galleries${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+    },
+    show: (id: string | number) => `/api/v1/galleries/${id}`,
+    store: '/api/v1/galleries',
+    update: (id: string | number) => `/api/v1/galleries/${id}`,
+    destroy: (id: string | number) => `/api/v1/galleries/${id}`
+  },
+
+  // Tag routes (autocomplete / options)
+  tags: {
+    options: '/api/v1/tags/options'
   }
 } as const
 
