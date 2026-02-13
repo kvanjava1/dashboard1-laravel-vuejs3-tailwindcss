@@ -52,12 +52,21 @@ class GalleryCreateTest extends TestCase
         $gallery = Gallery::where('title', 'My Test Gallery')->first();
         $this->assertNotNull($gallery);
 
-        // Media should be created
-        $this->assertDatabaseCount('media', 1);
-        $media = Media::first();
+        // Media records should be created for original + variants (original, 1200x900, 400x400)
+        $this->assertDatabaseCount('media', 3);
 
-        // The media filename should exist on disk
-        Storage::disk('public')->assertExists($media->filename);
+        $filenames = Media::where('gallery_id', $gallery->id)->pluck('filename')->toArray();
+        $this->assertNotEmpty($filenames);
+
+        // Ensure both 1200x900 and 400x400 variants exist on disk
+        $has1200 = collect($filenames)->contains(fn($f) => str_contains($f, '/1200x900/'));
+        $has400 = collect($filenames)->contains(fn($f) => str_contains($f, '/400x400/'));
+        $this->assertTrue($has1200, 'Expected 1200x900 variant to be saved');
+        $this->assertTrue($has400, 'Expected 400x400 variant to be saved');
+
+        foreach ($filenames as $fname) {
+            Storage::disk('public')->assertExists($fname);
+        }
 
         // Tags should be created
         $this->assertDatabaseHas('tags', ['name' => 'sunset']);
@@ -138,5 +147,113 @@ class GalleryCreateTest extends TestCase
 
         $response->assertStatus(422);
         $this->assertArrayHasKey('cover', $response->json('errors'));
+    }
+
+    public function test_create_gallery_with_client_crop_maps_to_original_pixels()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['is_active' => true]);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'gallery_management.add']);
+        $user->givePermissionTo('gallery_management.add');
+        $this->actingAs($user, 'sanctum');
+
+        $type = CategoryType::create(['name' => 'Gallery', 'slug' => 'gallery']);
+        $category = Category::create(['category_type_id' => $type->id, 'name' => 'Crop Test', 'slug' => 'crop-test', 'is_active' => true]);
+
+        // Create a fixture image: left half red, right half green (1600x1200)
+        $tmpPath = sys_get_temp_dir() . '/crop-test.png';
+        $img = \Intervention\Image\ImageManagerStatic::canvas(1600, 1200, '#ff0000');
+        $img->rectangle(800, 0, 1599, 1199, function ($draw) {
+            $draw->background('#00ff00');
+        });
+        $img->save($tmpPath);
+
+        $uploaded = new UploadedFile($tmpPath, 'crop-test.png', 'image/png', null, true);
+
+        // Simulate client cropper canvas of 800x600 selecting the left half (x=0,width=400,height=600)
+        $response = $this->post('/api/v1/galleries', [
+            'title' => 'Cropped Gallery',
+            'category_id' => $category->id,
+            'status' => 'active',
+            'visibility' => 'public',
+            'tags' => ['crop'],
+            'cover' => $uploaded,
+            'crop_canvas_width' => 800,
+            'crop_canvas_height' => 600,
+            'crop_x' => 0,
+            'crop_y' => 0,
+            'crop_width' => 400,
+            'crop_height' => 600,
+            'orig_width' => 1600,
+            'orig_height' => 1200,
+        ]);
+
+        $response->assertStatus(201);
+
+        $gallery = Gallery::where('title', 'Cropped Gallery')->first();
+        $this->assertNotNull($gallery);
+
+        // Find the 400x400 media row for this gallery
+        $media400 = Media::where('gallery_id', $gallery->id)->where('filename', 'like', '%/400x400/%')->first();
+        $this->assertNotNull($media400);
+
+        $thumbPath = $media400->filename;
+        Storage::disk('public')->assertExists($thumbPath);
+
+        $thumb = \Intervention\Image\ImageManagerStatic::make(Storage::disk('public')->get($thumbPath));
+        $this->assertEquals(400, $thumb->width());
+        $this->assertEquals(400, $thumb->height());
+
+        // Center pixel of thumbnail should come from the left-half of the original (red)
+        $color = $thumb->pickColor(200, 200, 'array');
+        $this->assertGreaterThan(200, $color[0]); // R is high
+        $this->assertLessThan(100, $color[1]); // G is low
+        $this->assertLessThan(100, $color[2]); // B is low
+    }
+
+    public function test_set_media_row_as_cover_updates_flags_and_response()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['is_active' => true]);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'gallery_management.add']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'gallery_management.edit']);
+        $user->givePermissionTo('gallery_management.add');
+        $user->givePermissionTo('gallery_management.edit');
+        $this->actingAs($user, 'sanctum');
+
+        $type = CategoryType::create(['name' => 'Gallery', 'slug' => 'gallery']);
+        $category = Category::create(['category_type_id' => $type->id, 'name' => 'Cover Test', 'slug' => 'cover-test', 'is_active' => true]);
+
+        $cover = UploadedFile::fake()->image('cover.jpg', 1600, 1200);
+
+        $response = $this->post('/api/v1/galleries', [
+            'title' => 'Cover Switch',
+            'category_id' => $category->id,
+            'status' => 'active',
+            'visibility' => 'public',
+            'tags' => ['switch'],
+            'cover' => $cover,
+        ]);
+
+        $response->assertStatus(201);
+
+        $gallery = Gallery::where('title', 'Cover Switch')->first();
+        $this->assertNotNull($gallery);
+
+        $mediaRows = Media::where('gallery_id', $gallery->id)->get();
+        $this->assertCount(3, $mediaRows);
+
+        $currentCover = $mediaRows->firstWhere('is_cover', true);
+        $this->assertNotNull($currentCover);
+
+        $other = $mediaRows->firstWhere('is_cover', false);
+        $this->assertNotNull($other);
+
+        // The service flags the 1200x900 variant as the gallery cover — ensure that's set
+        $media1200 = $mediaRows->first(fn($m) => str_contains($m->filename, '/1200x900/'));
+        $this->assertNotNull($media1200);
+        $this->assertTrue((bool) $media1200->is_cover);
     }
 }

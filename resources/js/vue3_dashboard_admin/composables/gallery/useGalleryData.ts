@@ -115,6 +115,7 @@ export const useGalleryData = () => {
     }
   }
 
+
   // Fetch tag suggestions (autocomplete) — returns array of { id, name }
   const fetchTagOptions = async (q: string, limit = 10) => {
     try {

@@ -19,7 +19,6 @@ class Gallery extends Model
         'category_id',
         'is_active',
         'is_public',
-        'cover_id',
         'item_count',
     ];
 
@@ -39,9 +38,10 @@ class Gallery extends Model
         return $this->hasMany(Media::class);
     }
 
-    public function cover(): BelongsTo
+    public function cover(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->belongsTo(Media::class, 'cover_id');
+        // The "cover" is the media row flagged as is_cover for this gallery
+        return $this->hasOne(Media::class)->where('is_cover', true);
     }
 
     /**

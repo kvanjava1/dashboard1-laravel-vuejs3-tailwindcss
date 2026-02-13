@@ -50,7 +50,21 @@ class GalleryController extends Controller
                     'is_active' => $g->is_active,
                     'is_public' => $g->is_public,
                     'item_count' => $g->item_count,
+                    // cover (single) kept for backward compatibility
                     'cover' => $g->cover ? ['id' => $g->cover->id, 'url' => $g->cover->url] : null,
+                    // expose all media variants for this gallery
+                    'media' => $g->media->map(function ($m) {
+                        return [
+                            'id' => $m->id,
+                            'filename' => $m->filename,
+                            'url' => $m->url,
+                            'extension' => $m->extension,
+                            'mime_type' => $m->mime_type,
+                            'size' => $m->size,
+                            'is_cover' => (bool) ($m->is_cover ?? false),
+                            'uploaded_at' => $m->uploaded_at,
+                        ];
+                    })->toArray(),
                     'tags' => $g->tags->map(fn($t) => ['id' => $t->id, 'name' => $t->name])->toArray(),
                     'created_at' => $g->created_at,
                 ];
@@ -91,6 +105,20 @@ class GalleryController extends Controller
                 'tags' => $tags,
             ];
 
+            // Include optional crop coordinates so service can crop from original
+            if ($request->has('crop_x') && $request->has('crop_y') && $request->has('crop_width') && $request->has('crop_height')) {
+                $data['crop'] = [
+                    'canvas_width' => intval($request->input('crop_canvas_width', 0)),
+                    'canvas_height' => intval($request->input('crop_canvas_height', 0)),
+                    'x' => intval($request->input('crop_x')),
+                    'y' => intval($request->input('crop_y')),
+                    'width' => intval($request->input('crop_width')),
+                    'height' => intval($request->input('crop_height')),
+                    'orig_width' => intval($request->input('orig_width', 0)),
+                    'orig_height' => intval($request->input('orig_height', 0)),
+                ];
+            }
+
             $cover = $request->file('cover');
 
             $gallery = $this->galleryService->createGallery($data, $cover);
@@ -111,8 +139,27 @@ class GalleryController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $gallery = \App\Models\Gallery::with(['tags:id,name,slug','cover'])->findOrFail($id);
-            return response()->json(['message' => 'Gallery retrieved successfully', 'gallery' => $gallery]);
+            $gallery = \App\Models\Gallery::with(['tags:id,name,slug','media'])->findOrFail($id);
+
+            $payload = $gallery->toArray();
+            // normalize media entries with public URLs
+            $payload['media'] = $gallery->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'filename' => $m->filename,
+                    'url' => $m->url,
+                    'extension' => $m->extension,
+                    'mime_type' => $m->mime_type,
+                    'size' => $m->size,
+                    'is_cover' => (bool) ($m->is_cover ?? false),
+                    'uploaded_at' => $m->uploaded_at,
+                ];
+            })->toArray();
+
+            // keep `cover` for compatibility
+            $payload['cover'] = $gallery->cover ? ['id' => $gallery->cover->id, 'url' => $gallery->cover->url] : null;
+
+            return response()->json(['message' => 'Gallery retrieved successfully', 'gallery' => $payload]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to retrieve gallery', 'error' => $e->getMessage()], 404);
         }
@@ -121,6 +168,35 @@ class GalleryController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         return response()->json(['message' => 'Not implemented'], 501);
+    }
+
+    public function setCoverMedia(int $galleryId, int $mediaId): JsonResponse
+    {
+        try {
+            $gallery = \App\Models\Gallery::with('media')->findOrFail($galleryId);
+            $media = \App\Models\Media::where('gallery_id', $galleryId)->where('id', $mediaId)->firstOrFail();
+
+            // unset other covers for this gallery
+            \App\Models\Media::where('gallery_id', $galleryId)->update(['is_cover' => false]);
+
+            // set chosen media as cover
+            $media->is_cover = true;
+            $media->save();
+
+            // return updated media list
+            $mediaList = $gallery->fresh('media')->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'filename' => $m->filename,
+                    'url' => $m->url,
+                    'is_cover' => (bool) ($m->is_cover ?? false),
+                ];
+            })->toArray();
+
+            return response()->json(['message' => 'Cover updated', 'media' => $mediaList]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to set cover', 'error' => $e->getMessage()], 400);
+        }
     }
 
     public function destroy(int $id): JsonResponse

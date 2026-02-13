@@ -23,6 +23,15 @@ class StoreGalleryRequest extends FormRequest
             'cover' => 'required|file|image|max:5120',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:100',
+            // Optional crop coordinates for server-side crop-from-original
+            'crop_canvas_width' => 'nullable|integer|min:1',
+            'crop_canvas_height' => 'nullable|integer|min:1',
+            'crop_x' => 'nullable|integer|min:0',
+            'crop_y' => 'nullable|integer|min:0',
+            'crop_width' => 'nullable|integer|min:1',
+            'crop_height' => 'nullable|integer|min:1',
+            'orig_width' => 'nullable|integer|min:1',
+            'orig_height' => 'nullable|integer|min:1',
         ];
     }
 

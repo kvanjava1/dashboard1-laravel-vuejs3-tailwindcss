@@ -19,12 +19,14 @@ class Media extends Model
         'alt_text',
         'sort_order',
         'uploaded_at',
+        'is_cover',
     ];
 
     protected $casts = [
         'size' => 'integer',
         'sort_order' => 'integer',
         'uploaded_at' => 'datetime',
+        'is_cover' => 'boolean',
     ];
 
     public function gallery(): BelongsTo

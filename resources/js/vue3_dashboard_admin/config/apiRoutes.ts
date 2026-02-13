@@ -131,7 +131,8 @@ export const apiRoutes = {
     show: (id: string | number) => `/api/v1/galleries/${id}`,
     store: '/api/v1/galleries',
     update: (id: string | number) => `/api/v1/galleries/${id}`,
-    destroy: (id: string | number) => `/api/v1/galleries/${id}`
+    destroy: (id: string | number) => `/api/v1/galleries/${id}`,
+
   },
 
   // Tag routes (autocomplete / options)

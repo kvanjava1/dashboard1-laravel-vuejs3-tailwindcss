@@ -46,7 +46,7 @@
                     <!-- Cropper Modal -->
                     <div v-if="showCropper"
                         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+                        <div class="bg-white rounded-lg p-6 w-full max-w-4xl mx-4">
                             <h3 class="text-lg font-semibold mb-4 text-center">Crop Gallery Cover Image</h3>
 
                             <!-- Vue Advanced Cropper -->
@@ -54,8 +54,8 @@
                                 <Cropper ref="cropperRef" :src="cropperImage" :stencil-props="{
                                     aspectRatio: 4 / 3
                                 }" :canvas="{
-                                    height: 300,
-                                    width: 400
+                                    height: 600,
+                                    width: 800
                                 }" />
                             </div>
 
@@ -286,6 +286,12 @@ watch(() => props.gallery, (newVal) => {
 }, { immediate: true })
 
 // Methods
+const MIN_WIDTH = 800
+const MIN_HEIGHT = 600
+
+const originalImageSize = ref<{ width: number; height: number } | null>(null)
+const cropSelection = ref<{ x: number; y: number; width: number; height: number; canvasWidth: number; canvasHeight: number } | null>(null)
+
 const handleCoverImageSelect = (event: Event) => {
     const target = event.target as HTMLInputElement
     if (target.files && target.files[0]) {
@@ -312,6 +318,16 @@ const handleCoverImageSelect = (event: Event) => {
             fr.readAsDataURL(file)
         }
         coverImageFile.value = file
+
+        // Capture original image natural size for coordinate mapping
+        const img = new Image()
+        img.onload = () => {
+            originalImageSize.value = { width: img.naturalWidth, height: img.naturalHeight }
+            if (img.naturalWidth < MIN_WIDTH || img.naturalHeight < MIN_HEIGHT) {
+                showToast({ icon: 'warning', title: 'Low resolution', text: `Selected image is ${img.naturalWidth}×${img.naturalHeight}. Recommended minimum is ${MIN_WIDTH}×${MIN_HEIGHT}. The server will upscale to the target sizes but quality may degrade.` })
+            }
+        }
+        img.src = coverImagePreview.value || URL.createObjectURL(file)
 
         // Still load data URL into cropper so user may optionally crop
         const reader = new FileReader()
@@ -348,12 +364,49 @@ const applyCrop = () => {
     if (cropperRef.value) {
         const result = cropperRef.value.getResult()
         if (result && result.canvas) {
-            coverImagePreview.value = result.canvas.toDataURL()
-            result.canvas.toBlob((blob: Blob) => {
-                if (blob) {
-                    coverImageFile.value = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' })
+            const canvas = result.canvas
+
+            // Capture crop coordinates if available (coordinates may be relative to source)
+            const coords = (result as any).coordinates || null
+            // Store crop as canvas-relative values; server will map to original using originalImageSize
+            cropSelection.value = {
+                x: coords ? coords.left : 0,
+                y: coords ? coords.top : 0,
+                width: coords ? coords.width : canvas.width,
+                height: coords ? coords.height : canvas.height,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
+            }
+
+            // We scale the crop to the target cover size (1200x900) for upload.
+            const targetW = 1200
+            const targetH = 900
+            const tmp = document.createElement('canvas')
+            tmp.width = targetW
+            tmp.height = targetH
+            const ctx = tmp.getContext('2d')
+            if (ctx) {
+                ctx.drawImage(canvas, 0, 0, targetW, targetH)
+
+                try {
+                    coverImagePreview.value = tmp.toDataURL('image/jpeg', 0.9)
+                } catch (e) {
+                    coverImagePreview.value = canvas.toDataURL()
                 }
-            })
+
+                tmp.toBlob((blob: Blob | null) => {
+                    if (blob) {
+                        coverImageFile.value = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' })
+                    }
+                }, 'image/jpeg', 0.9)
+            } else {
+                coverImagePreview.value = canvas.toDataURL()
+                result.canvas.toBlob((blob: Blob) => {
+                    if (blob) {
+                        coverImageFile.value = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' })
+                    }
+                })
+            }
         }
     }
     showCropper.value = false
@@ -493,6 +546,20 @@ const handleSubmit = async () => {
             formDataToSend.append('visibility', form.visibility)
             ;(form.tags || []).forEach((t: string) => formDataToSend!.append('tags[]', t))
             if (coverImageFile.value) formDataToSend.append('cover', coverImageFile.value)
+
+            // Append crop coordinates + original image size (so server can crop from the original)
+            if (cropSelection.value) {
+                formDataToSend.append('crop_canvas_width', String(cropSelection.value.canvasWidth))
+                formDataToSend.append('crop_canvas_height', String(cropSelection.value.canvasHeight))
+                formDataToSend.append('crop_x', String(cropSelection.value.x))
+                formDataToSend.append('crop_y', String(cropSelection.value.y))
+                formDataToSend.append('crop_width', String(cropSelection.value.width))
+                formDataToSend.append('crop_height', String(cropSelection.value.height))
+            }
+            if (originalImageSize.value) {
+                formDataToSend.append('orig_width', String(originalImageSize.value.width))
+                formDataToSend.append('orig_height', String(originalImageSize.value.height))
+            }
         } else {
             const fallback = new FormData()
             fallback.append('title', form.title)

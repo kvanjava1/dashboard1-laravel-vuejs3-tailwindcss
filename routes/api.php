@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function () {
         Route::get('galleries', [\App\Http\Controllers\Api\Managements\GalleryController::class, 'index'])->middleware('permission:gallery_management.view')->name('galleries.index');
         Route::post('galleries', [\App\Http\Controllers\Api\Managements\GalleryController::class, 'store'])->middleware(['permission:gallery_management.add'])->name('galleries.store');
         Route::get('galleries/{gallery}', [\App\Http\Controllers\Api\Managements\GalleryController::class, 'show'])->middleware('permission:gallery_management.view')->name('galleries.show')->where('gallery', '[0-9]+');
+
         Route::put('galleries/{gallery}', [\App\Http\Controllers\Api\Managements\GalleryController::class, 'update'])->middleware('permission:gallery_management.edit')->name('galleries.update')->where('gallery', '[0-9]+');
         Route::delete('galleries/{gallery}', [\App\Http\Controllers\Api\Managements\GalleryController::class, 'destroy'])->middleware('permission:gallery_management.delete')->name('galleries.destroy')->where('gallery', '[0-9]+');
 

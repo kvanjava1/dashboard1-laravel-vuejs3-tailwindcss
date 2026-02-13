@@ -466,16 +466,21 @@ async function loadGalleries() {
         serverTotalPages.value = result.total_pages || 1
 
         // map API gallery model to UI shape
-        galleries.value = (result.galleries || []).map((g: any) => ({
-            id: g.id,
-            title: g.title,
-            description: g.description || '',
-            category: (categories.value.find((c: any) => c.id === g.category_id)?.name) || '',
-            itemCount: g.item_count || 0,
-            coverImage: g.cover?.url || '',
-            status: g.is_active ? 'active' : 'inactive',
-            createdAt: g.created_at
-        }))
+        galleries.value = (result.galleries || []).map((g: any) => {
+            const media = Array.isArray(g.media) ? g.media : []
+            const primary = media.find((m: any) => m.is_cover) || (g.cover ? g.cover : null)
+            return {
+                id: g.id,
+                title: g.title,
+                description: g.description || '',
+                category: (categories.value.find((c: any) => c.id === g.category_id)?.name) || '',
+                itemCount: g.item_count || 0,
+                coverImage: primary ? (primary.url || primary) : '',
+                media: media,
+                status: g.is_active ? 'active' : 'inactive',
+                createdAt: g.created_at
+            }
+        })
     } catch (err: any) {
         useServer.value = false
         galleries.value = galleryMocks

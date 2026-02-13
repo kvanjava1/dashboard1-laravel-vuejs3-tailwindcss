@@ -29,6 +29,8 @@
                                 <img :src="gallery.coverImage" :alt="gallery.title" class="w-full h-auto" />
                             </div>
 
+
+
                             <!-- Gallery Info -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
@@ -114,6 +116,8 @@ const editGallery = () => {
         close()
     }
 }
+
+
 </script>
 
 <style scoped>
