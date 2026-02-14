@@ -48,66 +48,46 @@ export const galleryMocks: GalleryMock[] = [
         category: 'Travel',
         itemCount: 45,
         status: 'active',
-        createdAt: '2024-02-10'
+        createdAt: '2024-02-05'
     },
     {
         id: 5,
-        title: 'Contemporary Art Collection',
-        description: 'Contemporary and traditional art pieces from various artists. A curated selection of modern masterpieces.',
-        coverImage: 'https://picsum.photos/seed/art1/400/300',
-        category: 'Art',
-        itemCount: 16,
-        status: 'inactive',
-        createdAt: '2024-01-05'
+        title: 'Wildlife Encounters',
+        description: 'Capturing the beauty and diversity of wildlife in their natural habitats.',
+        coverImage: 'https://picsum.photos/seed/wildlife1/400/300',
+        category: 'Wildlife',
+        itemCount: 28,
+        status: 'active',
+        createdAt: '2024-02-10'
     },
     {
         id: 6,
-        title: 'Wildlife in Natural Habitat',
-        description: 'Amazing wildlife photography capturing animals in their natural habitat. Rare and beautiful moments.',
-        coverImage: 'https://picsum.photos/seed/wild1/400/300',
-        category: 'Wildlife',
-        itemCount: 28,
+        title: 'Art & Creativity',
+        description: 'Abstract and contemporary art pieces showcasing human creativity and imagination.',
+        coverImage: 'https://picsum.photos/seed/art1/400/300',
+        category: 'Art',
+        itemCount: 15,
         status: 'active',
         createdAt: '2024-02-15'
     },
     {
         id: 7,
-        title: 'Corporate Events 2024',
-        description: 'Professional coverage of corporate events, conferences, and business gatherings.',
-        coverImage: 'https://picsum.photos/seed/event1/400/300',
-        category: 'Events',
-        itemCount: 52,
+        title: 'Product Photography',
+        description: 'Professional product photography for e-commerce and marketing purposes.',
+        coverImage: 'https://picsum.photos/seed/product1/400/300',
+        category: 'Products',
+        itemCount: 22,
         status: 'active',
-        createdAt: '2024-01-25'
+        createdAt: '2024-02-20'
     },
     {
         id: 8,
-        title: 'Product Photography Studio',
-        description: 'High-quality product shots for e-commerce and marketing purposes.',
-        coverImage: 'https://picsum.photos/seed/product1/400/300',
-        category: 'Products',
-        itemCount: 38,
+        title: 'Event Coverage',
+        description: 'Documenting special events, celebrations, and memorable occasions.',
+        coverImage: 'https://picsum.photos/seed/event1/400/300',
+        category: 'Events',
+        itemCount: 35,
         status: 'active',
-        createdAt: '2024-02-05'
-    },
-    {
-        id: 9,
-        title: 'Black & White Classics',
-        description: 'Timeless black and white photography showcasing emotion and contrast.',
-        coverImage: 'https://picsum.photos/seed/bw1/400/300',
-        category: 'Photography',
-        itemCount: 21,
-        status: 'active',
-        createdAt: '2024-01-30'
-    },
-    {
-        id: 10,
-        title: 'Street Food Adventures',
-        description: 'Vibrant street food photography from markets around the world.',
-        coverImage: 'https://picsum.photos/seed/street1/400/300',
-        category: 'Food',
-        itemCount: 29,
-        status: 'inactive',
-        createdAt: '2024-02-08'
+        createdAt: '2024-02-25'
     }
 ];
