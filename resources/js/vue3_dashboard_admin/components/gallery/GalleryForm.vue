@@ -517,7 +517,9 @@ const handleSubmit = async () => {
         return
     }
 
-    if (!coverImageFile.value) {
+    // Require a cover only when creating a gallery or when no existing cover is present during edit
+    const hasExistingCover = props.mode === 'edit' && !!props.gallery?.coverImage
+    if (!coverImageFile.value && !hasExistingCover) {
         await showToast({ icon: 'warning', title: 'Validation Error', text: 'Cover image is required.' })
         return
     }

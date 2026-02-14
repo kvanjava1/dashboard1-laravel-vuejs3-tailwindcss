@@ -165,9 +165,58 @@ class GalleryController extends Controller
         }
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(\App\Http\Requests\Gallery\UpdateGalleryRequest $request, int $id): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented'], 501);
+        try {
+            $validated = $request->validated();
+
+            // Prepare tags - normalize if sent as JSON string
+            $tags = [];
+            if ($request->has('tags')) {
+                $tags = $request->input('tags');
+                if (is_string($tags)) {
+                    $json = json_decode($tags, true);
+                    if (is_array($json)) $tags = $json;
+                }
+            }
+
+            $data = [];
+            if (isset($validated['title'])) $data['title'] = $validated['title'];
+            if (array_key_exists('description', $validated)) $data['description'] = $validated['description'] ?? null;
+            if (isset($validated['category_id'])) $data['category_id'] = $validated['category_id'];
+            if (isset($validated['status'])) $data['status'] = $validated['status'];
+            if (isset($validated['visibility'])) $data['visibility'] = $validated['visibility'];
+            if (!empty($tags)) $data['tags'] = $tags;
+
+            // Include optional crop coordinates so service can crop from original
+            if ($request->has('crop_x') && $request->has('crop_y') && $request->has('crop_width') && $request->has('crop_height')) {
+                $data['crop'] = [
+                    'canvas_width' => intval($request->input('crop_canvas_width', 0)),
+                    'canvas_height' => intval($request->input('crop_canvas_height', 0)),
+                    'x' => intval($request->input('crop_x')),
+                    'y' => intval($request->input('crop_y')),
+                    'width' => intval($request->input('crop_width')),
+                    'height' => intval($request->input('crop_height')),
+                    'orig_width' => intval($request->input('orig_width', 0)),
+                    'orig_height' => intval($request->input('orig_height', 0)),
+                ];
+            }
+
+            $cover = $request->file('cover');
+
+            $gallery = $this->galleryService->updateGallery($id, $data, $cover);
+
+            return response()->json([
+                'message' => 'Gallery updated successfully',
+                'gallery' => $gallery,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update gallery', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json([
+                'message' => 'Failed to update gallery',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function setCoverMedia(int $galleryId, int $mediaId): JsonResponse

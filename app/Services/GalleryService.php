@@ -69,6 +69,50 @@ class GalleryService
         });
     }
 
+    /**
+     * Update an existing gallery. If a new cover is provided it will replace the current cover
+     * (existing media cover flags are cleared). Tags are synced if present in the payload.
+     */
+    public function updateGallery(int $galleryId, array $data, ?\Illuminate\Http\UploadedFile $coverFile = null): array
+    {
+        return DB::transaction(function () use ($galleryId, $data, $coverFile) {
+            $gallery = Gallery::findOrFail($galleryId);
+
+            // Update mutable fields (do not change slug to preserve URLs)
+            if (isset($data['title'])) $gallery->title = $data['title'];
+            if (array_key_exists('description', $data)) $gallery->description = $data['description'] ?? null;
+            if (isset($data['category_id'])) $gallery->category_id = $data['category_id'];
+            if (isset($data['status'])) $gallery->is_active = ($data['status'] === 'active');
+            if (isset($data['visibility'])) $gallery->is_public = ($data['visibility'] === 'public');
+
+            $gallery->save();
+
+            // Tags: if provided, sync; if omitted, leave unchanged
+            if (array_key_exists('tags', $data) && is_array($data['tags'])) {
+                $tagIds = [];
+                foreach ($data['tags'] as $tagName) {
+                    $name = trim($tagName);
+                    if (!$name) continue;
+                    $slugTag = Str::slug($name);
+                    $tag = Tag::firstOrCreate(['slug' => $slugTag], ['name' => $name, 'slug' => $slugTag]);
+                    $tagIds[] = $tag->id;
+                }
+                $gallery->tags()->sync($tagIds);
+            }
+
+            // If a new cover file is provided, clear existing cover flags and store new variants
+            if ($coverFile) {
+                Media::where('gallery_id', $gallery->id)->update(['is_cover' => false]);
+                $crop = $data['crop'] ?? null;
+                $this->processAndStoreCover($gallery, $coverFile, $crop);
+            }
+
+            $gallery->load(['tags:id,name,slug', 'cover', 'media']);
+
+            return $gallery->toArray();
+        });
+    }
+
     private function generateUniqueSlug(string $title): string
     {
         $base = Str::slug($title) ?: Str::slug(substr($title, 0, 50));
@@ -124,25 +168,38 @@ class GalleryService
                 $origW = intval($crop['orig_width'] ?? $img->width());
                 $origH = intval($crop['orig_height'] ?? $img->height());
 
-                // Calculate scale factors (avoid division by zero)
-                $scaleX = $canvasW > 0 ? ($origW / $canvasW) : 1;
-                $scaleY = $canvasH > 0 ? ($origH / $canvasH) : 1;
+                // If the uploaded file DOES NOT match the provided original dimensions,
+                // it likely means the client already performed the crop and uploaded
+                // a pre-cropped/resized image. In that case we MUST NOT attempt to map
+                // the client coordinates back onto the uploaded image (would double-crop).
+                if ($img->width() !== $origW || $img->height() !== $origH) {
+                    Log::info('Uploaded image dimensions differ from orig_width/orig_height; skipping server-side crop (assuming client pre-cropped).', [
+                        'uploaded_w' => $img->width(),
+                        'uploaded_h' => $img->height(),
+                        'orig_w' => $origW,
+                        'orig_h' => $origH,
+                    ]);
+                } else {
+                    // Calculate scale factors (avoid division by zero)
+                    $scaleX = $canvasW > 0 ? ($origW / $canvasW) : 1;
+                    $scaleY = $canvasH > 0 ? ($origH / $canvasH) : 1;
 
-                $cx = max(0, intval(round(($crop['x'] ?? 0) * $scaleX)));
-                $cy = max(0, intval(round(($crop['y'] ?? 0) * $scaleY)));
-                $cw = max(1, intval(round(($crop['width'] ?? $canvasW) * $scaleX)));
-                $ch = max(1, intval(round(($crop['height'] ?? $canvasH) * $scaleY)));
+                    $cx = max(0, intval(round(($crop['x'] ?? 0) * $scaleX)));
+                    $cy = max(0, intval(round(($crop['y'] ?? 0) * $scaleY)));
+                    $cw = max(1, intval(round(($crop['width'] ?? $canvasW) * $scaleX)));
+                    $ch = max(1, intval(round(($crop['height'] ?? $canvasH) * $scaleY)));
 
-                // Clamp
-                $cx = min($cx, $img->width() - 1);
-                $cy = min($cy, $img->height() - 1);
-                $cw = min($cw, $img->width() - $cx);
-                $ch = min($ch, $img->height() - $cy);
+                    // Clamp
+                    $cx = min($cx, $img->width() - 1);
+                    $cy = min($cy, $img->height() - 1);
+                    $cw = min($cw, $img->width() - $cx);
+                    $ch = min($ch, $img->height() - $cy);
 
-                try {
-                    $img->crop($cw, $ch, $cx, $cy);
-                } catch (\Exception $e) {
-                    Log::warning('Failed to crop original with provided coordinates', ['error' => $e->getMessage(), 'crop' => $crop]);
+                    try {
+                        $img->crop($cw, $ch, $cx, $cy);
+                    } catch (\Exception $e) {
+                        Log::warning('Failed to crop original with provided coordinates', ['error' => $e->getMessage(), 'crop' => $crop]);
+                    }
                 }
             }
 
