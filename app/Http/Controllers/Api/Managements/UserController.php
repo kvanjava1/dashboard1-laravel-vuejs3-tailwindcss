@@ -130,7 +130,8 @@ class UserController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $userData = $this->userService->getUserById($id);
+            $user = User::with('roles')->findOrFail($id);
+            $userData = $this->userService->formatUserData($user);
 
             return response()->json([
                 'message' => 'User retrieved successfully',
@@ -141,12 +142,13 @@ class UserController extends Controller
             Log::error('Failed to retrieve user', [
                 'error' => $e->getMessage(),
                 'user_id' => $id,
+                'requested_by' => request()->user()->id ?? null
             ]);
 
             return response()->json([
                 'message' => 'Failed to retrieve user',
                 'error' => $e->getMessage(),
-            ], 404);
+            ], 500);
         }
     }
 

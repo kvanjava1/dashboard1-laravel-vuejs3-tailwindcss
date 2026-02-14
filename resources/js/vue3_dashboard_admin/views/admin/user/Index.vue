@@ -85,9 +85,9 @@
                                 <SimpleUserTableBodyCol>
                                     <CellActions @edit="handleEdit(user)" @delete="handleDelete(user)"
                                         @view="() => openUserDetail(user)" @ban="handleBan(user)"
-                                        :show-edit="canEditUser && user.protection?.can_edit"
-                                        :show-delete="canDeleteUser && user.protection?.can_delete"
-                                        :show-view="canViewUserDetail" :show-ban="canBanUser && user.protection?.can_ban" :user="user" />
+                                        :show-edit="(canEditUser ?? false) && (user.protection?.can_edit ?? false)"
+                                        :show-delete="(canDeleteUser ?? false) && (user.protection?.can_delete ?? false)"
+                                        :show-view="canViewUserDetail ?? false" :show-ban="(canBanUser ?? false) && (user.protection?.can_ban ?? false)" :user="user" />
                                 </SimpleUserTableBodyCol>
                             </SimpleUserTableBodyRow>
                         </SimpleUserTableBody>

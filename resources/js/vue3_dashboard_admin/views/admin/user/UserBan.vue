@@ -82,7 +82,7 @@
                                                     Permanent ban
                                                 </p>
                                                 <p v-else-if="currentBanReason.banned_until" class="text-xs text-red-600 mt-1">
-                                                    Until: {{ formatDate(currentBanReason.banned_until) }}
+                                                    Until: {{ formatDateLocal(currentBanReason.banned_until) }}
                                                 </p>
                                             </div>
                                         </div>
@@ -164,7 +164,7 @@
                                             <div v-if="history.action === 'ban'" class="text-sm">
                                                 <span v-if="history.is_forever" class="text-red-600 font-medium">Permanent</span>
                                                 <span v-else-if="history.banned_until" class="text-slate-600">
-                                                    Until {{ formatDate(history.banned_until) }}
+                                                    Until {{ formatDateLocal(history.banned_until) }}
                                                 </span>
                                                 <span v-else class="text-slate-500">-</span>
                                             </div>
@@ -174,7 +174,7 @@
                                             <span class="text-slate-700 text-sm">{{ history.performed_by?.name || 'System' }}</span>
                                         </td>
                                         <td class="py-4 px-4">
-                                            <span class="text-slate-700 text-sm">{{ formatDate(history.created_at) }}</span>
+                                            <span class="text-slate-700 text-sm">{{ formatDateLocal(history.created_at) }}</span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -217,7 +217,7 @@
                                                 <span class="font-medium">Type:</span>
                                                 <span v-if="currentBanReason.is_forever" class="text-red-600 font-medium">Permanent Ban</span>
                                                 <span v-else-if="currentBanReason.banned_until" class="text-red-600 font-medium">
-                                                    Temporary (until {{ formatDate(currentBanReason.banned_until) }})
+                                                    Temporary (until {{ formatDateLocal(currentBanReason.banned_until) }})
                                                 </span>
                                             </p>
                                         </div>
@@ -226,7 +226,7 @@
                             </div>
 
                             <!-- Unban Form -->
-                            <form @submit.prevent="submitUnban" class="space-y-6">
+                            <form @submit.prevent="handleSubmitUnban" class="space-y-6">
                                 <FormField
                                     v-model="unbanForm.reason"
                                     label="Unban Reason"
@@ -242,7 +242,7 @@
                                         variant="outline"
                                         class="w-full sm:w-auto"
                                         left-icon="close"
-                                        @click="resetUnbanForm"
+                                        @click="resetUnbanFormLocal"
                                         :disabled="unbanLoading"
                                     >
                                         Cancel
@@ -262,7 +262,7 @@
 
                         <!-- Show Ban Form if User is Not Banned -->
                         <div v-else class="space-y-6">
-                            <form @submit.prevent="submitBan" class="space-y-6">
+                            <form @submit.prevent="handleSubmitBan" class="space-y-6">
                                 <!-- Ban Reason -->
                                 <FormField
                                     v-model="banForm.reason"
@@ -383,8 +383,8 @@
                                         variant="outline"
                                         class="w-full sm:w-auto"
                                         left-icon="close"
-                                        @click="resetForm"
-                                        :disabled="loading"
+                                        @click="resetBanFormLocal"
+                                        :disabled="banLoading"
                                     >
                                         Reset
                                     </Button>
@@ -392,7 +392,7 @@
                                         variant="danger"
                                         class="w-full sm:w-auto"
                                         left-icon="block"
-                                        :loading="loading"
+                                        :loading="banLoading"
                                         type="submit"
                                     >
                                         Ban User
@@ -416,8 +416,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { showToast } from '@/composables/useSweetAlert'
 import { apiRoutes } from '@/config/apiRoutes'
+import { useUserBan } from '@/composables/user/useUserBan'
 
-const { get, post } = useApi()
+const { get } = useApi()
+const { banLoading, unbanLoading, historyLoading, banHistory, currentBanReason, submitBan: submitBanComposable, submitUnban: submitUnbanComposable, fetchBanHistory, formatDate } = useUserBan()
 
 // Component imports
 import AdminLayout from '../../../layouts/AdminLayout.vue'
@@ -445,6 +447,13 @@ interface User {
     status: string
     joined_date: string
     is_banned: boolean
+    protection?: {
+        can_delete: boolean
+        can_edit: boolean
+        can_ban: boolean
+        can_change_role: boolean
+        reason?: string
+    }
 }
 
 interface BanHistoryItem {
@@ -472,41 +481,6 @@ const user = ref<User>({
     joined_date: '',
     is_banned: false
 })
-
-// Ban history
-const banHistory: Ref<BanHistoryItem[]> = ref([])
-
-// Computed property to get current ban reason
-const currentBanReason = computed(() => {
-    if (!user.value.is_banned || banHistory.value.length === 0) {
-        return null
-    }
-
-    // Find the most recent ban that hasn't been unbanned
-    const sortedHistory = [...banHistory.value].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-
-    for (const entry of sortedHistory) {
-        if (entry.action === 'ban') {
-            // Check if this ban has been unbanned by looking for a later unban
-            const hasUnbanAfter = sortedHistory.some(laterEntry =>
-                laterEntry.action === 'unban' &&
-                new Date(laterEntry.created_at) > new Date(entry.created_at)
-            )
-            if (!hasUnbanAfter) {
-                return entry
-            }
-        }
-    }
-
-    return null
-})
-
-// Loading states
-const loading = ref(false)
-const historyLoading = ref(false)
-const unbanLoading = ref(false)
 
 // Ban form
 const banForm = reactive({
@@ -546,112 +520,58 @@ const fetchUser = async () => {
 }
 
 // Fetch ban history
-const fetchBanHistory = async () => {
-    historyLoading.value = true
-    try {
-        const userId = route.params.id as string
-        const response = await get(apiRoutes.users.banHistory(userId))
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch ban history')
-        }
-
-        const data = await response.json()
-        banHistory.value = data.data
-    } catch (error) {
-        console.error('Error fetching ban history:', error)
-        showToast({ icon: 'error', title: 'Error', text: 'Failed to load ban history' })
-    } finally {
-        historyLoading.value = false
-    }
+const fetchBanHistoryLocal = async () => {
+    const userId = route.params.id as string
+    await fetchBanHistory(userId)
 }
 
 // Submit ban form
-const submitBan = async () => {
-    if (!banForm.reason.trim()) {
-        showToast({ icon: 'error', title: 'Error', text: 'Please provide a ban reason' })
-        return
-    }
+const handleSubmitBan = async () => {
+    const userId = route.params.id as string
+    const success = await submitBanComposable(userId, {
+        reason: banForm.reason,
+        is_forever: banForm.is_forever,
+        banned_until: banForm.is_forever ? null : banForm.banned_until
+    })
 
-    if (!banForm.is_forever && !banForm.banned_until) {
-        showToast({ icon: 'error', title: 'Error', text: 'Please select a ban duration' })
-        return
-    }
-
-    loading.value = true
-    try {
-        const userId = route.params.id as string
-        const response = await post(apiRoutes.users.ban(userId), {
-            reason: banForm.reason,
-            is_forever: banForm.is_forever,
-            banned_until: banForm.is_forever ? null : banForm.banned_until
-        })
-
-        if (!response.ok) {
-            throw new Error('Failed to ban user')
-        }
-
-        showToast({ icon: 'success', title: 'Success', text: 'User banned successfully' })
-
+    if (success) {
         // Refresh data
         await fetchUser()
-        await fetchBanHistory()
-        resetForm()
-    } catch (error) {
-        console.error('Error banning user:', error)
-        showToast({ icon: 'error', title: 'Error', text: 'Failed to ban user' })
-    } finally {
-        loading.value = false
+        await fetchBanHistoryLocal()
+        resetBanFormLocal()
     }
 }
 
-// Reset form
-const resetForm = () => {
+// Submit unban form
+const handleSubmitUnban = async () => {
+    const userId = route.params.id as string
+    const success = await submitUnbanComposable(userId, {
+        reason: unbanForm.reason
+    })
+
+    if (success) {
+        // Refresh data
+        await fetchUser()
+        await fetchBanHistoryLocal()
+        resetUnbanFormLocal()
+    }
+}
+
+// Reset ban form locally
+const resetBanFormLocal = () => {
     banForm.reason = ''
     banForm.is_forever = true
     banForm.banned_until = ''
 }
 
-// Submit unban form
-const submitUnban = async () => {
-    if (!unbanForm.reason.trim()) {
-        showToast({ icon: 'error', title: 'Error', text: 'Please provide an unban reason' })
-        return
-    }
-
-    unbanLoading.value = true
-    try {
-        const userId = route.params.id as string
-        const response = await post(apiRoutes.users.unban(userId), {
-            reason: unbanForm.reason
-        })
-
-        if (!response.ok) {
-            throw new Error('Failed to unban user')
-        }
-
-        showToast({ icon: 'success', title: 'Success', text: 'User unbanned successfully' })
-
-        // Refresh data
-        await fetchUser()
-        await fetchBanHistory()
-        resetUnbanForm()
-    } catch (error) {
-        console.error('Error unbanning user:', error)
-        showToast({ icon: 'error', title: 'Error', text: 'Failed to unban user' })
-    } finally {
-        unbanLoading.value = false
-    }
-}
-
-// Reset unban form
-const resetUnbanForm = () => {
+// Reset unban form locally
+const resetUnbanFormLocal = () => {
     unbanForm.reason = ''
 }
 
 // Format date
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
+const formatDateLocal = (dateString: string) => {
+    return formatDate(dateString)
 }
 
 // Go back
@@ -662,6 +582,6 @@ const goBack = () => {
 // Initialize
 onMounted(() => {
     fetchUser()
-    fetchBanHistory()
+    fetchBanHistoryLocal()
 })
 </script>
