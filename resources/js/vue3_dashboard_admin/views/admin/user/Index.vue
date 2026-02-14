@@ -77,8 +77,7 @@
                                     <UserCellStatus :status="user.status" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
-                                    <span class="text-sm text-slate-700">{{ user.is_banned ? 'Banned' : 'Not Banned'
-                                        }}</span>
+                                    <StatusBadge :status="user.is_banned ? 'banned' : 'active'" :label="user.is_banned ? 'Banned' : 'Not Banned'" />
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <span class="text-sm text-slate-700">{{ user.joined_date }}</span>
@@ -145,6 +144,7 @@ import SimpleUserTableBodyCol from '../../../components/ui/SimpleUserTableBodyCo
 import UserCellUser from '../../../components/ui/UserCellUser.vue'
 import UserCellRole from '../../../components/ui/UserCellRole.vue'
 import UserCellStatus from '../../../components/ui/UserCellStatus.vue'
+import StatusBadge from '../../../components/ui/StatusBadge.vue'
 import CellActions from '../../../components/ui/CellActions.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
 import ContentBox from '../../../components/ui/ContentBox.vue'

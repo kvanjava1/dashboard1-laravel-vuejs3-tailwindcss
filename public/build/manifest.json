@@ -9,7 +9,7 @@
     ]
   },
   "resources/js/vue3_dashboard_admin/app.ts": {
-    "file": "assets/app-DskS0Ob2.js",
+    "file": "assets/app-rlLB7YrM.js",
     "name": "app",
     "src": "resources/js/vue3_dashboard_admin/app.ts",
     "isEntry": true,
@@ -21,7 +21,7 @@
     ]
   },
   "resources/js/vue3_dashboard_admin/views/admin/gallery/GalleryEdit.vue": {
-    "file": "assets/GalleryEdit-Da1hBMYw.js",
+    "file": "assets/GalleryEdit-BMinc9TE.js",
     "name": "GalleryEdit",
     "src": "resources/js/vue3_dashboard_admin/views/admin/gallery/GalleryEdit.vue",
     "isDynamicEntry": true,
