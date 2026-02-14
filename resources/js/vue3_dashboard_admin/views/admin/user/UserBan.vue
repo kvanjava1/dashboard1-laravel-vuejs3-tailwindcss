@@ -532,6 +532,13 @@ const fetchUser = async () => {
 
         const data = await response.json()
         user.value = data.user
+
+        // Check if user can be banned
+        if (!user.value.protection?.can_ban) {
+            showToast({ icon: 'error', title: 'Access Denied', text: 'This user cannot be banned.' })
+            router.push({ name: 'user_management.index' })
+            return
+        }
     } catch (error) {
         console.error('Error fetching user:', error)
         showToast({ icon: 'error', title: 'Error', text: 'Failed to load user data' })

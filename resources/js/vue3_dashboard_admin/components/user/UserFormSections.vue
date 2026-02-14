@@ -191,7 +191,7 @@
               >
                 <option value="">Select a role...</option>
                 <option
-                  v-for="role in roles"
+                  v-for="role in availableRoles"
                   :key="role.name"
                   :value="role.name"
                 >
@@ -244,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import ContentBox from '../ui/ContentBox.vue'
@@ -277,6 +277,17 @@ const { get } = useApi()
 const roles = ref<any[]>([])
 const isLoadingRoles = ref(false)
 const roleError = ref<string>('')
+
+// Computed property to filter available roles based on email
+const availableRoles = computed(() => {
+  return roles.value.filter(role => {
+    // Allow super_admin role only for super@admin.com email or if it's already selected
+    if (role.name === 'super_admin') {
+      return props.formData.email === 'super@admin.com' || props.formData.role === 'super_admin'
+    }
+    return true
+  })
+})
 
 // Fetch roles from API
 const fetchRoles = async () => {

@@ -35,6 +35,7 @@ return [
             'protect_deletion' => true,
             'protect_role_change' => true,
             'protect_profile_update' => true,
+            'protect_ban' => true,
             'reason' => 'Super administrator account - critical system access'
         ],
 
@@ -68,6 +69,7 @@ return [
         'super_admin' => [
             'protect_deletion' => true,
             'protect_modification' => true,
+            'protect_ban' => true,
             'reason' => 'Super administrator role - highest system privileges'
         ],
 

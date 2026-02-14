@@ -60,6 +60,12 @@ const fetchUser = async () => {
         loadError.value = ''
         const userId = route.params.id as string
         userData.value = await fetchUserData(parseInt(userId))
+
+        // Check if user is super admin and redirect
+        if (userData.value && (userData.value.role === 'super_admin' || userData.value.email === 'super@admin.com')) {
+            router.push({ name: 'user_management.index' })
+            return
+        }
     } catch (err: any) {
         loadError.value = err.message || 'Failed to load user data'
         console.error('Error fetching user:', err)

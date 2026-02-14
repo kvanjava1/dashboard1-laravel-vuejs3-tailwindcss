@@ -55,6 +55,11 @@ class ProtectionService
      */
     public function isAccountProtectedFromProfileUpdate(User $user): bool
     {
+        // Check if user has super_admin role
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
         $protectedAccounts = $this->config['protected_accounts'] ?? [];
 
         foreach ($protectedAccounts as $email => $settings) {
@@ -67,10 +72,33 @@ class ProtectionService
     }
 
     /**
+     * Check if a role is protected from banning users with that role
+     */
+    public function isRoleProtectedFromBan(string $roleName): bool
+    {
+        $protectedRoles = $this->config['protected_roles'] ?? [];
+
+        return isset($protectedRoles[$roleName]) &&
+               ($protectedRoles[$roleName]['protect_ban'] ?? false);
+    }
+
+    /**
      * Check if a user account is protected from banning
      */
     public function isAccountProtectedFromBan(User $user): bool
     {
+        // Check if user's role is protected from banning
+        foreach ($user->roles as $role) {
+            if ($this->isRoleProtectedFromBan($role->name)) {
+                return true;
+            }
+        }
+
+        // Check if user has super_admin role (fallback for backward compatibility)
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
         $protectedAccounts = $this->config['protected_accounts'] ?? [];
 
         foreach ($protectedAccounts as $email => $settings) {

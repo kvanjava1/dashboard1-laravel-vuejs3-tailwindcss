@@ -251,6 +251,11 @@ class UserService
                 $user->update(['profile_image' => $imagePath]);
             }
 
+            // Check if trying to assign super_admin role
+            if ($data['role'] === 'super_admin') {
+                throw new \Exception('The super_admin role can be used');
+            }
+
             $user->syncRoles([$data['role']]);
 
             // Clear cache
@@ -276,6 +281,15 @@ class UserService
     {
         try {
             $user = User::findOrFail($userId);
+
+            // Check if user is protected from profile updates
+            if ($this->protectionService->isAccountProtectedFromProfileUpdate($user)) {
+                $reason = $this->protectionService->getAccountProtectionReason($user);
+                $this->protectionService->throwProtectionException(
+                    'Cannot update protected account',
+                    $reason
+                );
+            }
 
             if ($this->protectionService->isAccountProtectedFromRoleChange($user) && isset($data['role'])) {
                 $reason = $this->protectionService->getAccountProtectionReason($user);
@@ -332,6 +346,11 @@ class UserService
 
             $roleChanged = false;
             if (isset($data['role'])) {
+                // Check if trying to assign super_admin role to non-super@admin.com user
+                if ($data['role'] === 'super_admin' && $user->email !== 'super@admin.com') {
+                    throw new \Exception('The super_admin role can only be assigned to the super@admin.com account.');
+                }
+
                 $currentRoles = $user->getRoleNames()->toArray();
                 if (!in_array($data['role'], $currentRoles)) {
                     $user->syncRoles([$data['role']]);
