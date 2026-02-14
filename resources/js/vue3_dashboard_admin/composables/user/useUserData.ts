@@ -26,7 +26,7 @@ export interface User {
 }
 
 export const useUserData = () => {
-  const { get } = useApi()
+  const { get, del, post } = useApi()
 
   // State
   const loading = ref(false)
@@ -135,12 +135,56 @@ export const useUserData = () => {
     }
   }
 
+  // Delete user
+  const deleteUser = async (userId: number) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await del(apiRoutes.users.destroy(userId))
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete user: ${response.status}`)
+      }
+
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to delete user'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Clear user cache
+  const clearUserCache = async () => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await post(apiRoutes.users.clearCache, {})
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear cache: ${response.status}`)
+      }
+
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to clear cache'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading,
     error,
     fetchUser,
     fetchUsers,
     fetchRoles,
-    fetchStatuses
+    fetchStatuses,
+    deleteUser,
+    clearUserCache
   }
 }

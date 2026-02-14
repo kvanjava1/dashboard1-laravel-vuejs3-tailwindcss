@@ -8,10 +8,16 @@ export interface Role {
     display_name?: string
     permissions: string[]
     users_count?: number
+    protection?: {
+        can_delete: boolean
+        can_modify: boolean
+        can_ban_users: boolean
+        reason?: string
+    }
 }
 
 export const useRoleData = () => {
-    const { get } = useApi()
+    const { get, del, post } = useApi()
 
     // State
     const loading = ref(false)
@@ -73,10 +79,54 @@ export const useRoleData = () => {
         }
     }
 
+    // Delete role
+    const deleteRole = async (roleId: number) => {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await del(apiRoutes.roles.destroy(roleId))
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete role: ${response.status}`)
+            }
+
+            return true
+        } catch (err: any) {
+            error.value = err.message || 'Failed to delete role'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // Clear role cache
+    const clearRoleCache = async () => {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await post(apiRoutes.roles.clearCache, {})
+
+            if (!response.ok) {
+                throw new Error(`Failed to clear cache: ${response.status}`)
+            }
+
+            return true
+        } catch (err: any) {
+            error.value = err.message || 'Failed to clear cache'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         loading,
         error,
         fetchRole,
-        fetchRoles
+        fetchRoles,
+        deleteRole,
+        clearRoleCache
     }
 }

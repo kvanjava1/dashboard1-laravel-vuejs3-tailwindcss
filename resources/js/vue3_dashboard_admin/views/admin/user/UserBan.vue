@@ -415,12 +415,12 @@ import type { Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 // Composables and stores
-import { useApi } from '@/composables/useApi'
 import { showToast } from '@/composables/useSweetAlert'
 import { apiRoutes } from '@/config/apiRoutes'
 import { useUserBan } from '@/composables/user/useUserBan'
+import { useUserData } from '@/composables/user/useUserData'
 
-const { get } = useApi()
+const { fetchUser: fetchUserComposable } = useUserData()
 const { banLoading, unbanLoading, historyLoading, banHistory, currentBanReason, submitBan: submitBanComposable, submitUnban: submitUnbanComposable, fetchBanHistory, formatDate } = useUserBan()
 
 // Component imports
@@ -500,14 +500,7 @@ const unbanForm = reactive({
 const fetchUser = async () => {
     try {
         const userId = route.params.id as string
-        const response = await get(apiRoutes.users.show(userId))
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch user data')
-        }
-
-        const data = await response.json()
-        user.value = data.user
+        user.value = await fetchUserComposable(parseInt(userId))
 
         // Check if user can be banned
         if (!user.value.protection?.can_ban) {

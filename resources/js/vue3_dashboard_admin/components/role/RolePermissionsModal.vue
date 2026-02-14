@@ -58,15 +58,17 @@
                                     {{ getCategoryIcon(category) }}
                                 </span>
                                 {{ formatCategoryName(category) }}
-                                <span class="text-xs px-2 py-1 rounded-full ml-auto"
-                                    :class="getCategoryBadgeClass(category)">
+                                <span class="text-xs px-2 py-1 ml-auto"
+                                    :class="getCategoryBadgeClass(category)"
+                                    :style="{ borderRadius: 'var(--radius-badge)' }">
                                     {{ permissions.length }}
                                 </span>
                             </h5>
                             <div class="flex flex-wrap gap-2">
                                 <span v-for="permission in permissions" :key="permission"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                                    :class="getPermissionBadgeClass(category)">
+                                    class="inline-flex items-center px-3 py-1 text-xs font-medium"
+                                    :class="getPermissionBadgeClass(category)"
+                                    :style="{ borderRadius: 'var(--radius-badge)' }">
                                     {{ permission }}
                                 </span>
                             </div>

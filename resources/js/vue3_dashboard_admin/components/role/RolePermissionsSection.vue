@@ -81,7 +81,8 @@
         <span
           v-for="permission in formData.permissions"
           :key="permission"
-          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+          class="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary/10 text-primary"
+          :style="{ borderRadius: 'var(--radius-badge)' }"
         >
           {{ permission }}
         </span>

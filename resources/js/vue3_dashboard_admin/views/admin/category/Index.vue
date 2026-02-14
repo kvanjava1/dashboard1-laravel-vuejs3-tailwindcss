@@ -137,7 +137,6 @@
 import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCategoryData } from '@/composables/category/useCategoryData'
-import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import AdminLayout from '../../../layouts/AdminLayout.vue'
 import PageHeader from '../../../components/ui/PageHeader.vue'
@@ -180,8 +179,7 @@ interface Category {
 }
 
 const router = useRouter()
-const { fetchAllCategories, loading, error } = useCategoryData()
-const { del, post } = useApi()
+const { fetchAllCategories, deleteCategory, clearCategoryCache, loading, error } = useCategoryData()
 
 const categories = ref<Category[]>([])
 
@@ -314,17 +312,11 @@ const confirmDelete = async (category: Category) => {
     if (!ok) return
 
     try {
-        const response = await del(apiRoutes.categories.destroy(category.id))
-
-        if (response.ok) {
-            await showToast({ icon: 'success', title: 'Category deleted', timer: 1200 })
-            await fetchCategories()
-        } else {
-            const err = await response.json()
-            await showToast({ icon: 'error', title: 'Failed to delete', text: err.message || 'Error occurred' })
-        }
+        await deleteCategory(category.id)
+        await showToast({ icon: 'success', title: 'Category deleted', timer: 1200 })
+        await fetchCategories()
     } catch (e: any) {
-        await showToast({ icon: 'error', title: 'Error', text: e.message })
+        await showToast({ icon: 'error', title: 'Failed to delete', text: e.message })
     }
 }
 
@@ -339,11 +331,9 @@ const handleClearCache = async () => {
     if (!ok) return
 
     try {
-        const response = await post(apiRoutes.categories.clearCache, {})
-        if (response.ok) {
-            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
-            await fetchCategories()
-        }
+        await clearCategoryCache()
+        await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+        await fetchCategories()
     } catch (e: any) {
         await showToast({ icon: 'error', title: 'Error', text: e.message })
     }

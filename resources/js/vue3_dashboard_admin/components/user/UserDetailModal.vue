@@ -16,8 +16,8 @@
           <div class="w-24 h-24 border-4 border-primary bg-slate-100 flex items-center justify-center overflow-hidden relative"
                :style="{ borderRadius: 'var(--radius-avatar)' }">
             <img
-              v-if="user.profile_image_url"
-              :src="user.profile_image_url"
+              v-if="user.profile_image || user.profile_image_url"
+              :src="user.profile_image || user.profile_image_url"
               alt="Avatar"
               class="w-full h-full object-cover"
               :style="{ borderRadius: 'var(--radius-avatar)' }"

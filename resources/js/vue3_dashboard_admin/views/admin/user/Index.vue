@@ -117,7 +117,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Composables and stores
-import { useApi } from '@/composables/useApi'
 import { apiRoutes } from '@/config/apiRoutes'
 import { showConfirm, showToast } from '@/composables/useSweetAlert'
 import { useAuthStore } from '@/stores/auth'
@@ -159,9 +158,8 @@ import UserAdvancedFilterModal from '../../../components/user/UserAdvancedFilter
 import UserDetailModal from '../../../components/user/UserDetailModal.vue'
 
 const router = useRouter()
-const { get, del, post } = useApi()
 const authStore = useAuthStore()
-const { fetchUsers: fetchUsersList, loading: fetchLoading, error: fetchError } = useUserData()
+const { fetchUsers: fetchUsersList, fetchUser, deleteUser, clearUserCache, loading: fetchLoading, error: fetchError } = useUserData()
 
 // User detail modal state
 const showUserDetail = ref(false)
@@ -321,20 +319,7 @@ const handleDelete = async (user: User) => {
     if (!confirmed) return
 
     try {
-        const url = apiRoutes.users.destroy(user.id)
-        const response = await del(url)
-
-        if (!response.ok) {
-            let errorText = ''
-            try {
-                const errorData = await response.json()
-                errorText = errorData.error || errorData.message || response.statusText
-            } catch {
-                errorText = response.statusText
-            }
-            await showToast({ icon: 'error', title: 'Failed to delete user', text: errorText, timer: 0 })
-            return
-        }
+        await deleteUser(user.id)
 
         // Remove user from local list
         users.value = users.value.filter(u => u.id !== user.id)
@@ -368,21 +353,7 @@ const openUserDetail = async (user: User) => {
     }
 
     try {
-        const response = await get(apiRoutes.users.show(user.id))
-
-        if (!response.ok) {
-            let errorText = ''
-            try {
-                const errorData = await response.json()
-                errorText = errorData.error || errorData.message || response.statusText
-            } catch {
-                errorText = response.statusText
-            }
-            throw new Error(errorText || 'Failed to fetch user details')
-        }
-
-        const data = await response.json()
-        selectedUser.value = user
+        selectedUser.value = await fetchUser(user.id)
         showUserDetail.value = true
     } catch (err: any) {
         console.error('Failed to fetch user details:', err)
@@ -432,11 +403,9 @@ const handleClearCache = async () => {
     if (!ok) return
 
     try {
-        const response = await post(apiRoutes.users.clearCache, {})
-        if (response.ok) {
-            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
-            await fetchUsers()
-        }
+        await clearUserCache()
+        await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+        await fetchUsers()
     } catch (e: any) {
         await showToast({ icon: 'error', title: 'Error', text: e.message })
     }

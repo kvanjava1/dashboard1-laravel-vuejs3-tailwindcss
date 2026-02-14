@@ -58,24 +58,10 @@
                     <div class="text-sm text-gray-600">
                         {{ showingText }}
                     </div>
-                    <div class="flex gap-2">
-                        <button @click="viewMode = 'grid'" :class="[
-                            'p-2 rounded-lg transition-colors',
-                            viewMode === 'grid' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        ]" title="Grid View">
-                            <span class="material-symbols-outlined text-xl">grid_view</span>
-                        </button>
-                        <button @click="viewMode = 'list'" :class="[
-                            'p-2 rounded-lg transition-colors',
-                            viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        ]" title="List View">
-                            <span class="material-symbols-outlined text-xl">view_list</span>
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Grid View -->
-                <div v-if="viewMode === 'grid' && paginatedGalleries.length > 0"
+                <div v-if="paginatedGalleries.length > 0"
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <div v-for="gallery in paginatedGalleries" :key="gallery.id"
                         class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 group">
@@ -125,61 +111,6 @@
                                 <Button variant="danger" size="sm" left-icon="delete" @click="confirmDelete(gallery)">
                                     Delete
                                 </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- List View -->
-                <div v-if="viewMode === 'list' && paginatedGalleries.length > 0" class="space-y-3">
-                    <div v-for="gallery in paginatedGalleries" :key="gallery.id"
-                        class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 border border-gray-100">
-                        <div class="flex gap-4 p-4">
-                            <!-- Thumbnail -->
-                            <div class="w-32 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                <img :src="gallery.coverImage" :alt="gallery.title"
-                                    class="w-full h-full object-cover" />
-                            </div>
-
-                            <!-- Info -->
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-start justify-between mb-2">
-                                    <div class="flex-1">
-                                        <h3 class="font-bold text-gray-900 text-lg mb-1">{{ gallery.title }}</h3>
-                                        <p class="text-sm text-gray-600 line-clamp-2">{{ gallery.description }}</p>
-                                    </div>
-                                    <StatusBadge :status="gallery.status" class="ml-4" />
-                                </div>
-
-                                <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm">category</span>
-                                        {{ gallery.category }}
-                                    </span>
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm">photo_library</span>
-                                        {{ gallery.itemCount }} items
-                                    </span>
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm">schedule</span>
-                                        {{ gallery.createdAt }}
-                                    </span>
-                                </div>
-
-                                <!-- Actions -->
-                                <div class="flex gap-2">
-                                    <Button variant="outline" size="sm" left-icon="visibility"
-                                        @click="viewGallery(gallery)">
-                                        View
-                                    </Button>
-                                    <Button variant="outline" size="sm" left-icon="edit" @click="editGallery(gallery)">
-                                        Edit
-                                    </Button>
-                                    <Button variant="danger" size="sm" left-icon="delete"
-                                        @click="confirmDelete(gallery)">
-                                        Delete
-                                    </Button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -249,7 +180,6 @@ const { fetchCategoryOptions } = useCategoryData()
 const showAdvancedFilter = ref(false)
 const showDetailModal = ref(false)
 const selectedGallery = ref<any>(null)
-const viewMode = ref<'grid' | 'list'>('grid')
 const searchInput = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(5)

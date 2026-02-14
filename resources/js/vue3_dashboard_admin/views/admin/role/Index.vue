@@ -95,24 +95,27 @@
                                 <SimpleUserTableBodyCol>
                                     <div class="flex flex-wrap gap-1">
                                         <span v-for="permission in role.permissions.slice(0, 3)" :key="permission"
-                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            class="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800"
+                                            :style="{ borderRadius: 'var(--radius-badge)' }">
                                             {{ permission.replace('_', ' ') }}
                                         </span>
                                         <span v-if="role.permissions.length > 3"
-                                            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                            class="inline-flex items-center px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600"
+                                            :style="{ borderRadius: 'var(--radius-badge)' }">
                                             +{{ role.permissions.length - 3 }} more
                                         </span>
                                     </div>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <span
-                                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800"
+                                        :style="{ borderRadius: 'var(--radius-badge)' }">
                                         {{ role.users_count || 0 }} users
                                     </span>
                                 </SimpleUserTableBodyCol>
                                 <SimpleUserTableBodyCol>
                                     <div class="flex items-center gap-2">
-                                        <Button v-if="role.name !== 'super_admin' && canEditRole" variant="outline"
+                                        <Button v-if="canEditRole && role.protection?.can_modify !== false" variant="outline"
                                             size="sm" left-icon="edit" title="Edit role" @click="editRole(role)">
                                             Edit
                                         </Button>
@@ -121,10 +124,10 @@
                                             @click="viewPermissions(role)">
                                             View
                                         </Button>
-                                        <Button v-if="role.name !== 'super_admin' && canDeleteRole" variant="danger"
+                                        <Button v-if="canDeleteRole && role.protection?.can_delete !== false" variant="danger"
                                             size="sm" left-icon="delete" :disabled="isDeleting"
                                             :title="isDeleting ? 'Deleting...' : 'Delete role'"
-                                            @click="deleteRole(role)">
+                                            @click="handleDeleteRole(role)">
                                             {{ isDeleting ? 'Deleting...' : 'Delete' }}
                                         </Button>
                                     </div>
@@ -161,9 +164,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoleData, type Role } from '@/composables/role/useRoleData'
 
 const router = useRouter()
-const { get, del, post } = useApi()
 const authStore = useAuthStore()
-const { fetchRoles: fetchRolesList, loading: fetchLoading, error: fetchError } = useRoleData()
+const { fetchRoles: fetchRolesList, deleteRole: deleteRoleComposable, clearRoleCache, loading: fetchLoading, error: fetchError } = useRoleData()
 
 // Permission checks
 const canAddRole = computed(() => authStore.hasPermission('role_management.add'))
@@ -266,6 +268,16 @@ const editRole = (role: any) => {
         showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit roles.' })
         return
     }
+    
+    if (role.protection?.can_modify === false) {
+        showToast({ 
+            icon: 'warning', 
+            title: 'Role Protected', 
+            text: role.protection?.reason || 'This role cannot be modified.' 
+        })
+        return
+    }
+    
     router.push({ name: 'role_management.edit', params: { id: role.id } })
 }
 
@@ -279,9 +291,18 @@ const viewPermissions = (role: any) => {
 }
 
 
-const deleteRole = async (role: any) => {
+const handleDeleteRole = async (role: any) => {
     if (!canDeleteRole.value) {
         showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to delete roles.' })
+        return
+    }
+
+    if (role.protection?.can_delete === false) {
+        showToast({ 
+            icon: 'warning', 
+            title: 'Role Protected', 
+            text: role.protection?.reason || 'This role cannot be deleted.' 
+        })
         return
     }
 
@@ -300,24 +321,18 @@ const deleteRole = async (role: any) => {
         errorMessage.value = ''
 
         // API call to delete role
-        const response = await del(apiRoutes.roles.destroy(role.id))
+        await deleteRoleComposable(role.id)
 
-        if (response.ok) {
-            await showToast({ icon: 'success', title: `Role "${roleName}" deleted successfully`, timer: 0 })
-            await fetchRoles(pagination.current_page)
-        } else {
-            // Handle specific error types
-            const errorData = await response.json()
-            const errorText = errorData.error || errorData.message || ''
-            if (response.status === 403) {
-                await showToast({ icon: 'error', title: 'Super admin role cannot be deleted', timer: 0 })
-            } else {
-                await showToast({ icon: 'error', title: 'Failed to delete role', text: errorText, timer: 0 })
-            }
-        }
-    } catch (error) {
+        await showToast({ icon: 'success', title: `Role "${roleName}" deleted successfully`, timer: 0 })
+        await fetchRoles(pagination.current_page)
+    } catch (error: any) {
         console.error('Delete role error:', error)
-        await showToast({ icon: 'error', title: 'An unexpected error occurred while deleting the role', timer: 0 })
+        const errorText = error.message || 'An unexpected error occurred while deleting the role'
+        if (error.message?.includes('403') || error.message?.includes('Super admin')) {
+            await showToast({ icon: 'error', title: 'Super admin role cannot be deleted', timer: 0 })
+        } else {
+            await showToast({ icon: 'error', title: 'Failed to delete role', text: errorText, timer: 0 })
+        }
     } finally {
         isDeleting.value = false
     }
@@ -351,11 +366,9 @@ const handleClearCache = async () => {
     if (!ok) return
 
     try {
-        const response = await post(apiRoutes.roles.clearCache, {})
-        if (response.ok) {
-            await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
-            await fetchRoles(1)
-        }
+        await clearRoleCache()
+        await showToast({ icon: 'success', title: 'Cache cleared', timer: 1200 })
+        await fetchRoles(1)
     } catch (e: any) {
         await showToast({ icon: 'error', title: 'Error', text: e.message })
     }

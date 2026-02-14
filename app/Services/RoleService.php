@@ -357,6 +357,12 @@ class RoleService
             'guard_name' => $role->guard_name,
             'permissions' => $role->permissions->pluck('name')->toArray(),
             'users_count' => $role->users_count ?? 0,
+            'protection' => [
+                'can_delete' => !$this->protectionService->isRoleProtectedFromDeletion($role),
+                'can_modify' => !$this->protectionService->isRoleProtectedFromModification($role),
+                'can_ban_users' => !$this->protectionService->isRoleProtectedFromBan($role->name),
+                'reason' => $this->protectionService->getRoleProtectionReason($role),
+            ],
             'created_at' => $role->created_at,
             'updated_at' => $role->updated_at,
         ];
