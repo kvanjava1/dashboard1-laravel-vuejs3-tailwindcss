@@ -51,6 +51,8 @@ php artisan storage:link
 ```
 
 #### 5. Start Development Server
+
+**For Local Development (without Docker)**:
 ```bash
 # Start all services concurrently (Laravel, queue, logs, Vite)
 npm run dev
@@ -69,17 +71,165 @@ php artisan queue:listen --tries=1
 php artisan pail --timeout=0
 ```
 
-**Access**:
+**For Docker Environment**:
+```bash
+# Start all services concurrently (runs Laravel server, Vite, queue, and logs)
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
+```
+
+**Note**: When using Docker, the `npm run dev` script handles starting all services concurrently within the containers. Individual services run in their respective containers (Laravel in PHP container, Vite in Node.js container).
+
+**Access** (Local Development):
 - Frontend: [http://localhost:5174/management/login](http://localhost:5174/management/login)
 - API: [http://localhost:8000/api/v1](http://localhost:8000/api/v1)
+
+**Access** (Docker Environment):
+- Frontend: [http://dashboard1.test/management/login](http://dashboard1.test/management/login)
+- API: [http://dashboard1.test/api/v1](http://dashboard1.test/api/v1)
 
 **Evidence**: [composer.json](composer.json) dev script, [vite.config.js](vite.config.js) server config
 
 ### Container-Based Development
 
+This project uses Docker containers for development environment. The setup includes separate containers for PHP, Node.js, and Nginx.
+
+#### Container Overview
+
+**PHP Container** (`php_dev_php8.2`):
+- **PHP Version**: 8.2.30 with OPcache
+- **Composer Version**: 2.9.3
+- **Project Path**: `/var/www/php/php8.2/laravel/dashboard1`
+- **Purpose**: Laravel backend, database migrations, artisan commands
+
+**Node.js Container** (`php_dev_nodejs_20`):
+- **Node.js Version**: v20.19.6
+- **NPM Version**: 10.8.2
+- **Project Path**: `/var/www/nodejs_20/php8.2/laravel/dashboard1`
+- **Purpose**: Frontend build, Vite dev server, npm scripts
+
+**Nginx Container** (`php_dev_nginx`):
+- **Project Path**: `/var/www/php/php8.2/laravel/dashboard1`
+- **Virtual Host**: `dashboard1.conf`
+- **Purpose**: Web server, serves Laravel application and API
+
+#### Important Notes
+- **Never use standard commands** like `php`, `composer`, `npm` directly on host machine
+- **Always use `docker exec`** to run commands in appropriate containers
+- **Project paths differ** between containers - use the correct path for each
+
+#### Common Docker Commands
+
+**PHP/Laravel Commands**:
 ```bash
-# Using Docker (assumed setup exists)
+# Install PHP dependencies
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar install'
+
+# Run migrations
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate'
+
+# Generate app key
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan key:generate'
+
+# Start Laravel server
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan serve --host=0.0.0.0 --port=8000'
+
+# Run queue listener
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan queue:listen --tries=1'
+
+# Run tests
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/phpunit'
+```
+
+**Node.js/Frontend Commands**:
+```bash
+# Install frontend dependencies
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm install'
+
+# Start Vite dev server
 docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
+
+# Build for production
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run build'
+
+# Run concurrently (Laravel + Vite + Queue + Logs)
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
+```
+
+**Nginx Commands**:
+```bash
+# Check virtual host configuration
+docker exec php_dev_nginx sh -c 'cat /etc/nginx/conf.d/dashboard1.conf'
+
+# Reload nginx configuration
+docker exec php_dev_nginx sh -c 'nginx -s reload'
+
+# Check nginx status
+docker exec php_dev_nginx sh -c 'nginx -t'
+```
+
+#### Development Workflow with Docker
+
+1. **Setup Environment**:
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Install PHP dependencies
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar install'
+
+# Install frontend dependencies
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm install'
+
+# Generate app key
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan key:generate'
+
+# Run migrations
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate'
+
+# Create storage symlink
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan storage:link'
+```
+
+2. **Start Development Servers**:
+```bash
+# Start all services concurrently
+docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
+```
+
+**Access URLs**:
+- **Frontend**: [http://dashboard1.test/management/login](http://dashboard1.test/management/login)
+- **API**: [http://dashboard1.test/api/v1](http://dashboard1.test/api/v1)
+
+**Note**: Update your `/etc/hosts` file to include:
+```
+127.0.0.1 dashboard1.test
+```
+
+#### Debugging in Docker
+
+**View Laravel Logs**:
+```bash
+docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan pail --timeout=0'
+```
+
+**Access Container Shell**:
+```bash
+# PHP container
+docker exec -it php_dev_php8.2 sh
+
+# Node.js container
+docker exec -it php_dev_nodejs_20 sh
+
+# Nginx container
+docker exec -it php_dev_nginx sh
+```
+
+**Check Container Status**:
+```bash
+docker ps
+docker logs php_dev_php8.2
+docker logs php_dev_nodejs_20
+docker logs php_dev_nginx
 ```
 
 ---
