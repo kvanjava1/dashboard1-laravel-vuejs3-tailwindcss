@@ -1,6 +1,7 @@
 <template>
     <button type="button" @click="handleClick"
-        class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 rounded-xl group hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 active:scale-[0.98]">
+        class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 group hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 active:scale-[0.98]"
+        :style="{ borderRadius: 'var(--radius-dropdown-item)' }">
         <!-- Icon -->
         <span v-if="icon"
             class="material-symbols-outlined text-gray-600 text-xl group-hover:text-primary group-hover:scale-110 transition-all duration-200">

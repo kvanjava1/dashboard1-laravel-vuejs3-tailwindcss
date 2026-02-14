@@ -2,13 +2,13 @@
     <div class="relative group">
         <!-- Trigger Button -->
         <button type="button" @click="toggleDropdown" :class="[
-            'flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200',
+            'flex items-center justify-center gap-2 px-3 py-2 font-medium transition-all duration-200',
             'border border-gray-300 bg-white text-gray-700',
             'hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm',
             'active:scale-95',
             isOpen ? 'bg-gray-100 border-gray-400 shadow-sm' : '',
             showLabel ? 'px-4' : 'w-10 h-10'
-        ]" :title="label" :aria-label="label" :aria-expanded="isOpen">
+        ]" :style="{ borderRadius: 'var(--radius-dropdown-button)' }" :title="label" :aria-label="label" :aria-expanded="isOpen">
             <span class="material-symbols-outlined text-xl">{{ icon }}</span>
             <span v-if="showLabel" class="hidden sm:inline text-sm">{{ label }}</span>
         </button>
@@ -19,10 +19,10 @@
             leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100 scale-100 translate-y-0"
             leave-to-class="opacity-0 scale-95 -translate-y-2">
             <div v-if="isOpen" :class="[
-                'absolute top-full mt-2 bg-white rounded-2xl border border-gray-200 shadow-xl z-50',
+                'absolute top-full mt-2 bg-white border border-gray-200 shadow-xl z-50',
                 'min-w-[200px] overflow-hidden',
                 align === 'right' ? 'right-0' : 'left-0'
-            ]">
+            ]" :style="{ borderRadius: 'var(--radius-dropdown-menu)' }">
                 <!-- Dropdown Content -->
                 <div class="py-1.5 px-1" @click="closeDropdown">
                     <slot />

@@ -32,10 +32,15 @@ export default {
                 "display": ["Manrope", "sans-serif"]
             },
             borderRadius: {
-                "DEFAULT": "1rem",
-                "lg": "1.5rem",
-                "xl": "2rem",
-                "full": "9999px"
+                none: '0px',
+                sm: '0px',
+                DEFAULT: '0px',
+                md: '0px',
+                lg: '0px',
+                xl: '0px',
+                '2xl': '0px',
+                '3xl': '0px',
+                full: '9999px'
             },
             boxShadow: {
                 'soft': '0 4px 20px rgba(0, 0, 0, 0.05)',

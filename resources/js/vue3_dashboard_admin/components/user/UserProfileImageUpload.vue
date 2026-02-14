@@ -38,7 +38,8 @@
 
     <!-- Image Preview (1:1 aspect ratio, circular) -->
     <div class="relative flex justify-center">
-      <div class="w-32 h-32 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50 transition-colors hover:border-primary/50">
+      <div class="w-32 h-32 border-4 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50 transition-colors hover:border-primary/50"
+           :style="{ borderRadius: 'var(--radius-avatar)' }">
         <img
           v-if="previewImage"
           :src="previewImage"
@@ -55,7 +56,8 @@
         type="button"
         variant="danger"
         size="xs"
-        class="absolute -top-2 -right-2 !p-0 w-6 h-6 rounded-full shadow-lg"
+        class="absolute -top-2 -right-2 !p-0 w-6 h-6 shadow-lg"
+        :style="{ borderRadius: 'var(--radius)' }"
         title="Remove image"
       >
         <span class="material-symbols-outlined text-sm">close</span>
@@ -68,7 +70,8 @@
         type="button"
         variant="primary"
         size="xs"
-        class="absolute -bottom-2 -right-2 !p-0 w-6 h-6 rounded-full shadow-lg"
+        class="absolute -bottom-2 -right-2 !p-0 w-6 h-6 shadow-lg"
+        :style="{ borderRadius: 'var(--radius)' }"
         title="Crop image"
       >
         <span class="material-symbols-outlined text-sm">crop</span>

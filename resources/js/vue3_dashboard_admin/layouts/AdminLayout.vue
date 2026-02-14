@@ -18,8 +18,9 @@
             <!-- Mobile Sidebar Header with Close Button -->
             <div class="flex items-center justify-between mb-6 lg:hidden">
                 <div class="flex items-center gap-3">
-                    <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-border-dark shadow-lg"
-                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c");'>
+                    <div class="bg-center bg-no-repeat bg-cover size-10 border border-border-dark shadow-lg"
+                        :style="{ borderRadius: 'var(--radius-avatar)' }"
+                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c")'>
                     </div>
                     <div class="flex flex-col">
                         <h1 class="text-white text-lg font-bold leading-tight">Admin Panel</h1>
@@ -40,8 +41,9 @@
 
             <!-- Desktop Sidebar Header -->
             <div class="hidden lg:flex items-center gap-3 mb-10 px-2">
-                <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-border-dark shadow-lg"
-                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c");'>
+                <div class="bg-center bg-no-repeat bg-cover size-10 border border-border-dark shadow-lg"
+                    :style="{ borderRadius: 'var(--radius-avatar)' }"
+                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUcrGy7TVAfNeO5QOxOvDWxmgg_Jm3DZxYCU7LJmoGUMGdzwFBLmf9-t2I2m9HWR9oagWB_pMXt1rWyOsseSLHafol9rb16gmxXUgjp2dMCOpBbp-1n9w_WOzmR6KuWmALqH9_T4NaO2gf5M_0_TpJw6P9c2x67lmHtyxyvNKjQaKyQOPFRFOnbxHig8f3xsJWlE-ITSi_wsa-bNLrWLDPVlznpesAA1HRAk8y_vv6lPq9DoWdkDFuokP0sbKWJ7oUxVQ5-U6CF2c")'>
                 </div>
                 <div class="flex flex-col">
                     <h1 class="text-white text-lg font-bold leading-tight">Admin Panel</h1>
@@ -53,7 +55,8 @@
             <nav class="flex flex-col gap-1 flex-1 overflow-y-auto">
                 <!-- Level 1 - Dashboard -->
                 <router-link v-if="authStore.hasPermission('dashboard.view')" to="/dashboard/index"
-                    class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95"
+                    class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95"
+                    :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                     @click="closeMobileSidebar"
                     active-class="bg-primary/10 text-primary-light border border-primary/20">
                     <span
@@ -63,7 +66,8 @@
 
                 <!-- Users Menu -->
                 <router-link v-if="authStore.hasPermission('user_management.view')" to="/user_management/index"
-                    class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer">
+                    class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    :style="{ borderRadius: 'var(--radius-sidebar-item)' }">
                     <div class="flex items-center gap-4">
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">group</span>
@@ -73,7 +77,8 @@
 
                 <!-- Roles Menu -->
                 <router-link v-if="authStore.hasPermission('role_management.view')" to="/role_management/index"
-                    class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer">
+                    class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    :style="{ borderRadius: 'var(--radius-sidebar-item)' }">
                     <div class="flex items-center gap-4">
                         <span
                             class="material-symbols-outlined group-hover:text-primary-light transition-colors">manage_accounts</span>
@@ -85,7 +90,8 @@
                 <router-link
                     v-if="authStore.isAuthenticated"
                     to="/category_management/index"
-                    class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                 >
                     <div class="flex items-center gap-4">
                         <span class="material-symbols-outlined group-hover:text-primary-light transition-colors">category</span>
@@ -95,7 +101,8 @@
 
                 <!-- Images Management Menu -->
                 <div class="menu-item">
-                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    <div class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                         @click="toggleMenu('images-menu')">
                         <div class="flex items-center gap-4">
                             <span class="material-symbols-outlined group-hover:text-primary-light transition-colors">image</span>
@@ -107,7 +114,8 @@
 
                     <div :id="'images-menu'" :class="['submenu', { 'open': openMenus['images-menu'] }]">
                         <router-link to="/gallery_management/index"
-                            class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                             @click="closeMobileSidebar"
                         >
                             <span class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">photo_library</span>
@@ -115,7 +123,8 @@
                         </router-link>
 
                         <router-link to="/image_management/index"
-                            class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                             @click="closeMobileSidebar"
                         >
                             <span class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">image</span>
@@ -126,7 +135,8 @@
 
                 <!-- Analytics Menu -->
                 <div class="menu-item">
-                    <div class="flex items-center justify-between px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                    <div class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
+                        :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                         @click="toggleMenu('analytics-menu')">
                         <div class="flex items-center gap-4">
                             <span
@@ -139,7 +149,8 @@
 
                     <div :id="'analytics-menu'" :class="['submenu', { 'open': openMenus['analytics-menu'] }]">
                         <router-link to="/admin/analytics"
-                            class="flex items-center gap-4 px-4 py-3 rounded-full text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
+                            :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                             @click="closeMobileSidebar">
                             <span
                                 class="material-symbols-outlined group-hover:text-primary-light transition-colors text-sm">trending_up</span>
@@ -182,7 +193,8 @@
                             <span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
                         </div>
                         <input v-model="searchQuery" @input="handleSearch"
-                            class="block w-full pl-10 pr-3 py-2.5 bg-white border border-border-light rounded-full text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            class="block w-full pl-10 pr-3 py-2.5 bg-white border border-border-light text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            :style="{ borderRadius: 'var(--radius-sidebar-search)' }"
                             placeholder="Search for data, users, docs..." type="text" />
                     </div>
                 </div>
@@ -192,12 +204,14 @@
                         type="button"
                         variant="ghost"
                         size="xs"
-                        class="relative !p-2 rounded-full"
+                        class="relative !p-2"
+                        :style="{ borderRadius: 'var(--radius)' }"
                         aria-label="Notifications"
                     >
                         <span class="material-symbols-outlined">notifications</span>
                         <span
-                            class="absolute top-1.5 right-2 size-2.5 bg-danger rounded-full border-2 border-white animate-pulse"></span>
+                            class="absolute top-1.5 right-2 size-2.5 bg-danger border-2 border-white animate-pulse"
+                            :style="{ borderRadius: 'var(--radius)' }"></span>
                     </Button>
 
                     <!-- Logout Button -->
@@ -220,11 +234,12 @@
                                 <p class="text-xs text-slate-500">{{ user.role }}</p>
                             </div>
                             <div class="relative">
-                                <div class="size-10 rounded-full bg-cover bg-center border-2 border-white shadow-md group-hover:border-primary transition-all duration-300"
-                                    :style="`background-image: url('${user.avatar}')`">
+                                <div class="size-10 bg-cover bg-center border-2 border-white shadow-md group-hover:border-primary transition-all duration-300"
+                                    :style="{ borderRadius: 'var(--radius-avatar)', backgroundImage: `url('${user.avatar}')` }">
                                 </div>
                                 <div
-                                    class="absolute -bottom-1 -right-1 size-3.5 bg-success rounded-full border-2 border-white">
+                                    class="absolute -bottom-1 -right-1 size-3.5 bg-success border-2 border-white"
+                                    :style="{ borderRadius: 'var(--radius)' }">
                                 </div>
                             </div>
                             <span
@@ -237,14 +252,15 @@
                             <div
                                 class="p-4 border-b border-border-light bg-gradient-to-r from-primary/5 to-secondary/5">
                                 <div class="flex items-center gap-3">
-                                    <div class="size-12 rounded-full bg-cover bg-center border-2 border-white shadow-md"
-                                        :style="`background-image: url('${user.avatar}')`">
+                                    <div class="size-12 bg-cover bg-center border-2 border-white shadow-md"
+                                        :style="{ borderRadius: 'var(--radius-avatar)' }">
                                     </div>
                                     <div>
                                         <p class="text-sm font-bold text-slate-800">{{ user.name }}</p>
                                         <p class="text-xs text-slate-500">{{ user.email }}</p>
                                         <p
-                                            class="text-xs text-primary font-semibold mt-1 px-2 py-0.5 bg-primary/10 rounded-full inline-block">
+                                            class="text-xs text-primary font-semibold mt-1 px-2 py-0.5 bg-primary/10 inline-block"
+                                            :style="{ borderRadius: 'var(--radius)' }">
                                             {{ user.role }}
                                         </p>
                                     </div>

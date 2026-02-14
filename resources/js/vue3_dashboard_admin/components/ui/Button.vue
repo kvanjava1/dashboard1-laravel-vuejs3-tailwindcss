@@ -1,5 +1,5 @@
 <template>
-    <button :class="[buttonClasses, attrs.class]" :style="attrs.style" :disabled="disabled || loading"
+    <button :class="[buttonClasses, attrs.class]" :style="[buttonStyle, attrs.style]" :disabled="disabled || loading"
         v-bind="passthroughAttrs" @click="handleClick">
         <!-- Loading spinner -->
         <LoadingSpinner v-if="loading" :size="size === 'xs' ? 'xs' : 'sm'" class="mr-2" />
@@ -49,6 +49,12 @@ const emit = defineEmits<{
     click: [event: Event]
 }>()
 
+const handleClick = (event: Event) => {
+    if (!props.disabled && !props.loading) {
+        emit('click', event)
+    }
+}
+
 const attrs = useAttrs() as { class?: any, style?: StyleValue, [key: string]: any }
 
 const passthroughAttrs = computed(() => {
@@ -56,11 +62,9 @@ const passthroughAttrs = computed(() => {
     return rest
 })
 
-const handleClick = (event: Event) => {
-    if (!props.disabled && !props.loading) {
-        emit('click', event)
-    }
-}
+const buttonStyle = computed(() => ({
+    borderRadius: `var(--radius-button-${['xs', 'sm'].includes(props.size) ? 'sm' : 'md'})`
+}))
 
 const buttonClasses = computed(() => {
     const baseClasses = [
@@ -72,10 +76,10 @@ const buttonClasses = computed(() => {
 
     // Size classes
     const sizeClasses = {
-        xs: 'px-2.5 py-1.5 text-xs rounded',
-        sm: 'px-3 py-2 text-sm rounded-lg',
-        md: 'px-4 py-2.5 text-sm rounded-lg',
-        lg: 'px-6 py-3 text-base rounded-lg'
+        xs: 'px-2.5 py-1.5 text-xs',
+        sm: 'px-3 py-2 text-sm',
+        md: 'px-4 py-2.5 text-sm',
+        lg: 'px-6 py-3 text-base'
     }
 
     // Variant classes

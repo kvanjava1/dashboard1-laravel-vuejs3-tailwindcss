@@ -13,18 +13,21 @@
       <div v-if="user" class="p-0">
         <!-- Profile Header -->
         <div class="flex flex-col items-center gap-4 mb-8 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-          <div class="w-24 h-24 rounded-full border-4 border-primary bg-slate-100 flex items-center justify-center overflow-hidden relative">
+          <div class="w-24 h-24 border-4 border-primary bg-slate-100 flex items-center justify-center overflow-hidden relative"
+               :style="{ borderRadius: 'var(--radius-avatar)' }">
             <img
               v-if="user.profile_image_url"
               :src="user.profile_image_url"
               alt="Avatar"
-              class="w-full h-full object-cover rounded-full"
+              class="w-full h-full object-cover"
+              :style="{ borderRadius: 'var(--radius-avatar)' }"
             />
             <img
               v-else
               :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&size=128`"
               alt="Avatar"
-              class="w-full h-full object-cover rounded-full"
+              class="w-full h-full object-cover"
+              :style="{ borderRadius: 'var(--radius-avatar)' }"
             />
           </div>
           <div class="text-center">

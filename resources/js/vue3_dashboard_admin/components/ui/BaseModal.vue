@@ -25,9 +25,10 @@
           <div
             v-if="isOpen"
             :class="[
-              'bg-white rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col',
+              'bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col',
               sizeClasses[size]
             ]"
+            :style="{ borderRadius: 'var(--radius-modal)' }"
             @click.stop
             role="dialog"
             aria-modal="true"

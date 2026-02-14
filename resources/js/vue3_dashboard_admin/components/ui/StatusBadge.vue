@@ -1,5 +1,5 @@
 <template>
-    <span :class="badgeClass">
+    <span :class="badgeClass" :style="{ borderRadius: 'var(--radius-badge)' }">
         <span class="size-1.5 rounded-full" :class="dotClass"></span>
         <span>{{ displayLabel }}</span>
     </span>
@@ -48,7 +48,7 @@ const tone = computed(() => {
 })
 
 const badgeClass = computed(() => {
-    const base = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border'
+    const base = 'inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold border'
     const variants: Record<string, string> = {
         active: 'bg-green-50 text-green-700 border-green-200',
         inactive: 'bg-slate-50 text-slate-600 border-slate-200',

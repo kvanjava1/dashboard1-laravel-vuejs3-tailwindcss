@@ -1,5 +1,5 @@
 <template>
-    <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+    <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 border border-blue-200" :style="{ borderRadius: 'var(--radius-alert)' }">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-blue-600 text-lg">filter_list</span>

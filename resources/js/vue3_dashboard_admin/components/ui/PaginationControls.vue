@@ -4,7 +4,8 @@
             type="button"
             variant="outline"
             size="xs"
-            class="!p-0 size-8 rounded-full"
+            class="!p-0 size-8"
+            :style="{ borderRadius: 'var(--radius-pagination)' }"
             :disabled="currentPage === 1"
             @click="$emit('prev')"
             aria-label="Previous page"
@@ -19,7 +20,8 @@
                 type="button"
                 :variant="page === currentPage ? 'primary' : 'outline'"
                 size="xs"
-                class="!p-0 size-8 rounded-full"
+                class="!p-0 size-8"
+                :style="{ borderRadius: 'var(--radius-pagination)' }"
                 @click="$emit('goto', page)"
             >
                 {{ page }}
@@ -30,7 +32,8 @@
             type="button"
             variant="outline"
             size="xs"
-            class="!p-0 size-8 rounded-full"
+            class="!p-0 size-8"
+            :style="{ borderRadius: 'var(--radius-pagination)' }"
             @click="$emit('next')"
             aria-label="Next page"
         >

@@ -22,10 +22,33 @@
 
     --font-display: "Manrope", sans-serif;
     
-    --radius-DEFAULT: 1rem;
-    --radius-lg: 1.5rem;
-    --radius-xl: 2rem;
+    --radius: 0px;
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+    --radius-2xl: 0px;
+    --radius-3xl: 0px;
     --radius-full: 9999px;
+
+    /* Component-specific radius variables for centralized control */
+    --radius-button: var(--radius);
+    --radius-button-sm: var(--radius);
+    --radius-button-md: var(--radius-lg);
+    --radius-button-lg: var(--radius-lg);
+    --radius-input: var(--radius-lg);
+    --radius-card: var(--radius-2xl);
+    --radius-modal: var(--radius-xl);
+    --radius-badge: var(--radius-lg);
+    --radius-select: var(--radius-lg);
+    --radius-dropdown-button: var(--radius-lg);
+    --radius-dropdown-menu: var(--radius-2xl);
+    --radius-dropdown-item: var(--radius-xl);
+    --radius-alert: var(--radius-lg);
+    --radius-pagination: var(--radius);
+    --radius-avatar: var(--radius-lg);
+    --radius-sidebar-item: var(--radius);
+    --radius-sidebar-search: var(--radius);
 
     --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
     --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.08);
@@ -235,9 +258,24 @@ body.sidebar-open {
 
 ::-webkit-scrollbar-thumb {
     background: #cbd5e1;
-    border-radius: 4px;
+    border-radius: 0px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+/* Force all rounded elements to be boxy */
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl {
+    border-radius: 0px !important;
+}
+
+.rounded-full {
+    border-radius: 9999px !important;
 }

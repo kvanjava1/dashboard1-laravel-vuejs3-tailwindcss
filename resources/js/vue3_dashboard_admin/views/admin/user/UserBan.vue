@@ -33,7 +33,8 @@
                                 <img
                                     :src="user.profile_image || '/images/default-avatar.png'"
                                     :alt="user.name"
-                                    class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
+                                    class="w-20 h-20 object-cover border-4 border-white shadow-md"
+                                    :style="{ borderRadius: 'var(--radius-avatar)' }"
                                 />
                                 <div class="flex-1">
                                     <h3 class="text-xl font-bold text-slate-800">{{ user.name }}</h3>
@@ -107,7 +108,8 @@
                     </ContentBoxHeader>
                     <ContentBoxBody>
                         <div v-if="banHistory.length === 0" class="text-center py-12">
-                            <div class="bg-slate-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <div class="bg-slate-50 w-20 h-20 flex items-center justify-center mx-auto mb-4"
+                                 :style="{ borderRadius: 'var(--radius-avatar)' }">
                                 <span class="material-symbols-outlined text-slate-400 text-3xl">history</span>
                             </div>
                             <h3 class="text-lg font-medium text-slate-600 mb-2">No Ban History</h3>

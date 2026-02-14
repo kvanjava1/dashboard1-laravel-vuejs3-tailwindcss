@@ -42,7 +42,8 @@
                         </div>
                         <input v-model="searchInput" type="text"
                             placeholder="Search galleries by title, description, or category..."
-                            class="block w-full pl-11 pr-4 py-3 bg-white border border-border-light rounded-full text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            class="block w-full pl-11 pr-4 py-3 bg-white border border-border-light text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                            :style="{ borderRadius: 'var(--radius-input)' }"
                             @keydown.enter="handleSearch" />
                     </div>
 

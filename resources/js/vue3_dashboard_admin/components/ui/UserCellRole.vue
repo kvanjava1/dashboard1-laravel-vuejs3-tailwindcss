@@ -1,8 +1,8 @@
 <template>
     <span :class="[
-        'px-3 py-1 text-xs font-medium rounded-full',
+        'px-3 py-1 text-xs font-medium',
         roleClass(role)
-    ]">
+    ]" :style="{ borderRadius: 'var(--radius-badge)' }">
         {{ formatRole(role) }}
     </span>
 </template>

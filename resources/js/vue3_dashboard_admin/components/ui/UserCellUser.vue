@@ -1,10 +1,11 @@
 <template>
     <div class="flex items-center gap-3">
-        <div class="relative size-10 rounded-full border border-border-light flex items-center justify-center bg-slate-200 overflow-hidden">
+        <div class="relative size-10 border border-border-light flex items-center justify-center bg-slate-200 overflow-hidden" :style="{ borderRadius: 'var(--radius-avatar)' }">
             <img
                 :src="avatar && avatar.trim() !== '' ? avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=64`"
                 alt="Avatar"
-                class="absolute inset-0 w-full h-full object-cover rounded-full"
+                class="absolute inset-0 w-full h-full object-cover"
+                :style="{ borderRadius: 'var(--radius-avatar)' }"
                 loading="lazy"
                 @error="(e) => { const t = e.target as HTMLImageElement | null; if (t) { t.style.display = 'none'; const s = t.nextElementSibling as HTMLElement | null; if (s) s.style.display = 'flex'; } }"
             />
