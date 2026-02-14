@@ -1,325 +1,521 @@
-# 04-DATABASE-SCHEMA.md
+# Database Schema & Data Model
 
-## Database Schema Analysis
+## Database Configuration
 
-### Database Design Overview
+**Default Connection**: SQLite  
+**Alternative**: MySQL  
+**Evidence**: [config/database.php](config/database.php) - default is `sqlite`
 
-The application uses a **MySQL/PostgreSQL** database with a **normalized relational schema** optimized for user management operations. The schema implements **role-based access control (RBAC)** using the Spatie Laravel Permission package.
-
-### Core Tables and Relationships
-
-#### Entity-Relationship Diagram (Text Representation)
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
-│   users     │     │    roles    │     │  permissions    │
-├─────────────┤     ├─────────────┤     ├─────────────────┤
-│ id (PK)     │     │ id (PK)     │     │ id (PK)         │
-│ name        │     │ name        │     │ name            │
-│ email       │     │ guard_name  │     │ guard_name      │
-│ password    │     │ created_at  │     │ created_at      │
-│ phone       │     │ updated_at  │     │ updated_at      │
-│ profile_img │     └─────────────┘     └─────────────────┘
-│ is_banned   │             │                       │
-│ is_active   │             │                       │
-│ created_at  │             │                       │
-│ updated_at  │             │                       │
-│ deleted_at  │             ▼                       ▼
-└─────────────┘    ┌─────────────────┐    ┌─────────────────┐
-                   │model_has_roles  │    │role_has_permiss │
-                   ├─────────────────┤    ├─────────────────┤
-                   │ role_id (FK)    │    │ role_id (FK)    │
-                   │ model_type      │    │ permission_id   │
-                   │ model_id (FK)   │    │                 │
-                   └─────────────────┘    └─────────────────┘
-                            │
-                            ▼
-                   ┌─────────────────┐     ┌─────────────────┐
-                   │user_ban_history │     │  sessions       │
-                   ├─────────────────┤     ├─────────────────┤
-                   │ id (PK)         │     │ id (PK)         │
-                   │ user_id (FK)    │     │ user_id (FK)    │
-                   │ action          │     │ payload         │
-                   │ reason          │     │ last_activity   │
-                   │ banned_until    │     └─────────────────┘
-                   │ is_forever      │
-                   │ performed_by    │
-                   │ created_at      │
-                   └─────────────────┘
+```php
+'default' => env('DB_CONNECTION', 'sqlite'),
+'database' => env('DB_DATABASE', database_path('database.sqlite')),
 ```
 
-### Detailed Table Schemas
+**Development Default Path**: `database/database.sqlite`
 
-#### 1. users Table
-**Purpose**: Core user account information and authentication data.
+---
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique user identifier |
-| name | VARCHAR(255) | NOT NULL | Full display name |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | Login email address |
-| email_verified_at | TIMESTAMP | NULLABLE | Email verification timestamp |
-| password | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
-| phone | VARCHAR(255) | NULLABLE | Contact phone number |
-| profile_image | VARCHAR(255) | NULLABLE | Path to profile image file |
-| is_banned | BOOLEAN | DEFAULT FALSE, NOT NULL | Account ban status |
-| is_active | BOOLEAN | DEFAULT TRUE, NOT NULL | Account activation status |
-| remember_token | VARCHAR(100) | NULLABLE | Password reset token |
-| created_at | TIMESTAMP | NULLABLE | Record creation timestamp |
-| updated_at | TIMESTAMP | NULLABLE | Record update timestamp |
-| deleted_at | TIMESTAMP | NULLABLE | Soft delete timestamp |
+## Complete Schema Diagram
 
-**Indexes**:
-- PRIMARY KEY on `id`
-- UNIQUE KEY on `email`
-- INDEX on `deleted_at` (for soft delete queries)
-
-**Relationships**:
-- One-to-Many: `user_ban_history.performed_by` → `users.id`
-- Many-to-Many: `users` ↔ `roles` (via `model_has_roles`)
-- Many-to-Many: `users` ↔ `permissions` (via `model_has_roles` → `role_has_permissions`)
-
-#### 2. roles Table (Spatie Permission)
-**Purpose**: Role definitions for access control grouping.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique role identifier |
-| name | VARCHAR(255) | NOT NULL | Role name (e.g., 'administrator') |
-| guard_name | VARCHAR(255) | NOT NULL | Authentication guard name |
-| created_at | TIMESTAMP | NULLABLE | Record creation timestamp |
-| updated_at | TIMESTAMP | NULLABLE | Record update timestamp |
-
-**Indexes**:
-- PRIMARY KEY on `id`
-- UNIQUE KEY on `name`, `guard_name`
-
-**Relationships**:
-- Many-to-Many: `roles` ↔ `users` (via `model_has_roles`)
-- Many-to-Many: `roles` ↔ `permissions` (via `role_has_permissions`)
-
-#### 3. permissions Table (Spatie Permission)
-**Purpose**: Individual permission definitions.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique permission identifier |
-| name | VARCHAR(255) | NOT NULL | Permission name (e.g., 'user_management.view') |
-| guard_name | VARCHAR(255) | NOT NULL | Authentication guard name |
-| created_at | TIMESTAMP | NULLABLE | Record creation timestamp |
-| updated_at | TIMESTAMP | NULLABLE | Record update timestamp |
-
-**Indexes**:
-- PRIMARY KEY on `id`
-- UNIQUE KEY on `name`, `guard_name`
-
-**Relationships**:
-- Many-to-Many: `permissions` ↔ `roles` (via `role_has_permissions`)
-
-#### 4. model_has_roles Table (Spatie Permission)
-**Purpose**: Junction table linking users to their assigned roles.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| role_id | BIGINT UNSIGNED | FOREIGN KEY → roles.id | Role identifier |
-| model_type | VARCHAR(255) | NOT NULL | Model class name (App\Models\User) |
-| model_id | BIGINT UNSIGNED | FOREIGN KEY → users.id | User identifier |
-
-**Indexes**:
-- PRIMARY KEY on `role_id`, `model_id`, `model_type`
-- INDEX on `model_id`, `model_type`
-
-#### 5. model_has_permissions Table (Spatie Permission)
-**Purpose**: Direct permission assignments (bypassing roles).
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| permission_id | BIGINT UNSIGNED | FOREIGN KEY → permissions.id | Permission identifier |
-| model_type | VARCHAR(255) | NOT NULL | Model class name |
-| model_id | BIGINT UNSIGNED | FOREIGN KEY → users.id | User identifier |
-
-**Indexes**:
-- PRIMARY KEY on `permission_id`, `model_id`, `model_type`
-- INDEX on `model_id`, `model_type`
-
-#### 6. role_has_permissions Table (Spatie Permission)
-**Purpose**: Links roles to their assigned permissions.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| permission_id | BIGINT UNSIGNED | FOREIGN KEY → permissions.id | Permission identifier |
-| role_id | BIGINT UNSIGNED | FOREIGN KEY → roles.id | Role identifier |
-
-**Indexes**:
-- PRIMARY KEY on `permission_id`, `role_id`
-
-#### 7. user_ban_histories Table
-**Purpose**: Audit trail for all ban and unban actions.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique history record ID |
-| user_id | BIGINT UNSIGNED | FOREIGN KEY → users.id, NOT NULL | User being banned/unbanned |
-| action | ENUM('ban', 'unban') | NOT NULL | Type of action performed |
-| reason | TEXT | NOT NULL | Reason for the action |
-| banned_until | TIMESTAMP | NULLABLE | Future ban expiration (currently unused) |
-| is_forever | BOOLEAN | DEFAULT FALSE, NOT NULL | Whether ban is permanent |
-| performed_by | BIGINT UNSIGNED | FOREIGN KEY → users.id, NULLABLE | Administrator who performed action |
-| created_at | TIMESTAMP | NULLABLE | Action timestamp |
-| updated_at | TIMESTAMP | NULLABLE | Record update timestamp |
-
-**Indexes**:
-- PRIMARY KEY on `id`
-- INDEX on `user_id`, `created_at`
-- INDEX on `action`
-- FOREIGN KEY on `user_id` → `users.id` (CASCADE on delete)
-- FOREIGN KEY on `performed_by` → `users.id` (SET NULL on delete)
-
-#### 8. sessions Table (Laravel Built-in)
-**Purpose**: Session storage for web authentication.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | VARCHAR(255) | PRIMARY KEY | Session identifier |
-| user_id | BIGINT UNSIGNED | FOREIGN KEY → users.id, NULLABLE, INDEX | Associated user |
-| ip_address | VARCHAR(45) | NULLABLE | Client IP address |
-| user_agent | TEXT | NULLABLE | Client user agent string |
-| payload | LONGTEXT | NOT NULL | Serialized session data |
-| last_activity | INT | INDEX, NOT NULL | Unix timestamp of last activity |
-
-#### 9. password_reset_tokens Table (Laravel Built-in)
-**Purpose**: Password reset token storage.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| email | VARCHAR(255) | PRIMARY KEY | User email address |
-| token | VARCHAR(255) | NOT NULL | Reset token |
-| created_at | TIMESTAMP | NULLABLE | Token creation timestamp |
-
-### Database Schema Evolution
-
-#### Migration Timeline
-1. **0001_01_01_000000_create_users_table.php**
-   - Basic user table with authentication fields
-   - Password reset tokens table
-   - Sessions table
-
-2. **0001_01_01_000001_create_cache_table.php**
-   - Laravel caching tables
-
-3. **0001_01_01_000002_create_jobs_table.php**
-   - Laravel queue tables
-
-4. **2026_01_15_152640_create_permission_tables.php**
-   - Spatie permission system tables
-   - Roles, permissions, and relationship tables
-
-5. **2026_01_16_074940_create_personal_access_tokens_table.php**
-   - Laravel Sanctum personal access tokens
-
-6. **2026_01_31_041410_add_ban_fields_back_to_users_table.php**
-   - Added `is_banned` and `is_active` fields
-   - Added `profile_image` field
-
-7. **2026_01_31_074611_create_user_ban_histories_table.php**
-   - Complete ban/unban audit trail table
-
-8. **2026_02_01_133832_add_phone_field_to_users_table.php**
-   - Added phone number field to users table
-
-### Key Database Design Patterns
-
-#### 1. Soft Deletes Pattern
-- Users table uses `deleted_at` for data preservation
-- Maintains referential integrity
-- Allows account restoration
-
-#### 2. Audit Trail Pattern
-- `user_ban_histories` table tracks all moderation actions
-- Includes performer information and timestamps
-- Supports compliance and debugging
-
-#### 3. Role-Based Access Control (RBAC)
-- Three-level hierarchy: Users → Roles → Permissions
-- Flexible permission assignment
-- Supports both role-based and direct permissions
-
-#### 4. Polymorphic Relationships
-- `model_has_roles` and `model_has_permissions` support multiple model types
-- Extensible for future entity types
-
-### Indexing Strategy
-
-#### Performance Indexes
-- **Primary Keys**: All tables have auto-incrementing primary keys
-- **Foreign Keys**: Automatic indexing on foreign key columns
-- **Unique Constraints**: Email uniqueness, role/permission name uniqueness
-- **Composite Indexes**: Multi-column indexes for complex queries
-- **Partial Indexes**: Conditional indexes where applicable
-
-#### Query Optimization
-```sql
--- Optimized user search query
-SELECT u.id, u.name, u.email, r.name as role_name
-FROM users u
-LEFT JOIN model_has_roles mhr ON u.id = mhr.model_id
-LEFT JOIN roles r ON mhr.role_id = r.id
-WHERE u.deleted_at IS NULL
-  AND (u.name LIKE ? OR u.email LIKE ?)
-  AND u.is_banned = ?
-ORDER BY u.created_at DESC
-LIMIT 15 OFFSET 0
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         CORE ENTITIES                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  users                galaxies              categories                   │
+│  ┌──────────────┐   ┌──────────────┐      ┌──────────────┐              │
+│  │ id (PK)      │   │ id (PK)      │      │ id (PK)      │              │
+│  │ name         │   │ title        │      │ name         │              │
+│  │ email (UQ)   │   │ slug (UQ)    │◄─────│ slug (UQ)    │              │
+│  │ password     │   │ description  │      │ description  │              │
+│  │ phone        │   │ category_id  │-┐    │ is_active    │              │
+│  │ profile_img  │   │ is_active    │ │    │ ct_id (FK)   │              │
+│  │ is_banned    │   │ is_public    │ │    │ parent_id    │◄─┐           │
+│  │ is_active    │   │ cover_id     │ │    └──────────────┘  │           │
+│  │ created_at   │   │ item_count   │ │                      │           │
+│  │ updated_at   │   │ created_at   │ │    ┌──────────────┐  │           │
+│  │ deleted_at   │   │ updated_at   │ │    │ category_    │  │           │
+│  └──────────────┘   │ deleted_at   │ │    │ types        │  │           │
+│       │             └──────────────┘ │    │ ┌──────────┐ │  │           │
+│       │                   │          │    │ │ id (PK)  │ │  │           │
+│       ↓                   ├──────────┘    │ │ name     │ │  │           │
+│                           │               │ │ slug     │ │  │           │
+│   roles                   ↓               │ │ c_at     │ │  │           │
+│ ┌──────────────┐   media              │ │ u_at     │ │  │           │
+│ │ id (PK)      │  ┌──────────────┐   │ │ └──────────┘ │  │           │
+│ │ name         │  │ id (PK)      │   │ └──────────────┘  │           │
+│ │ guard_name   │  │ gallery_id   │───│────────────────────┘           │
+│ │ updated_at   │  │ filename     │                                      │
+│ └──────────────┘  │ extension    │   tags                              │
+│       │           │ mime_type    │  ┌──────────────┐                   │
+│       ↓           │ size         │  │ id (PK)      │                   │
+│                   │ alt_text     │  │ name (UQ)    │                   │
+│ permissions       │ sort_order   │  │ slug (UQ)    │                   │
+│ ┌──────────────┐  │ uploaded_at  │  │ created_at   │                   │
+│ │ id (PK)      │  │ is_cover     │  │ updated_at   │                   │
+│ │ name         │  │ created_at   │  └──────────────┘                   │
+│ │ guard_name   │  │ updated_at   │        │                            │
+│ │ c_at         │  └──────────────┘        ↓                            │
+│ │ u_at         │                                                        │
+│ └──────────────┘   user_ban_histories    gallery_tag (Junction)        │
+│                   ┌──────────────┐      ┌──────────────┐               │
+│                   │ id (PK)      │      │ id (PK)      │               │
+│                   │ user_id (FK) │      │ gallery_id   │               │
+│                   │ action       │      │ tag_id       │               │
+│                   │ reason       │      │ created_at   │               │
+│                   │ banned_until │      │ updated_at   │               │
+│                   │ is_forever   │      │ UQ: (g,t)    │               │
+│                   │ performed_by │      └──────────────┘               │
+│                   │ c_at         │                                     │
+│                   │ u_at         │                                     │
+│                   └──────────────┘                                     │
+│                                                                        │
+│  model_has_roles (Junction)     role_has_permissions (Junction)       │
+│  ┌──────────────┐               ┌──────────────────┐                  │
+│  │ role_id (FK) │               │ role_id (FK)     │                  │
+│  │ model_id (FK)│               │ permission_id(FK)│                  │
+│  │ model_type   │               │ created_at       │                  │
+│  └──────────────┘               └──────────────────┘                  │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Integrity Constraints
+---
 
-#### Foreign Key Constraints
-- **CASCADE on DELETE**: Ban history follows user deletion
-- **SET NULL on DELETE**: Performed_by field nullified if admin deleted
-- **RESTRICT on UPDATE**: Prevent orphaned references
+## Complete Table Definitions
 
-#### Business Logic Constraints
-- **Email Uniqueness**: Enforced at database and application levels
-- **Enum Constraints**: Action field limited to 'ban'/'unban'
-- **Check Constraints**: Boolean fields default to appropriate values
+### users
 
-### Database Performance Considerations
+**Purpose**: System user accounts with authentication and profile data
 
-#### Query Patterns Analysis
-1. **User Listing**: Paginated queries with filters and sorting
-2. **Authentication**: Email lookup with password verification
-3. **Permission Checks**: Role and permission lookups per request
-4. **Audit Queries**: Historical ban/unban data retrieval
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| name | varchar(255) | NO | NO | NO | - | User display name |
+| email | varchar(255) | NO | YES | YES | - | Unique email for login |
+| email_verified_at | timestamp | YES | NO | NO | NULL | Laravel standard |
+| password | varchar(255) | NO | NO | NO | - | Hashed password (Model cast) |
+| remember_token | varchar(100) | YES | NO | NO | NULL | Laravel session token |
+| phone | varchar(255) | YES | NO | NO | NULL | Contact phone number |
+| profile_image | varchar(255) | YES | NO | NO | NULL | Path to profile image file |
+| is_banned | boolean | NO | NO | NO | false | User is banned |
+| is_active | boolean | NO | NO | NO | false | Account is active |
+| created_at | timestamp | NO | NO | YES | now() | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+| deleted_at | timestamp | YES | NO | YES | NULL | Soft delete timestamp |
 
-#### Optimization Strategies
-- **Connection Pooling**: Database connection reuse
-- **Query Caching**: Frequently accessed data cached
-- **Index Usage**: Proper indexing for WHERE clauses
-- **Eager Loading**: Prevent N+1 query problems in application code
+**Foreign Keys**: None (auth pivot is in model_has_roles)
 
-### Backup and Recovery Strategy
+**Constraints**:
+- email: UNIQUE
+- Soft deletes via deleted_at
 
-#### Critical Data
-- **User Accounts**: Core business data, requires regular backup
-- **Ban History**: Audit trail, compliance requirement
-- **Role Assignments**: Access control configuration
+**Evidence**: [database/migrations/0001_01_01_000000_create_users_table.php](database/migrations/0001_01_01_000000_create_users_table.php), [database/migrations/2026_02_01_133832_add_phone_field_to_users_table.php](database/migrations/2026_02_01_133832_add_phone_field_to_users_table.php)
 
-#### Backup Frequency
-- **Full Backups**: Daily during low-usage periods
-- **Incremental Backups**: Hourly for transaction logs
-- **Configuration Backups**: On configuration changes
+---
 
-### Future Schema Extensions
+### galleries
 
-#### Potential Enhancements
-1. **User Profile Extensions**: Additional profile fields table
-2. **Role Hierarchies**: Parent-child role relationships
-3. **Permission Groups**: Logical grouping of permissions
-4. **Audit Enhancements**: Extended audit logging for all actions
-5. **Multi-Tenancy**: Organization-based data separation
+**Purpose**: Collections/albums of images with metadata
 
-#### Scalability Considerations
-- **Partitioning**: Large tables split by date/user ranges
-- **Read Replicas**: Separate read and write databases
-- **Sharding**: Horizontal scaling for large user bases
-- **Archiving**: Old audit data moved to archive tables</content>
-<parameter name="filePath">/home/itboms/Developments/php/apps/php8.2/laravel/dashboard1/docs/project_knowledges/04-DATABASE-SCHEMA.md
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| title | varchar(255) | NO | NO | NO | - | Gallery name |
+| slug | varchar(255) | NO | YES | YES | - | URL-friendly identifier |
+| description | text | YES | NO | NO | NULL | Gallery description |
+| category_id | bigint | YES | NO | YES | NULL | FK to categories |
+| is_active | boolean | NO | NO | NO | true | Gallery visibility (active) |
+| is_public | boolean | NO | NO | NO | true | Public/private flag |
+| cover_id | bigint | YES | NO | NO | NULL | FK to media (cover image) |
+| item_count | integer | NO | NO | NO | 0 | Cached count of media items |
+| created_at | timestamp | NO | NO | YES | now() | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+| deleted_at | timestamp | YES | NO | YES | NULL | Soft delete timestamp |
+
+**Foreign Keys**:
+- category_id → categories(id) [onDelete: set null]
+
+**Indexes**:
+- slug (unique)
+- category_id
+- created_at (for sorting)
+
+**Constraints**:
+- slug: UNIQUE
+- Soft deletes via deleted_at
+
+**Evidence**: [database/migrations/2026_02_08_135549_create_galleries_table.php](database/migrations/2026_02_08_135549_create_galleries_table.php)
+
+---
+
+### media
+
+**Purpose**: Individual image files belonging to galleries with multiple size variants
+
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| gallery_id | bigint | YES | NO | YES | NULL | FK to galleries (onDelete: cascade) |
+| filename | varchar(255) | NO | NO | NO | - | File path/name (relative to storage) |
+| extension | varchar(10) | NO | NO | NO | webp | File extension (always webp) |
+| mime_type | varchar(255) | NO | NO | NO | image/webp | MIME type (always image/webp) |
+| size | bigint | NO | NO | NO | - | File size in bytes |
+| alt_text | varchar(255) | YES | NO | NO | NULL | SEO alt text |
+| sort_order | integer | NO | NO | NO | 0 | Display order in gallery |
+| uploaded_at | timestamp | NO | NO | YES | now() | Upload timestamp (used for path) |
+| is_cover | boolean | NO | NO | NO | false | Is this the gallery cover? |
+| created_at | timestamp | NO | NO | YES | now() | Record creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+
+**Foreign Keys**:
+- gallery_id → galleries(id) [onDelete: cascade]
+
+**Indexes**:
+- gallery_id
+- uploaded_at (for timestamped paths)
+
+**Evidence**: [database/migrations/2026_02_08_135550_create_media_table.php](database/migrations/2026_02_08_135550_create_media_table.php)
+
+**Related Migration**: [database/migrations/2026_02_12_000000_move_gallery_cover_to_media.php](database/migrations/2026_02_12_000000_move_gallery_cover_to_media.php) - moved cover reference from galleries to media
+
+---
+
+### categories
+
+**Purpose**: Hierarchical organization of content (e.g., Gallery types)
+
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| category_type_id | bigint | NO | NO | YES | - | FK to category_types (onDelete: cascade) |
+| parent_id | bigint | YES | NO | YES | NULL | FK to categories (self-ref, onDelete: set null) |
+| name | varchar(255) | NO | NO | NO | - | Category name |
+| slug | varchar(255) | NO | YES | YES | - | URL identifier (globally unique) |
+| description | text | YES | NO | NO | NULL | Category description |
+| is_active | boolean | NO | NO | NO | true | Category is active |
+| created_at | timestamp | NO | NO | YES | now() | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+
+**Foreign Keys**:
+- category_type_id → category_types(id) [onDelete: cascade]
+- parent_id → categories(id) [onDelete: set null] (self-referential for hierarchy)
+
+**Indexes**:
+- slug (unique)
+- (category_type_id, slug) - composite index
+- parent_id (for hierarchy traversal)
+- is_active (for filtering)
+
+**Constraints**:
+- slug: UNIQUE globally
+- Supports unlimited nesting via parent_id
+
+**Evidence**: [database/migrations/2026_02_07_055222_create_categories_table.php](database/migrations/2026_02_07_055222_create_categories_table.php)
+
+---
+
+### category_types
+
+**Purpose**: Classifiers for categories (e.g., Gallery, Article, Product)
+
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| name | varchar(255) | NO | NO | NO | - | Type name (e.g., "Gallery") |
+| slug | varchar(255) | NO | YES | YES | - | URL identifier |
+| created_at | timestamp | NO | NO | NO | now() | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+
+**Constraints**:
+- slug: UNIQUE
+
+**Evidence**: [database/migrations/2026_02_07_055218_create_category_types_table.php](database/migrations/2026_02_07_055218_create_category_types_table.php)
+
+---
+
+### tags
+
+**Purpose**: Simple labels for gallery organization
+
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| name | varchar(255) | NO | YES | NO | - | Tag name (unique) |
+| slug | varchar(255) | NO | YES | YES | - | URL identifier (unique) |
+| created_at | timestamp | NO | NO | NO | now() | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+
+**Constraints**:
+- name: UNIQUE
+- slug: UNIQUE
+
+**Indexes**:
+- name
+- slug
+
+**Evidence**: [database/migrations/2026_02_12_000001_create_tags_table.php](database/migrations/2026_02_12_000001_create_tags_table.php)
+
+---
+
+### gallery_tag (Junction Table)
+
+**Purpose**: Many-to-many relationship between galleries and tags
+
+| Column | Type | Nullable | Unique | Indexed | Notes |
+|--------|------|----------|--------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | Primary key |
+| gallery_id | bigint | NO | NO | YES | FK to galleries (onDelete: cascade) |
+| tag_id | bigint | NO | NO | YES | FK to tags (onDelete: cascade) |
+| created_at | timestamp | NO | NO | NO | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | Last update timestamp |
+
+**Foreign Keys**:
+- gallery_id → galleries(id) [onDelete: cascade]
+- tag_id → tags(id) [onDelete: cascade]
+
+**Constraints**:
+- (gallery_id, tag_id): UNIQUE - prevent duplicate tags on same gallery
+
+**Indexes**:
+- gallery_id
+- tag_id
+
+**Evidence**: [database/migrations/2026_02_12_000002_create_gallery_tag_table.php](database/migrations/2026_02_12_000002_create_gallery_tag_table.php)
+
+---
+
+### user_ban_histories
+
+**Purpose**: Audit trail of user ban/unban actions with reasons and durations
+
+| Column | Type | Nullable | Unique | Indexed | Default | Notes |
+|--------|------|----------|--------|---------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | auto | Primary key |
+| user_id | bigint | NO | NO | YES | - | FK to users (onDelete: cascade) |
+| action | enum | NO | NO | YES | - | 'ban' or 'unban' |
+| reason | text | NO | NO | NO | - | Reason for action |
+| banned_until | timestamp | YES | NO | NO | NULL | Expiry timestamp (if temporary) |
+| is_forever | boolean | NO | NO | NO | false | Is ban permanent? |
+| performed_by | bigint | YES | NO | NO | NULL | FK to users (admin who performed, onDelete: set null) |
+| created_at | timestamp | NO | NO | YES | now() | Action timestamp |
+| updated_at | timestamp | NO | NO | NO | now() | Last update timestamp |
+
+**Foreign Keys**:
+- user_id → users(id) [onDelete: cascade]
+- performed_by → users(id) [onDelete: set null]
+
+**Indexes**:
+- (user_id, created_at) - for history queries
+- action - for filtering bans vs unbans
+- performed_by
+
+**Usage**: Query to show all bans for a specific user in chronological order
+
+**Evidence**: [database/migrations/2026_01_31_074611_create_user_ban_histories_table.php](database/migrations/2026_01_31_074611_create_user_ban_histories_table.php)
+
+---
+
+### roles (Spatie Permission)
+
+**Purpose**: Authorization roles for grouping permissions
+
+| Column | Type | Nullable | Unique | Indexed | Notes |
+|--------|------|----------|--------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | Primary key |
+| name | varchar(255) | NO | YES | YES | Role name (e.g., "admin", "moderator") |
+| guard_name | varchar(255) | NO | NO | NO | Guard context (default "web" or "api") |
+| created_at | timestamp | NO | NO | NO | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | Last update timestamp |
+
+**Constraints**:
+- name: UNIQUE per guard_name
+
+**Evidence**: Standard Spatie Permission table (created via migration)
+
+---
+
+### permissions (Spatie Permission)
+
+**Purpose**: Individual permissions with dot-notation naming
+
+| Column | Type | Nullable | Unique | Indexed | Notes |
+|--------|------|----------|--------|---------|-------|
+| id | bigint | NO | YES (PK) | YES | Primary key |
+| name | varchar(255) | NO | YES | YES | Permission name (e.g., "user_management.view") |
+| guard_name | varchar(255) | NO | NO | NO | Guard context |
+| created_at | timestamp | NO | NO | NO | Creation timestamp |
+| updated_at | timestamp | NO | NO | NO | Last update timestamp |
+
+**Naming Convention**: `{entity}.{action}`
+- Examples:
+  - user_management.view
+  - user_management.add
+  - user_management.edit
+  - user_management.delete
+  - user_management.ban
+  - gallery_management.view
+  - role_management.view
+  - category_management.add
+
+**Evidence**: [app/Services/PermissionService.php](app/Services/PermissionService.php) - references dot notation
+
+---
+
+### model_has_roles (Spatie Permission Junction)
+
+**Purpose**: Associates users (or other models) to roles
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| role_id | bigint | NO | FK to roles |
+| model_id | bigint | NO | FK to users (or other model) |
+| model_type | varchar(255) | NO | Model class (usually "App\Models\User") |
+
+**Purpose**: Many-to-many users-roles relationship
+**Example**: User ID 5 is assigned to Role ID 2 (admin)
+
+**Evidence**: Spatie Permission standard table
+
+---
+
+### role_has_permissions (Spatie Permission Junction)
+
+**Purpose**: Associates roles to permissions
+
+| Column | Type | Notes |
+|--------|------|-------|
+| role_id | bigint | FK to roles |
+| permission_id | bigint | FK to permissions |
+
+**Purpose**: Many-to-many roles-permissions relationship
+**Example**: Role "admin" has Permission "user_management.delete"
+
+---
+
+## Data Relationships Summary
+
+```
+┌─ User
+│  ├─ hasMany: roles (via model_has_roles)
+│  ├─ hasMany: permissions (via model_has_permissions, rarely used)
+│  ├─ hasMany: user_ban_histories (user_id)
+│  ├─ hasMany: user_ban_histories as performed (performed_by)
+│  └─ Softdeletes: deleted_at
+│
+├─ Gallery
+│  ├─ belongsTo: category (category_id)
+│  ├─ hasMany: media (gallery_id)
+│  ├─ hasOne: cover (media where is_cover=true)
+│  ├─ belongsToMany: tags (via gallery_tag)
+│  ├─ scopeActive: where is_active=true
+│  ├─ scopePublic: where is_public=true
+│  └─ Softdeletes: deleted_at
+│
+├─ Media
+│  └─ belongsTo: gallery (gallery_id)
+│
+├─ Category
+│  ├─ belongsTo: type (category_type_id)
+│  ├─ belongsTo: parent (parent_id, self-ref)
+│  ├─ hasMany: children (parent_id, self-ref)
+│  └─ scopeActive: where is_active=true
+│
+├─ CategoryType
+│  └─ hasMany: categories (category_type_id)
+│
+├─ Tag
+│  └─ belongsToMany: galleries (via gallery_tag)
+│
+├─ Role (Spatie)
+│  ├─ belongsToMany: permissions (via role_has_permissions)
+│  ├─ morphedByMany: users (via model_has_roles)
+│  └─ hasMany: model_has_roles
+│
+├─ Permission (Spatie)
+│  ├─ belongsToMany: roles (via role_has_permissions)
+│  ├─ morphedByMany: users (via model_has_permissions, rarely used)
+│  └─ hasMany: role_has_permissions
+│
+└─ UserBanHistory
+   ├─ belongsTo: user (user_id)
+   └─ belongsTo: performedBy as performer (performed_by)
+```
+
+---
+
+## Indexes Strategy
+
+**Indexed Columns for Query Performance**:
+
+| Table | Column(s) | Type | Purpose |
+|-------|-----------|------|---------|
+| users | email | UNIQUE indexed | Login lookups (authenticate) |
+| users | created_at | indexed | Sort by date |
+| users | deleted_at | indexed | Filter soft-deleted |
+| galleries | slug | UNIQUE indexed | Direct gallery lookup |
+| galleries | category_id | indexed | Filter by category |
+| galleries | created_at | indexed | Sort by date |
+| galleries | deleted_at | indexed | Filter soft-deleted |
+| media | gallery_id | indexed | Get media for gallery |
+| media | uploaded_at | indexed | Reconstruct path dates |
+| categories | slug | UNIQUE indexed | Direct lookup |
+| categories | (category_type_id, slug) | composite | Type+slug lookups |
+| categories | parent_id | indexed | Tree traversal |
+| categories | is_active | indexed | Active category filtering |
+| tags | slug | UNIQUE indexed | Tag lookup |
+| gallery_tag | gallery_id | indexed | Tags for gallery |
+| gallery_tag | tag_id | indexed | Galleries for tag |
+| gallery_tag | (gallery_id, tag_id) | UNIQUE | Prevent duplicates |
+| user_ban_histories | (user_id, created_at) | composite | Ban history timeline |
+| user_ban_histories | action | indexed | Ban vs unban filtering |
+
+---
+
+## Migration Execution Order
+
+Based on filename timestamps and dependencies:
+
+1. `0001_01_01_000000_create_users_table`
+2. `0001_01_01_000001_create_cache_table` (Laravel standard)
+3. `0001_01_01_000002_create_jobs_table` (Queue support)
+4. `2026_01_15_152640_create_permission_tables` (Spatie - creates roles, permissions, pivots)
+5. `2026_01_16_074940_create_personal_access_tokens_table` (Sanctum)
+6. `2026_01_31_041410_add_ban_fields_back_to_users_table` (Add is_banned, is_active)
+7. `2026_01_31_074611_create_user_ban_histories_table` (Ban audit)
+8. `2026_02_01_133832_add_phone_field_to_users_table` (Add phone)
+9. `2026_02_07_055218_create_category_types_table` (Classifiers)
+10. `2026_02_07_055222_create_categories_table` (Hierarchical categories)
+11. `2026_02_08_135549_create_galleries_table` (Galleries)
+12. `2026_02_08_135550_create_media_table` (Media/images)
+13. `2026_02_12_000000_move_gallery_cover_to_media` (Refactor cover to media)
+14. `2026_02_12_000001_create_tags_table` (Tags)
+15. `2026_02_12_000002_create_gallery_tag_table` (Many-to-many)
+
+---
+
+## Data Integrity Notes
+
+### Cascade Deletes
+- Deleting a gallery cascades to media records
+- Deleting a tag cascades to gallery_tag associations
+- Deleting a user cascades to user_ban_histories
+
+### Orphaning Allowed
+- Deleting a category sets orphaned galleries' category_id to NULL (not cascade)
+- Deleting a performing user sets ban_history.performed_by to NULL
+
+### Soft Deletes
+- Users, Galleries support soft deletes (deleted_at)
+- Queries automatically exclude deleted records unless `withTrashed()` used
+- Deleted users can be restored (Model includes `restore()` method)
+
+---
+
+## UNKNOWN / NOT FOUND IN CODE
+- Database views (none created in migrations)
+- Stored procedures (none visible)
+- Triggers (none visible)
+- Partitioning strategy for large tables
+- Backup/restoration procedures
+- Read replicas or replication lag handling

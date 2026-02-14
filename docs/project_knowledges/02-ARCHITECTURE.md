@@ -1,362 +1,465 @@
-# 02-ARCHITECTURE.md
+# Architecture & Structure
 
-## Architecture & Structure
-
-### Application Architecture Pattern
-
-#### MVC with Service Layer Pattern
-The application follows a **Model-View-Controller (MVC)** architecture enhanced with a **Service Layer** pattern for business logic separation.
+## System Architecture Overview
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Vue.js SPA    │    │  Laravel API    │    │   Database      │
-│   (Frontend)    │◄──►│  (Backend)      │◄──►│   (MySQL/PgSQL) │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Components     │    │ Controllers     │    │   Models        │
-│  Stores         │    │ Services        │    │   Migrations    │
-│  Views          │    │ Middleware      │    │   Seeders       │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    Vue.js Single Page App                     │
+│              (TypeScript + Pinia + Vue Router)               │
+│        [resources/js/vue3_dashboard_admin/]                  │
+└─────────────────────────────────────────┬─────────────────────┘
+                                          │
+                    HTTP/REST API (Sanctum Bearer Tokens)
+                                          │
+┌─────────────────────────────────────────┼─────────────────────┐
+│                  Laravel 12 Backend                            │
+│  ┌──────────────────────────────────────┴──────────────────┐  │
+│  │ API Routes (routes/api.php)                            │  │
+│  │  /api/v1/users, /roles, /categories, /galleries       │  │
+│  └───────────────────────┬────────────────────────────────┘  │
+│                          │                                    │
+│  ┌───────────────────────┴────────────────────────────────┐  │
+│  │        Controllers (app/Http/Controllers/Api)          │  │
+│  │   AuthController, UserController, GalleryController   │  │
+│  └───────────────────────┬────────────────────────────────┘  │
+│                          │                                    │
+│  ┌───────────────────────┴────────────────────────────────┐  │
+│  │    Service Layer (app/Services/)                      │  │
+│  │  AuthService, UserService, GalleryService, etc.       │  │
+│  │  - Business logic                                     │  │
+│  │  - Caching (version-based)                           │  │
+│  │  - Image processing (Intervention)                    │  │
+│  └───────────────────────┬────────────────────────────────┘  │
+│                          │                                    │
+│  ┌───────────────────────┴────────────────────────────────┐  │
+│  │    Models (Eloquent ORM)                              │  │
+│  │  User, Gallery, Media, Category, Tag,                 │  │
+│  │  UserBanHistory, Role, Permission (Spatie)            │  │
+│  └───────────────────────┬────────────────────────────────┘  │
+│                          │                                    │
+│  ┌───────────────────────┴────────────────────────────────┐  │
+│  │     Middleware                                        │  │
+│  │  auth:sanctum, check.user.status, permission          │  │
+│  └───────────────────────┬────────────────────────────────┘  │
+└─────────────────────────────────────────┼─────────────────────┘
+                                          │
+            ┌──────────────────────────────┼──────────────────────────┐
+            │                              │                          │
+       Database                   File Storage                   Cache Layer
+    (SQLite/MySQL)           (storage/app/public/             (Configurable)
+                              uploads/)
+
 ```
 
-#### Key Architectural Components:
+## Directory Structure & Purpose
 
-1. **Frontend (Vue.js SPA)**
-   - Component-based architecture
-   - Centralized state management (Pinia)
-   - Route-based navigation with guards
-   - TypeScript for type safety
+### Root Level Structure
 
-2. **Backend (Laravel API)**
-   - RESTful API design
-   - Service layer for business logic
-   - Repository pattern through Eloquent
-   - Middleware for authentication/authorization
-
-3. **Data Layer**
-   - Eloquent ORM for database interactions
-   - Migration-based schema management
-   - Relationship mapping between entities
-
-### Directory Structure Analysis
-
-#### Root Level Structure
 ```
-/
-├── app/                    # Laravel application code
-├── bootstrap/             # Application bootstrap files
-├── config/                # Configuration files
-├── database/              # Database migrations, factories, seeders
-├── docs/                  # Documentation
-├── public/                # Public web assets
-├── resources/             # Frontend resources (Vue, CSS, etc.)
-├── routes/                # Route definitions
-├── storage/               # File storage, logs, cache
-├── tests/                 # Test files
-├── vendor/                # Composer dependencies
-├── vite.config.js         # Vite build configuration
-├── tailwind.config.js     # Tailwind CSS configuration
-├── tsconfig.json          # TypeScript configuration
-├── package.json           # Node.js dependencies
-└── composer.json          # PHP dependencies
-```
-
-#### App Directory Deep Dive
-```
-app/
-├── Console/               # Artisan commands
-│   └── Commands/
-├── Contracts/             # Interface definitions
-├── Exceptions/            # Custom exception handlers
-├── Http/                  # HTTP layer (controllers, middleware, requests)
-│   ├── Controllers/
-│   │   └── Api/
-│   │       └── Managements/
-│   ├── Middleware/
-│   └── Requests/
-├── Models/                # Eloquent models
-├── Providers/             # Service providers
-├── Services/              # Business logic services
-└── Traits/                # Reusable traits
-```
-
-#### Frontend Structure (resources/js/vue3_dashboard_admin/)
-```
-resources/js/vue3_dashboard_admin/
-├── components/            # Reusable Vue components
-├── composables/           # Vue composables (custom hooks)
-├── config/                # Frontend configuration
-├── layouts/               # Layout components
-├── router/                # Vue Router configuration
-│   └── routes/            # Route definitions
-├── stores/                # Pinia stores
-├── types/                 # TypeScript type definitions
-├── utils/                 # Utility functions
-├── views/                 # Page components
-└── App.vue               # Root component
-```
-
-### Data Flow and Component Interactions
-
-#### Request Flow (Frontend → Backend)
-```
-1. User Action (Vue Component)
-2. State Update (Pinia Store)
-3. API Call (Axios)
-4. Route Handling (Laravel Route)
-5. Middleware Processing (Auth, Permissions)
-6. Controller Action
-7. Service Layer (Business Logic)
-8. Model Operations (Database)
-9. Response Formatting
-10. JSON Response to Frontend
-11. State Update (Pinia Store)
-12. UI Re-render (Vue Component)
-```
-
-#### Authentication Flow
-```
-Login Form → Auth Store → API Call → Sanctum Token → LocalStorage → Route Guards → Protected Routes
-```
-
-#### User Management Flow
-```
-User List View → User Service → User Model → Database Query → Paginated Results → Vue Component → Data Table
-```
-
-### Design Patterns Used
-
-#### 1. Service Layer Pattern
-```php
-// Service classes encapsulate business logic
-class UserService {
-    public function createUser(array $data): array {
-        // Business logic here
-    }
-}
-```
-
-#### 2. Repository Pattern (via Eloquent)
-```php
-// Eloquent models serve as repositories
-class User extends Model {
-    public function scopeActive($query) {
-        return $query->where('is_active', true);
-    }
-}
-```
-
-#### 3. Factory Pattern (Laravel)
-```php
-// Factories for test data creation
-class UserFactory extends Factory {
-    protected $model = User::class;
-}
+laravel/dashboard1/
+├── app/                          # Application source code
+│   ├── Console/                  # Artisan commands
+│   ├── Contracts/                # Interfaces/contracts
+│   ├── Exceptions/               # Custom exceptions
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Api/
+│   │   │   │   ├── AuthController.php
+│   │   │   │   └── Managements/
+│   │   │   │       ├── UserController.php
+│   │   │   │       ├── RoleController.php
+│   │   │   │       ├── PermissionController.php
+│   │   │   │       ├── CategoryController.php
+│   │   │   │       ├── GalleryController.php
+│   │   │   │       └── TagController.php
+│   │   │   └── Web/              # Web routes controllers (if any)
+│   │   ├── Middleware/
+│   │   │   └── CheckUserStatus.php   # Validates user is active & not banned
+│   │   └── Requests/                 # Form validation requests
+│   ├── Models/
+│   │   ├── User.php              # Users with Sanctum tokens, Spatie roles
+│   │   ├── Gallery.php           # Gallery collections
+│   │   ├── Media.php             # Gallery media assets
+│   │   ├── Category.php          # Hierarchical categories
+│   │   ├── CategoryType.php      # Category type classifier
+│   │   ├── Tag.php               # Gallery tags
+│   │   ├── UserBanHistory.php    # Audit trail for bans
+│   │   └── UserAccountStatus.php # (unclear - likely unused)
+│   ├── Providers/                # Service providers (app bootstrap)
+│   ├── Services/                 # Business logic layer
+│   │   ├── AuthService.php
+│   │   ├── UserService.php
+│   │   ├── GalleryService.php
+│   │   ├── CategoryService.php
+│   │   ├── RoleService.php
+│   │   ├── PermissionService.php
+│   │   ├── ProtectionService.php    # Protects critical accounts/roles
+│   │   └── UserBanHistoryService.php
+│   └── Traits/
+│       └── CanVersionCache.php   # Cache versioning helper
+├── bootstrap/                    # Framework initialization
+├── config/                       # Configuration files
+│   ├── app.php
+│   ├── auth.php
+│   ├── cache.php
+│   ├── database.php
+│   ├── filesystems.php
+│   ├── logging.php
+│   ├── mail.php
+│   ├── permission.php            # Spatie permission config
+│   ├── protected_entities.php    # Protected accounts config
+│   ├── queue.php
+│   ├── sanctum.php
+│   ├── services.php
+│   ├── session.php
+├── database/
+│   ├── factories/                # Eloquent factories for testing
+│   ├── migrations/               # Database schema migrations
+│   │   ├── 0001_01_01_000000_create_users_table.php
+│   │   ├── 2026_01_31_041410_add_ban_fields_back_to_users_table.php
+│   │   ├── 2026_01_31_074611_create_user_ban_histories_table.php
+│   │   ├── 2026_02_07_055218_create_category_types_table.php
+│   │   ├── 2026_02_07_055222_create_categories_table.php
+│   │   ├── 2026_02_08_135549_create_galleries_table.php
+│   │   ├── 2026_02_08_135550_create_media_table.php
+│   │   ├── 2026_02_12_000001_create_tags_table.php
+│   │   └── 2026_02_12_000002_create_gallery_tag_table.php
+│   └── seeders/                  # Database seeders
+├── docs/                         # Project documentation
+│   ├── gallery_implementation_plan.md
+│   └── project_knowledge/        # <-- NEW: Comprehensive docs
+├── public/                       # Public-facing files
+│   ├── index.php                 # Entry point
+│   ├── storage                   # Symlink to storage/app/public
+│   └── build/                    # Compiled frontend assets
+├── resources/
+│   ├── css/                      # Tailwind CSS
+│   ├── views/
+│   │   └── app.blade.php         # SPA entry point
+│   └── js/
+│       └── vue3_dashboard_admin/
+│           ├── app.ts            # Frontend app entry
+│           ├── App.vue           # Root component
+│           ├── components/       # Reusable Vue components
+│           ├── composables/      # Vue 3 composables
+│           ├── config/           # Frontend configuration
+│           ├── layouts/          # Layout components
+│           ├── mocks/            # Mock data for development
+│           ├── router/           # Vue Router setup
+│           ├── stores/           # Pinia stores
+│           │   └── auth.ts       # Auth state management
+│           ├── types/            # TypeScript type definitions
+│           ├── utils/            # Utility functions
+│           └── views/            # Page components (routed)
+├── routes/
+│   ├── api.php                   # API routes (/api/v1/*)
+│   ├── console.php               # Console commands
+│   └── web.php                   # Web routes (serves SPA)
+├── storage/
+│   ├── app/
+│   │   └── public/
+│   │       └── uploads/
+│   │           └── gallery/      # Gallery images stored here
+│   ├── framework/
+│   ├── logs/
+│   └── cache/
+├── tests/                        # Test suites
+│   ├── Feature/                  # Feature/integration tests
+│   ├── Unit/                     # Unit tests
+│   └── TestCase.php              # Base test class
+├── vendor/                       # Composer dependencies
+├── artisan                       # Laravel CLI
+├── composer.json
+├── package.json
+├── vite.config.js
+├── tsconfig.json
+├── tailwind.config.js
+└── phpunit.xml
 ```
 
-#### 4. Strategy Pattern (Permission System)
-```php
-// Different permission strategies via Spatie package
-$user->hasPermission('user_management.view');
-$user->hasRole('administrator');
+## Data Flow Diagrams
+
+### 1. Authentication Flow
+
+```
+Frontend                          Backend
+─────────                        ────────
+User Input
+  │
+  ├─> POST /login               
+      (credentials)      ──────> AuthController::login()
+                           │
+                           ├─> AuthService::authenticate()
+                           │   ├─ Validate email/password
+                           │   ├─ Check is_active = true
+                           │   ├─ Check is_banned = false
+                           │   └─ Generate Sanctum token
+                           │
+                    <────  Return: {token, user data}
+  │
+  ├─> Store token in localStorage
+  │
+  ├─> Store user data in localStorage
+  │
+  └─> Set Authorization header for future requests:
+      "Authorization: Bearer {token}"
 ```
 
-#### 5. Observer Pattern (Model Events)
-```php
-// Model events for audit trails
-class User extends Model {
-    protected static function booted() {
-        static::created(function ($user) {
-            Log::info('User created', ['user_id' => $user->id]);
-        });
-    }
-}
+### 2. User Management CRUD Flow
+
+```
+Frontend (Vue form)                Backend
+───────────────                    ────────
+1. User submits form
+   │
+   ├─> POST /api/v1/users         
+       (user data + file)  ──────> UserController::store()
+                             │
+                             ├─> Validates via StoreUserRequest
+                             │
+                             ├─> UserService::createUser()
+                             │   ├─ Process profile image if present
+                             │   ├─ Hash password
+                             │   ├─ Create user record
+                             │   ├─ Assign roles/permissions
+                             │   └─ Cache invalidation
+                             │
+                    <────  201 Created + user data
+   │
+   └─> UI updates, show success message
+
+2. List users with filters
+   │
+   ├─> GET /api/v1/users
+       ?search=john&role=admin
+       &page=1
+             ──────> UserController::index()
+                       │
+                       ├─> UserService::getFilteredPaginatedUsers()
+                       │   ├─ Check versioned cache key
+                       │   ├─ If cached, return
+                       │   ├─ Else: query DB with filters
+                       │   │   ├─ filter by search term
+                       │   │   ├─ filter by role (join on roles table)
+                       │   │   ├─ filter by status (active/banned)
+                       │   │   ├─ paginate results
+                       │   │   └─ format user data
+                       │   └─ Store in cache (1 hour TTL)
+                       │
+                    <──  200 OK + paginated users
+   │
+   └─> Render table with pagination
 ```
 
-### Configuration Strategy
+### 3. Gallery Image Upload & Processing Flow
 
-#### Environment-Based Configuration
-- **.env files**: Environment-specific settings
-- **Config files**: Application configuration
-- **Service Providers**: Dependency injection setup
-
-#### Key Configuration Files:
-- `config/app.php`: Application settings
-- `config/auth.php`: Authentication configuration
-- `config/permission.php`: Spatie permission settings
-- `config/protected_entities.php`: Account/role protection rules
-- `config/database.php`: Database connection settings
-- `config/filesystems.php`: File storage configuration
-
-#### Configuration Hierarchy:
 ```
-1. Environment Variables (.env)
-2. Config Files (config/*.php)
-3. Default Values (fallback)
-```
-
-### Component Communication Patterns
-
-#### Frontend Communication:
-```typescript
-// Parent-Child Communication
-<template>
-  <ChildComponent @event="handleEvent" />
-</template>
-
-// Store-Based Communication
-const userStore = useUserStore()
-userStore.updateUser(userData)
-
-// Event Bus (if needed)
-// Not used - Pinia handles global state
-```
-
-#### Backend Communication:
-```php
-// Dependency Injection
-public function __construct(UserService $userService) {
-    $this->userService = $userService;
-}
-
-// Service Method Calls
-$userData = $this->userService->createUser($validatedData);
+Frontend (Vue cropper)               Backend
+─────────────────────                ───────
+1. User selects image + crops
+   │
+   ├─ FormData:
+   │  - title
+   │  - description
+   │  - category_id
+   │  - visibility (public/private)
+   │  - file (image)
+   │  - crop: {x, y, width, height}
+   │
+   ├─> POST /api/v1/galleries
+       (multipart/form-data)  ──────> GalleryController::store()
+                                │
+                                ├─> GalleryService::createGallery()
+                                │   │
+                                │   ├─ Begin transaction
+                                │   ├─ Generate unique slug
+                                │   ├─ Create Gallery record
+                                │   │
+                                │   ├─ processAndStoreCover():
+                                │   │  └─ Load image via Intervention
+                                │   │  ├─ Apply crop if provided
+                                │   │  ├─ Resize to 1200x900
+                                │   │  ├─ Convert to WebP
+                                │   │  ├─ Store to uploads/gallery/{slug}/covers/1200x900/{date}/{file}.webp
+                                │   │  ├─ Create Media record (is_cover=true)
+                                │   │  │
+                                │   │  ├─ Resize to 400x400
+                                │   │  ├─ Convert to WebP
+                                │   │  └─ Store to uploads/gallery/{slug}/covers/400x400/{date}/{file}.webp
+                                │   │
+                                │   ├─ Handle tags (create if missing):
+                                │   │  ├─ For each tag: Tag::firstOrCreate()
+                                │   │  └─ Sync gallery-tag relationship
+                                │   │
+                                │   └─ Commit transaction
+                                │
+                    <──────  201 Created + gallery data
+   │
+   └─> Success message, redirect to gallery view
 ```
 
-### State Management Approach
+## Design Patterns Used
 
-#### Frontend State (Pinia)
-```typescript
-// Centralized state management
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
+### 1. **Service Layer Pattern** (Evidence: [app/Services/](app/Services/))
+- Business logic extracted from controllers
+- Services are injected via constructor DI
+- Example: `AuthService` handles authentication decisions
+- Benefits: Reusable logic, testable, separation of concerns
 
-  const login = async (credentials: LoginCredentials) => {
-    // Login logic
+### 2. **Repository-Like Pattern** (Evidence: Models + Services)
+- Models define data structure + relationships
+- Services provide query/business logic around models
+- Example: `UserService::getFilteredPaginatedUsers()` vs raw Model usage
+
+### 3. **Trait-Based Mixins** (Evidence: [app/Traits/CanVersionCache.php](app/Traits/CanVersionCache.php))
+- Shared behavior extracted to traits
+- Used by services for cache versioning
+- Services declare: `use CanVersionCache`
+
+### 4. **Middleware Decoration** (Evidence: [routes/api.php](routes/api.php), [app/Http/Middleware/CheckUserStatus.php](app/Http/Middleware/CheckUserStatus.php))
+- Route-level middleware for cross-cutting concerns
+- Pattern: `middleware(['auth:sanctum', 'check.user.status', 'permission:...'])`
+- Executes before controller action
+
+### 5. **Soft Deletes** (Evidence: User.php, Gallery.php use SoftDeletes)
+- Data marked as deleted but not actually removed
+- Queries auto-exclude soft-deleted records unless explicitly included
+- Enables restore functionality
+
+### 6. **Many-to-Many Relationships** (Evidence: Gallery ↔ Tag)
+- Implemented via junction table `gallery_tag`
+- Laravel handles via `belongsToMany()` relationship
+- Sync method for bulk assignment
+
+### 7. **Polymorphic Soft Deletes** (Evidence: User soft deletes)
+- Allows tracking soft-deleted records
+- `deleted_at` timestamp distinguishes active from deleted
+
+## Request-Response Cycle
+
+### Typical API Request Lifecycle
+
+```
+1. Frontend sends HTTP request with Bearer token
+   (e.g., GET /api/v1/users?page=1)
+
+2. Request hits web server (Laravel):
+   ├─ Routes matched in routes/api.php
+   ├─ Middleware stack applied:
+   │  ├─ auth:sanctum → validates token
+   │  ├─ check.user.status → checks is_active & is_banned
+   │  └─ permission:{permission} → checks Spatie permission
+   └─ If all pass, route to controller
+
+3. Controller receives request:
+   ├─ Validates input via Form Request classes
+   ├─ Calls Service method
+   └─ Returns JSON response
+
+4. Service processes:
+   ├─ Checks cache
+   ├─ If miss, queries database
+   ├─ Formats data
+   ├─ Stores in cache
+   └─ Returns result
+
+5. Controller returns JSON:
+   {
+     "message": "Users retrieved successfully",
+     "data": [...],
+     "meta": {...},
+     "filters": {...}
+   }
+
+6. Frontend receives response:
+   ├─ Updates Pinia store
+   ├─ Re-renders component
+   └─ Shows data to user
+```
+
+## Dependency Injection & Container
+
+- **Container**: Laravel Service Container (built-in)
+- **Configuration**: [app/Providers/AppServiceProvider.php](app/Providers/AppServiceProvider.php)
+- **Usage Pattern**: Type-hint in constructor
+  ```php
+  public function __construct(UserService $userService, ProtectionService $protectionService)
+  {
+      $this->userService = $userService;
+      $this->protectionService = $protectionService;
   }
+  ```
 
-  return {
-    user,
-    token,
-    login
-  }
-})
-```
+## Error Handling Strategy
 
-#### Backend State
-- **Session State**: Laravel sessions (database driver)
-- **Application State**: Cached data, configuration
-- **Database State**: Persistent data storage
+### Backend Error Responses
+- **Format**: JSON with `message` and optional `error` fields
+- **HTTP Status Codes**:
+  - 200/201: Success
+  - 401: Authentication failed or inactive account
+  - 403: Permission denied
+  - 404: Resource not found
+  - 422: Validation error
+  - 500: Server error
 
-### Security Architecture
+Evidence: [app/Http/Controllers/Api/AuthController.php](app/Http/Controllers/Api/AuthController.php) returns responses with appropriate status codes
 
-#### Authentication Layers:
-1. **Laravel Sanctum**: API token authentication
-2. **Middleware**: Route protection
-3. **Permission Checks**: Granular access control
-4. **Account Protection**: Critical account safeguards
+### Logging
+- All errors logged to `storage/logs/`
+- Log includes context: user_id, email, IP, error message
+- Evidence: Services use `Log::error()`, `Log::warning()`, `Log::info()`
 
-#### Authorization Strategy:
-```php
-// Route-level protection
-Route::middleware(['permission:user_management.view'])->group(function () {
-    // Protected routes
-});
+## Configuration Philosophy
 
-// Method-level protection
-public function updateUser(int $userId, array $data): array {
-    $this->authorize('update', $user);
-    // Update logic
-}
-```
+- **Env-Based**: Most configuration via `.env` file
+- **Protected Config Files**: [config/protected_entities.php](config/protected_entities.php) defines critical accounts
+- **Feature Flags**: Not explicitly used; could be added via config
+- **Sanctum Config**: [config/sanctum.php](config/sanctum.php) (Spatie permission-style)
 
-### Error Handling Strategy
+## Frontend State Management
 
-#### Frontend Error Handling:
-```typescript
-try {
-  await api.updateUser(userId, userData)
-} catch (error) {
-  if (error.response?.status === 403) {
-    // Permission denied
-  } else if (error.response?.status === 422) {
-    // Validation errors
-  }
-}
-```
+- **Primary Store**: [resources/js/vue3_dashboard_admin/stores/auth.ts](resources/js/vue3_dashboard_admin/stores/auth.ts)
+- **State**: token, user, isLoading, error
+- **Actions**: login, logout, fetchUser
+- **Getters**: isAuthenticated, currentUser, hasPermission(), hasRole()
+- **Persistence**: localStorage for token + user data
 
-#### Backend Error Handling:
-```php
-try {
-  $user = $this->userService->createUser($data);
-  return response()->json(['user' => $user]);
-} catch (\Exception $e) {
-  Log::error('User creation failed', [
-    'error' => $e->getMessage(),
-    'data' => $data
-  ]);
-  return response()->json(['error' => 'Creation failed'], 500);
-}
-```
+## Performance Considerations
 
-### Performance Optimization Patterns
+### Caching
+- 1-hour TTL on user lists, roles, categories
+- Version-based cache invalidation (cache key includes filter params)
+- Manual cache clear endpoints available
 
-#### Database Optimization:
-- **Eager Loading**: Prevent N+1 queries
-- **Selective Columns**: Only load needed data
-- **Indexing**: Proper database indexes
-- **Pagination**: Limit result sets
+### Query Optimization
+- Services use `.select()` to limit fields fetched
+- `.with()` for eager loading relationships
+- Indexes on frequently queried fields (slugs, dates, status)
 
-#### Frontend Optimization:
-- **Lazy Loading**: Route-based code splitting
-- **Computed Properties**: Cached calculations
-- **Virtual Scrolling**: Large list handling
+Evidence: [app/Services/UserService.php](app/Services/UserService.php) lines 47-57 use select() and with()
 
-#### Caching Strategy:
-- **Permission Caching**: User permissions cached
-- **Configuration Caching**: App config cached
-- **Query Result Caching**: Frequent queries cached
+### Image Optimization
+- All gallery images converted to WebP (smaller file size)
+- Multi-size variants (1200x900 for featured, 400x400 for thumbnails)
+- Stored separately by size and date
 
-### Testing Strategy
+## Scalability Notes
 
-#### Backend Testing:
-```php
-class UserServiceTest extends TestCase {
-    public function test_can_create_user() {
-        // Test business logic
-    }
-}
-```
+### Potential Bottlenecks
+1. **Large User Lists**: Pagination mitigates; default 15 per page
+2. **Image Storage**: Date-based subfolders prevent filesystem limits
+3. **Cache Stampede**: Could occur if many users request same data simultaneously post-cache-expiry
+   - Mitigation: Consider implementing cache locks (Laravel feature)
 
-#### Frontend Testing:
-- Component testing with Vue Test Utils
-- Store testing with Pinia testing utilities
-- E2E testing with Cypress (if implemented)
+### Horizontal Scaling Considerations
+1. **State**: All in database + Redis/Memcached (configurable)
+2. **Tokens**: Sanctum tokens store in `personal_access_tokens` table (database-backed)
+3. **File Storage**: Centralized `storage/app/public/` must be shared across servers (NFS)
 
-### Deployment Considerations
+---
 
-#### Build Process:
-```bash
-# Backend build
-composer install --optimize-autoloader
-php artisan config:cache
-php artisan route:cache
-
-# Frontend build
-npm run build
-```
-
-#### Environment Separation:
-- **Development**: Local development with hot reload
-- **Staging**: Pre-production testing
-- **Production**: Optimized builds with caching
-
-#### Container Strategy:
-- **PHP Container**: Application runtime
-- **Node.js Container**: Build process and development
-- **Nginx Container**: Web server and static file serving
-- **Database Container**: Data persistence</content>
-<parameter name="filePath">/home/itboms/Developments/php/apps/php8.2/laravel/dashboard1/docs/project_knowledges/02-ARCHITECTURE.md
+**UNKNOWN / NOT FOUND IN CODE**:
+- Load balancing configuration
+- CDN setup for static/image assets
+- Database replication strategy
+- API versioning beyond v1 prefix

@@ -1,373 +1,662 @@
-# 03-BUSINESS-LOGIC.md
+# Business Logic Analysis
 
-## Business Logic Analysis
+## Core Business Processes
 
-### Core Business Workflows
+### 1. User Lifecycle Management
 
-#### 1. User Registration and Onboarding
-**Purpose**: Create new user accounts with proper role assignment and validation.
+#### Creation Workflow
+**Evidence**: [app/Http/Controllers/Api/Managements/UserController.php](app/Http/Controllers/Api/Managements/UserController.php) store() + [app/Services/UserService.php](app/Services/UserService.php) createUser()
 
-**Step-by-Step Process**:
+**Steps**:
+1. Admin submits user creation form with:
+   - name, email, password, phone (optional)
+   - profile image file (optional)
+   - roles to assign (optional)
+
+2. `StoreUserRequest` validates:
+   - email is unique
+   - password meets requirements
+   - file is valid image (if provided)
+
+3. `UserService::createUser()` executes:
+   ```
+   a) Check if user exists in soft-deleted state (restore scenario)
+   b) If exists + soft-deleted:
+      - Restore record
+      - Update with new data
+      - Mark as restored in response
+   c) If not exists:
+      - Create new user record
+      - Password automatically hashed via Model cast
+   d) Process profile image if provided:
+      - Resize via Intervention Image
+      - Store in storage/profile_images/
+      - Save filename in profile_image column
+   e) Assign roles:
+      - Spatie: user->syncRoles($roles)
+   f) Clear cache
+   g) Return formatted user data
+   ```
+
+**Evidence in UserService**:
+- Line ~90: Check for soft-deleted user and restore
+- Line ~110: Profile image processing
+- Line ~125: Role assignment via Spatie's syncRoles()
+
+#### Viewing/Filtering
+**Evidence**: UserService::getFilteredPaginatedUsers()
+
+**Filters Supported** (from [routes/api.php](routes/api.php)):
+- `search` - matches name OR email (wildcard)
+- `name` - exact name match (wildcard)
+- `email` - exact email match (wildcard)
+- `phone` - phone number
+- `username` - username (if field exists)
+- `role` - filter by Spatie role
+- `status` - active/inactive/banned
+- `is_banned` - boolean
+- `date_from`, `date_to` - registration date range
+
+**Query Logic**:
+1. Build query with eager loading: `with('roles')`
+2. Apply filters via WHERE and HAVING clauses
+3. Join on `model_has_roles` table for role filtering
+4. Paginate (default 15 per page)
+5. Check versioned cache before executing
+
+**Evidence**: Lines 47-120 in UserService.php
+
+#### Update Workflow
+**Endpoint**: `PUT /api/v1/users/{id}` or `PATCH /api/v1/users/{id}`
+
+**Via UpdateUserRequest validation**:
+- Can update: name, email, phone, profile_image, password
+- Cannot update: other fields
+
+**Service Logic** (UserService::updateUser()):
+1. Load user by ID
+2. Check if protected from profile updates (ProtectionService)
+3. Process new profile image if provided
+4. Update user fields
+5. Update role assignments if provided
+6. Clear cache
+7. Return formatted data
+
+#### Soft Delete vs Physical Delete
+**Soft Delete** (DELETE endpoint):
+- Sets `deleted_at` timestamp
+- User remains in database but hidden from queries
+- Can be restored
+
+**Evidence**: User model uses `SoftDeletes` trait
+
+**Hard Delete** (via `->forceDelete()`):
+- Not directly available through API
+- Can only be done via Tinker or direct DB access
+- Prevents accidental permanent data loss
+
+### 2. User Status Management
+
+#### Ban System
+**Data Model**:
+- Users table: `is_banned` (boolean)
+- `user_ban_histories` table: Audit trail of ban events
+
+**Evidence**: [database/migrations/2026_01_31_041410_add_ban_fields_back_to_users_table.php](database/migrations/2026_01_31_041410_add_ban_fields_back_to_users_table.php), [database/migrations/2026_01_31_074611_create_user_ban_histories_table.php](database/migrations/2026_01_31_074611_create_user_ban_histories_table.php)
+
+**Ban Endpoint**: `POST /api/v1/users/{id}/ban`
+**Logic** (UserBanHistoryService::createBanHistory()):
+1. Validate user exists
+2. Check if user is protected from banning (ProtectionService)
+3. Create entry in `user_ban_histories` table:
+   - action: 'ban'
+   - reason: provided text
+   - banned_until: optional timestamp
+   - is_forever: boolean (set by API caller)
+   - performed_by: current user ID
+4. Set user `is_banned = true`
+5. Revoke all active Sanctum tokens (force re-login)
+
+**Unban Endpoint**: `POST /api/v1/users/{id}/unban`
+**Logic**:
+1. Create another `user_ban_histories` entry with action='unban'
+2. Set `is_banned = false`
+
+**Ban History Access**:
+- `GET /api/v1/users/{id}/ban-history`
+- Returns all entries for user
+- Shows who banned, when, reason, duration
+
+#### Active/Inactive Status
+**Field**: `is_active` (boolean)
+
+**Purpose**: Distinguish from ban
+- `is_banned = true`: User violated terms, penalized
+- `is_active = false`: Account suspended, disabled, or awaiting approval
+
+**Enforcement**:
+- Login check: AuthService line 45 - `if (!$user->is_active) throw exception`
+- Middleware check: CheckUserStatus.php - validates on every request
+
+**Evidence**: [app/Http/Middleware/CheckUserStatus.php](app/Http/Middleware/CheckUserStatus.php)
+
+### 3. Role & Permission System
+
+**Subsystem**: Spatie Permission library (v6.24)
+
+**Data Model** (Spatie-provided):
+- `roles` - role definitions
+- `permissions` - permission definitions
+- `model_has_roles` - users → roles junction
+- `role_has_permissions` - roles → permissions junction
+- `model_has_permissions` - direct user → permission assignments (rarely used)
+
+**Permissions Naming Convention**: `{entity}.{action}`
+Examples:
+- `user_management.view`
+- `user_management.add`
+- `user_management.edit`
+- `user_management.delete`
+- `user_management.ban`
+- Similar for: `role_management`, `gallery_management`, `category_management`
+
+**Evidence**: [routes/api.php](routes/api.php) middleware directives like `permission:user_management.view`
+
+#### Permission Management Workflow
+**Endpoints**:
+- `GET /api/v1/permissions` - List all permissions
+- `GET /api/v1/permissions/grouped` - List permissions grouped by category
+
+**Service Logic** (PermissionService):
+1. Fetch all Permission records
+2. Format with human-readable labels
+3. Categorize by first dot-separated segment
+4. Return grouped or flat based on endpoint
+
+**Evidence**: [app/Services/PermissionService.php](app/Services/PermissionService.php)
+
+#### Role Management Workflow
+**Endpoints**:
+- `GET /api/v1/roles/options` - Simple list for dropdowns
+- `GET /api/v1/roles` - Paginated list with user counts
+- `POST /api/v1/roles` - Create new role
+- `PUT /api/v1/roles/{id}` - Update role
+- `DELETE /api/v1/roles/{id}` - Delete role
+
+**Role Creation Logic** (RoleService::createRole()):
+1. Validate role name is unique
+2. Create Role record
+3. Assign permissions:
+   - Parse permissions array
+   - Use Spatie's `syncPermissions()` to attach
+4. Clear cache
+5. Return role with permissions
+
+**Constraints**:
+- Protected roles cannot be deleted (ProtectionService)
+  - Default: `super_admin` is protected
+- Evidence: [config/protected_entities.php](config/protected_entities.php)
+
+### 4. Gallery & Media Management
+
+#### Gallery Creation Workflow
+**Endpoint**: `POST /api/v1/galleries`
+
+**Input** (from Vue form):
+```json
+{
+  "title": "Summer 2026",
+  "description": "Beach photos",
+  "category_id": 5,
+  "visibility": "public",
+  "status": "active",
+  "file": <UploadedFile>,
+  "crop": {
+    "x": 100,
+    "y": 50,
+    "width": 400,
+    "height": 300
+  },
+  "tags": ["beach", "summer", "vacation"]
+}
 ```
-1. Receive registration request with user data
-2. Validate input data (name, email, password, phone, role)
-3. Check for existing soft-deleted user with same email
-4. If soft-deleted user exists:
-   a. Restore the user
-   b. Update user data
-   c. Re-assign role
-5. If new user:
-   a. Create user record
-   b. Hash password
-   c. Assign role
-6. Handle profile image upload (convert to WebP)
-7. Log creation/restoration action
-8. Return formatted user data
+
+**Service Processing** (GalleryService::createGallery()):
+
+1. **Database Transaction** - All changes atomic
+   
+2. **Slug Generation** (unique, SEO-friendly):
+   - Generate base slug from title: `Str::slug(title)`
+   - Check uniqueness
+   - If exists, append counter: `slug-2`, `slug-3`
+   
+3. **Gallery Record Creation**:
+   ```php
+   Gallery::create([
+       'title' => data['title'],
+       'slug' => generated_slug,
+       'description' => data['description'] ?? null,
+       'category_id' => data['category_id'] ?? null,
+       'is_active' => (data['status'] === 'active'),
+       'is_public' => (data['visibility'] === 'public'),
+       'item_count' => 0
+   ])
+   ```
+
+4. **Cover Image Processing** (processAndStoreCover()):
+   
+   **If cover file provided**:
+   
+   a. Load image via Intervention Image:
+      ```
+      Image::make($file)
+      ```
+   
+   b. Apply server-side crop if provided:
+      ```
+      ->crop(width, height, x, y)
+      ```
+   
+   c. Generate two variants:
+      - **1200x900 variant**:
+        - Resize to fit 1200x900
+        - Convert to WebP (quality 95)
+        - Store: `storage/app/public/uploads/gallery/{slug}/covers/1200x900/{Y}/{m}/{d}/{unique}.webp`
+      
+      - **400x400 variant**:
+        - Resize to fit 400x400
+        - Convert to WebP (quality 90)
+        - Store: `storage/app/public/uploads/gallery/{slug}/covers/400x400/{Y}/{m}/{d}/{unique}.webp`
+   
+   d. Create Media records:
+      ```
+      Media::create([
+          'gallery_id' => gallery.id,
+          'filename' => stored_path,
+          'extension' => 'webp',
+          'mime_type' => 'image/webp',
+          'size' => bytes,
+          'is_cover' => true,
+          'uploaded_at' => now()
+      ])
+      ```
+
+5. **Tag Processing**:
+   - For each tag: `Tag::firstOrCreate(['slug' => slug], ['name' => name])`
+   - Sync to gallery: `gallery->tags()->sync($tagIds)`
+
+6. **Cache Invalidation**:
+   - Clear any cached gallery lists
+
+7. **Return**: Gallery object with tags and cover media
+
+**Evidence**: [app/Services/GalleryService.php](app/Services/GalleryService.php) lines 23-68
+
+#### Gallery Update Workflow
+**Endpoint**: `PUT /api/v1/galleries/{id}`
+
+**Updates Allowed**:
+- title, description, category_id, visibility, status
+- Cover image can be replaced
+- Tags can be updated
+
+**Logic**:
+1. Load gallery
+2. Update mutable fields
+3. If new cover uploaded: process like creation workflow
+4. If tags changed: resync junction table
+5. Clear cache
+6. Return updated gallery
+
+#### Gallery Deletion
+**Endpoint**: `DELETE /api/v1/galleries/{id}`
+
+**Behavior**:
+- Soft delete (sets `deleted_at`)
+- All associated Media records remain (foreign key allows null via onDelete('set null') for media)
+- Gallery can be restored via backend only (no API endpoint)
+
+**Evidence**: [database/migrations/2026_02_08_135549_create_galleries_table.php](database/migrations/2026_02_08_135549_create_galleries_table.php)
+
+#### Media/Image Storage Architecture
+**Path Structure**:
+```
+storage/app/public/uploads/
+├── gallery/
+│   └── {gallery-slug}/
+│       └── covers/
+│           ├── 1200x900/
+│           │   └── {year}/{month}/{day}/{unique}.webp
+│           └── 400x400/
+│               └── {year}/{month}/{day}/{unique}.webp
 ```
 
-**Business Rules**:
-- Email must be unique across all users (including soft-deleted)
-- Password must be hashed before storage
-- Default role assignment required
-- Profile images converted to WebP format (80% quality)
-- Soft-deleted users can be restored instead of creating duplicates
+**Rationale** (from gallery_implementation_plan.md):
+- **Size-first ordering**: Easier to identify resolution
+- **Date-based subfolders**: Prevents filesystem performance degradation (ext4 limit ~15k files per directory)
+- **Gallery-slug grouping**: Logical organization, simplifies backups/exports
 
-#### 2. User Authentication and Session Management
-**Purpose**: Secure login/logout with token-based authentication.
+**WebP Conversion Purpose**:
+- Smaller file size (30-40% vs JPEG)
+- Better quality at lower sizes
+- Modern browser support (95%+)
+- SEO benefit (Google favors WebP)
 
-**Step-by-Step Process**:
+### 5. Category Management
+
+#### Hierarchical Structure
+**Data Model**:
 ```
-Login Flow:
-1. Receive login credentials (email, password)
-2. Rate limiting check (5 attempts per 15 minutes)
-3. Validate credentials against database
-4. Check if user account is active
-5. Generate Sanctum API token
-6. Return user data with permissions and token
-
-Logout Flow:
-1. Receive logout request with valid token
-2. Revoke current access token
-3. Clear client-side token storage
-4. Redirect to login page
+CategoryType
+    ↓
+Category (belongs to type)
+    ├─ parent_id (self-referencing)
+    └─ children (self-referencing)
 ```
 
-**Business Rules**:
-- Rate limiting prevents brute force attacks
-- Inactive users cannot login
-- Tokens expire and require refresh
-- Single active session per user (token-based)
-
-#### 3. User Management and CRUD Operations
-**Purpose**: Comprehensive user account management with filtering and pagination.
-
-**Step-by-Step Process**:
+**Example**:
 ```
-List Users:
-1. Apply search filters (name, email, phone)
-2. Apply status filters (active, inactive, banned)
-3. Apply role filters
-4. Apply date range filters
-5. Sort by specified column and direction
-6. Paginate results (15 per page default)
-7. Format user data with relationships
-
-Create User:
-1. Validate all input data
-2. Check account protection rules
-3. Create user with encrypted password
-4. Assign role and permissions
-5. Handle profile image upload
-6. Log creation action
-
-Update User:
-1. Validate input data
-2. Check account protection (role changes)
-3. Update user fields
-4. Handle password changes (hashing)
-5. Update profile image if provided
-6. Sync role assignments
-7. Log update action
-
-Delete User:
-1. Check account protection rules
-2. Prevent self-deletion
-3. Soft delete user record
-4. Log deletion with performer info
+CategoryType: "Gallery"
+├─ Photography (id=1, parent_id=null)
+│  ├─ Landscape (id=2, parent_id=1)
+│  ├─ Portrait (id=3, parent_id=1)
+└─ Art (id=4, parent_id=null)
 ```
 
-**Business Rules**:
-- Protected accounts cannot be modified/deleted
-- Users cannot delete their own accounts
-- Role changes require specific permissions
-- All actions are logged with performer information
-- Soft deletes preserve data integrity
+**Evidence**: [app/Models/Category.php](app/Models/Category.php) lines 21-31 show parent/children relationships
 
-#### 4. User Banning and Moderation System
-**Purpose**: Control user access through banning/unbanning with audit trails.
+#### Category Workflow
+**Creation Endpoint**: `POST /api/v1/categories`
 
-**Step-by-Step Process**:
-```
-Ban User:
-1. Validate ban request (reason required)
-2. Check account protection rules
-3. Update user is_banned status to true
-4. Log ban action in user_ban_history table
-5. Record ban reason, performer, and timestamp
-
-Unban User:
-1. Verify user is currently banned
-2. Update user is_banned status to false
-3. Log unban action in history table
-4. Record unban reason and performer
+**Input**:
+```json
+{
+  "type": "gallery",
+  "name": "Landscape",
+  "description": "...",
+  "parent_id": 1,
+  "is_active": true
+}
 ```
 
-**Business Rules**:
-- All bans are permanent (no time-based expiration)
-- Ban reasons are mandatory and logged
-- Protected accounts cannot be banned
-- Complete audit trail maintained
-- Unban requires explicit action
+**Service Logic** (CategoryService::createCategory()):
+1. Look up CategoryType by slug
+2. Generate slug from name (with collision prevention)
+3. Create Category record:
+   ```php
+   Category::create([
+       'category_type_id' => type.id,
+       'parent_id' => data['parent_id'] ?? null,
+       'name' => data['name'],
+       'slug' => generated_slug,
+       'description' => data['description'],
+       'is_active' => data['is_active'] ?? true
+   ])
+   ```
+4. Clear cache
+5. Return formatted category
 
-#### 5. Role and Permission Management
-**Purpose**: Manage access control through role-based permissions.
+**Evidence**: [app/Services/CategoryService.php](app/Services/CategoryService.py) lines 74-95
 
-**Step-by-Step Process**:
-```
-Create Role:
-1. Validate role name and permissions
-2. Check role protection rules
-3. Create role record
-4. Assign selected permissions to role
+#### Category Querying
+**Endpoints**:
+- `GET /api/v1/categories/options` - Simple id/name for dropdowns
+- `GET /api/v1/categories` - Full list with nesting
 
-Update Role:
-1. Check role protection rules
-2. Update role name if allowed
-3. Sync permissions if allowed
-4. Update related user permissions
+**Filters**:
+- `search` - by name or slug
+- `type` - by CategoryType slug
+- `status` - active/inactive
+- `slug` - specific slug
 
-Delete Role:
-1. Check role protection rules
-2. Ensure no users assigned to role
-3. Delete role record
-4. Clean up permission assignments
-```
+**Frontend**: Receives flat list, converts to tree structure client-side
 
-**Business Rules**:
-- Super admin role cannot be modified/deleted
-- Permissions assigned through roles, not directly to users
-- Role changes affect all assigned users
-- Protected roles have restricted operations
+**Caching**: 1-hour TTL via versioned cache keys
 
-### Approval/Review Systems
+### 6. Tag System
 
-#### Account Protection System
-**Purpose**: Prevent accidental modification of critical accounts.
+#### Simple Non-Hierarchical Structure
+**Data Model**:
+- Tags table: id, name (unique), slug (unique)
+- gallery_tag junction: gallery_id, tag_id (unique composite)
 
-**Protection Levels**:
-1. **Deletion Protection**: Cannot delete protected accounts
-2. **Role Change Protection**: Cannot modify roles of protected accounts
-3. **Profile Update Protection**: Limited profile editing for protected accounts
-4. **Ban Protection**: Cannot ban protected accounts
+**Auto-Creation on Gallery Save**:
+- When creating gallery with tags, non-existent tags created automatically
+- Evidence: GalleryService line 53-60
+  ```php
+  foreach ($data['tags'] as $tagName) {
+      $tag = Tag::firstOrCreate(['slug' => slug], ['name' => name, 'slug' => slug]);
+      $tagIds[] = $tag->id;
+  }
+  gallery->tags()->sync($tagIds);
+  ```
 
-**Configuration**:
+**Tag Endpoint**: `GET /api/v1/tags/options`
+- Returns all tags for autocomplete
+- Likely used in gallery create/edit form
+
+### 7. Account Protection System
+
+**Purpose**: Prevent accidental or malicious modification of critical accounts/roles
+
+**Configuration File**: [config/protected_entities.php](config/protected_entities.php)
+
+**Protected Accounts** (configurable):
 ```php
 'protected_accounts' => [
     'super@admin.com' => [
         'protect_deletion' => true,
         'protect_role_change' => true,
         'protect_profile_update' => true,
-        'reason' => 'Super administrator account'
+        'protect_ban' => true
     ]
 ]
 ```
 
-### Calculation Logic and Algorithms
-
-#### User Status Calculation
+**Protected Roles** (configurable):
 ```php
-public function getStatusAttribute(): string
-{
-    if ($this->is_banned) {
-        return 'banned';
-    }
-    return $this->is_active ? 'active' : 'inactive';
-}
-```
-
-#### Permission Checking Algorithm
-```php
-public function hasPermission(string $permission): bool
-{
-    return $this->permissions->contains('name', $permission);
-}
-```
-
-#### Role Hierarchy Resolution
-```php
-public function hasRole(string $role): bool
-{
-    return $this->roles->contains('name', $role);
-}
-```
-
-### Validation Rules and Business Constraints
-
-#### User Creation Validation
-```php
-public function rules(): array
-{
-    return [
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email',
-        'password' => 'required|string|min:8|confirmed',
-        'phone' => 'nullable|string|max:20',
-        'role' => 'required|string|exists:roles,name',
-        'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-    ];
-}
-```
-
-#### Ban Request Validation
-```php
-[
-    'reason' => 'required|string|max:1000',
-    'is_forever' => 'boolean',
-    'banned_until' => 'nullable|date|after:now'
+'protected_roles' => [
+    'super_admin' => [
+        'protect_deletion' => true,
+        'protect_modification' => true
+    ]
 ]
 ```
 
-#### Business Constraints
-- **Email Uniqueness**: Enforced across active and soft-deleted users
-- **Role Existence**: All assigned roles must exist in database
-- **Permission Validity**: All permissions must be defined in system
-- **Account Status**: Only active users can perform actions
-- **Self-Protection**: Users cannot modify their own critical settings
+**Enforcement Points** (ProtectionService):
+1. **Before User Delete**:
+   - Check: isAccountProtectedFromDeletion()
+   - If protected: throw exception
+   
+2. **Before Role Change**:
+   - Check: isAccountProtectedFromRoleChange()
+   - If protected: throw exception (can't assign/remove roles)
+   
+3. **Before Profile Update**:
+   - Check: isAccountProtectedFromProfileUpdate()
+   - If protected: allow password/image only, block name/email changes
+   
+4. **Before Ban**:
+   - Check: isAccountProtectedFromBan()
+   - If protected: throw exception
 
-### Integration Points
+**Evidence**: [app/Services/ProtectionService.php](app/Services/ProtectionService.php) lines 11-90
 
-#### External Systems Integration
-- **File Storage**: Laravel Storage facade for profile images
-- **Email System**: Laravel Mail (not currently implemented)
-- **Cache System**: Laravel Cache for performance optimization
-- **Queue System**: Laravel Queues for background processing
-- **Logging System**: Laravel Log for audit trails
+---
 
-#### Third-Party Package Integration
-- **Spatie Permission**: Role and permission management
-- **Laravel Sanctum**: API authentication
-- **Intervention Image**: Image processing (WebP conversion)
-- **SweetAlert2**: Frontend notifications
-- **Vue Advanced Cropper**: Image cropping functionality
+## Calculation Logic & Algorithms
 
-### Data Processing Workflows
+### 1. Slug Generation Algorithm
+**Purpose**: Create SEO-friendly, unique identifiers
 
-#### Profile Image Processing
+**Algorithm** (CategoryService + GalleryService):
 ```
-1. Receive uploaded image file
-2. Validate file type and size
-3. Generate unique filename with WebP extension
-4. Create dated directory structure (avatar/YYYY/MM/DD/)
-5. Convert image to WebP format (80% quality)
-6. Store in public disk
-7. Update user profile_image field
-8. Delete old image if exists
-```
-
-#### User Search and Filtering
-```
-1. Start with base User query
-2. Apply search filters (name, email with LIKE)
-3. Apply exact filters (role, status, ban status)
-4. Apply date range filters
-5. Apply sorting (name, email, created_at, updated_at)
-6. Eager load relationships (roles)
-7. Paginate results
-8. Format response data
+1. InputString → slug = Str::slug(InputString)
+2. Query: SELECT COUNT(*) FROM table WHERE slug = slug
+3. If count = 0: return slug
+4. Else:
+   i = 2
+   while EXISTS(slug-i):
+       i++
+   return slug-i
 ```
 
-### Audit and Compliance
+**Examples**:
+- "Summer Photos 2026" → "summer-photos-2026"
+- "Summer Photos 2026" (duplicate) → "summer-photos-2026-2"
+- "Summer Photos 2026" (another) → "summer-photos-2026-3"
 
-#### Audit Trail Implementation
-- **User Actions**: All CRUD operations logged
-- **Ban Actions**: Complete ban/unban history maintained
-- **Authentication**: Login/logout events tracked
-- **Role Changes**: Permission modifications audited
+### 2. Image Resize Algorithm (Intervention)
+**Goal**: Generate standardized thumbnail variants
 
-#### Compliance Features
-- **Data Retention**: Soft deletes preserve historical data
-- **Access Logging**: All administrative actions logged
-- **Reason Requirements**: Ban/unban actions require justification
-- **Performer Tracking**: All actions track who performed them
+**Process**:
+1. Load source image
+2. For each target size:
+   a. Calculate aspect ratio preservation
+   b. Resize to fit within bounds (maintains ratio)
+   c. Convert to WebP format
+   d. Apply quality setting (95 for 1200x900, 90 for 400x400)
+   e. Store to path
 
-### Business Rule Engine
+**Evidence**: GalleryService::processAndStoreCover()
 
-#### Protection Service Logic
-```php
-class ProtectionService {
-    public function isAccountProtectedFromDeletion(User $user): bool {
-        // Check if user email is in protected list
-        // Return protection status
-    }
+### 3. Versioned Cache Key Generation
+**Trait**: [app/Traits/CanVersionCache.php](app/Traits/CanVersionCache.php)
 
-    public function getAccountProtectionReason(User $user): string {
-        // Return human-readable protection reason
-    }
-}
+**Purpose**: Automatic cache invalidation when data changes
+
+**Pattern**:
+```
+versionedKey = scope + version + filters
+Example: "users_v1_search=john&page=1"
 ```
 
-#### Permission Resolution
-```php
-class User extends Model {
-    public function getAllPermissions(): Collection {
-        return $this->getPermissionsViaRoles();
-    }
+**On Data Change**:
+- Service increments version for scope
+- Old cache keys become obsolete
+- No manual cache busting needed
 
-    public function hasPermission(string $permission): bool {
-        return $this->hasPermissionViaRole($permission);
-    }
-}
-```
+**Evidence**: Services use `$this->getVersionedKey(self::CACHE_SCOPE, $filters)`
 
-### Error Handling and Recovery
+---
 
-#### Business Logic Error Scenarios
-- **Protected Account Violation**: Clear error messages with reasons
-- **Permission Denied**: 403 responses with specific error details
-- **Validation Failures**: 422 responses with field-specific errors
-- **Resource Not Found**: 404 responses for missing entities
-- **System Errors**: 500 responses with logging
+## Validation Rules & Business Constraints
 
-#### Recovery Mechanisms
-- **Soft Deletes**: Restore accidentally deleted users
-- **Audit Trails**: Track and potentially reverse actions
-- **Transaction Rollbacks**: Database consistency maintenance
-- **Graceful Degradation**: System continues operating during failures
+### User Validation (StoreUserRequest)
+Evidence: [app/Http/Requests/User/StoreUserRequest.php](app/Http/Requests/User/StoreUserRequest.php)
 
-### Performance Optimization Logic
+**Required Fields**:
+- name: string, required
+- email: email format, required, unique in users table
 
-#### Query Optimization
-- **Selective Loading**: Only load required columns
-- **Eager Loading**: Prevent N+1 query problems
-- **Pagination**: Limit result set sizes
-- **Indexing**: Database indexes on frequently queried fields
+**Optional Fields**:
+- password: required on creation; format constraints (regex for complexity)
+- phone: optional string
+- profile_image: optional file (image only)
+- roles: optional array of role IDs
 
-#### Caching Strategy
-- **Permission Caching**: User permissions cached per session
-- **Configuration Caching**: App settings cached
-- **Role Data Caching**: Role definitions cached
+### Gallery Validation
+Evidence: [app/Http/Requests/Gallery/StoreGalleryRequest.php](app/Http/Requests/Gallery/StoreGalleryRequest.php)
 
-### Future Extensibility Points
+**Required Fields**:
+- title: string, required
 
-#### Modular Business Logic
-- **Service Layer**: Easy to extend with new business rules
-- **Event System**: Laravel events for decoupling
-- **Middleware**: Pluggable request processing
-- **Traits**: Reusable model behaviors
+**Optional Fields**:
+- description: text
+- category_id: exists in categories table
+- visibility: in ['public', 'private']
+- status: in ['active', 'inactive']
+- file: image file (jpg, png, gif, webp)
+- crop: JSON object with {x, y, width, height}
+- tags: array of tag name strings
 
-#### Scalability Considerations
-- **Queue Processing**: Heavy operations moved to background
-- **Database Sharding**: Potential for large user bases
-- **API Versioning**: Backward compatibility maintenance
-- **Microservice Ready**: Modular architecture supports splitting</content>
-<parameter name="filePath">/home/itboms/Developments/php/apps/php8.2/laravel/dashboard1/docs/project_knowledges/03-BUSINESS-LOGIC.md
+### Category Validation
+**Required**:
+- type: must exist in category_types table (by slug)
+- name: string, required
+
+**Optional**:
+- parent_id: null or exists in categories table (for hierarchy)
+- description: text
+- is_active: boolean
+
+---
+
+## Business Rules & Constraints
+
+### 1. User Account Rules
+- Only one user per email (database unique constraint)
+- Currently active user cannot be deleted (soft delete only)
+- Password is automatically hashed (Model cast)
+- Profile image stored in `storage/profile_images/`
+
+### 2. Gallery Rules
+- Gallery slug must be globally unique
+- Gallery must have a title
+- Cover image is optional
+- Gallery can exist without category
+- Gallery can be public or private (visibility flag)
+- Active/inactive status allows soft-disabling
+
+### 3. Category Rules
+- Category must belong to a CategoryType
+- Category can have optional parent (self-referential)
+- Multiple levels of nesting supported
+- Category slug must be unique (within type)
+
+### 4. Permission Rules
+- Permissions named with dot notation: `{entity}.{action}`
+- Roles are collections of permissions
+- Users have roles (preferred) or direct permissions (rare)
+- Permission changes take effect immediately (not cached in Spatie)
+
+### 5. Ban Rules
+- Ban is timestamped (can be temporary or permanent)
+- Ban reason is required
+- Performed_by field tracks which user enacted ban
+- Ban audit trail is immutable (append-only)
+
+### 6. Protected Account Rules
+- Protected accounts cannot be deleted
+- Protected accounts cannot be banned
+- Protected accounts cannot have roles changed
+- Protected accounts can update password/profile image only
+- Configured per email address (not role-based for user)
+
+---
+
+## Data Integrity Safeguards
+
+### Foreign Key Constraints
+- `gallery.category_id` → `categories.id` (onDelete: set null - orphaned galleries allowed)
+- `media.gallery_id` → `galleries.id` (onDelete: cascade - delete media when gallery deleted)
+- `user_ban_history.user_id` → `users.id` (onDelete: cascade)
+- `user_ban_history.performed_by` → `users.id` (onDelete: set null - can delete performer)
+- `gallery_tag.gallery_id` → `galleries.id` (onDelete: cascade)
+- `gallery_tag.tag_id` → `tags.id` (onDelete: cascade)
+
+Evidence: Migration files in [database/migrations/](database/migrations/)
+
+### Unique Constraints
+- Users: email (global)
+- Galleries: slug (global)
+- Categories: slug (global)
+- Tags: name, slug (global)
+- gallery_tag: (gallery_id, tag_id) composite unique
+
+### Timestamps
+- All models track `created_at`, `updated_at`
+- Soft-deleted models track `deleted_at`
+- Ban history tracks `created_at` (action timestamp)
+- Media tracks `uploaded_at` (used for path reconstruction)
+
+---
+
+## UNKNOWN / NOT FOUND IN CODE
+- Multi-tenancy (seems to be single-tenant)
+- Scheduled jobs/background tasks (queue config exists but no job classes visible)
+- Email notification triggers (mail config present but no mailable classes)
+- Bulk operations (bulk user import/export)
+- Audit logging (beyond ban history)
+- Data retention policies (soft deletes are permanent otherwise)
+- Image optimization service workers or CDN integration

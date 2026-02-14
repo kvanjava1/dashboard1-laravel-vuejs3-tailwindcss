@@ -1,627 +1,739 @@
-# 06-DEVELOPMENT-GUIDE.md
+# Development Guide
 
-## Development Guide
+## Local Development Setup
 
-### Development Environment Setup
+### Prerequisites
+- PHP 8.2+
+- Composer (PHP dependency manager)
+- Node.js 18+ (for frontend build)
+- npm or yarn
+- Git
+- Docker (optional, if using containerized environment)
 
-#### Prerequisites
-- **Docker & Docker Compose**: For containerized development
-- **Git**: Version control
-- **VS Code**: Recommended IDE with extensions
-- **Node.js 20+**: For local development (optional, containers handle this)
+### Step-by-Step Setup
 
-#### Environment Setup Steps
-
-1. **Clone Repository**
+#### 1. Clone & Install Dependencies
 ```bash
-git clone <repository-url>
-cd laravel-dashboard1
+cd /home/itboms/Developments/php/apps/php8.2/laravel/dashboard1
+
+# Install PHP packages
+composer install
+
+# Install frontend packages
+npm install
 ```
 
-2. **Environment Configuration**
+#### 2. Environment Configuration
 ```bash
-# Copy environment file
+# Copy .env.example to .env (if not exists)
 cp .env.example .env
 
-# Configure environment variables
-nano .env
-```
-
-**Required .env Configuration**:
-```env
-APP_NAME="Laravel User Management Dashboard"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://dashboard1.test
-
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=dashboard1
-DB_USERNAME=user
-DB_PASSWORD=password
-
-CACHE_DRIVER=database
-QUEUE_CONNECTION=database
-SESSION_DRIVER=database
-
-VITE_APP_NAME="${APP_NAME}"
-```
-
-3. **Container Setup**
-```bash
-# Start containers (from parent docker-compose directory)
-docker-compose up -d
-
-# Install PHP dependencies
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar install'
-
 # Generate application key
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan key:generate'
+php artisan key:generate
 
-# Run database migrations
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate'
-
-# Install Node.js dependencies
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm install'
-
-# Build frontend assets
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run build'
+# If needed, configure database connection
+# Edit .env: DB_CONNECTION=sqlite (default)
 ```
 
-4. **Access Application**
-- **Frontend**: http://dashboard1.test/management/login
-- **API**: http://dashboard1.test/api/v1/
-
-### Development Workflow
-
-#### Daily Development Cycle
-
-1. **Pull Latest Changes**
-```bash
-git pull origin main
-```
-
-2. **Install Dependencies**
-```bash
-# PHP dependencies
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php composer_2.9.3.phar install'
-
-# Node.js dependencies
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm install'
-```
-
-3. **Database Updates**
+#### 3. Database Setup
 ```bash
 # Run migrations
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate'
+php artisan migrate
 
-# Seed database (if needed)
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan db:seed'
+# Optional: Seed database with demo data
+php artisan db:seed
 ```
 
-4. **Start Development Servers**
+#### 4. Create Symbolic Link (for file uploads)
 ```bash
-# Option 1: Use Laravel's development command
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && composer run dev'
+# Link storage to public
+php artisan storage:link
+```
 
-# Option 2: Manual server startup
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan serve --host=0.0.0.0 --port=8000'
+#### 5. Start Development Server
+```bash
+# Start all services concurrently (Laravel, queue, logs, Vite)
+npm run dev
+
+# OR individually:
+# Terminal 1: Laravel server
+php artisan serve --host=0.0.0.0 --port=8000
+
+# Terminal 2: Vite dev server (frontend hot-reload)
+npm run dev
+
+# Terminal 3: Queue listener (for background jobs)
+php artisan queue:listen --tries=1
+
+# Terminal 4: Log viewer
+php artisan pail --timeout=0
+```
+
+**Access**:
+- Frontend: [http://localhost:5174/management/login](http://localhost:5174/management/login)
+- API: [http://localhost:8000/api/v1](http://localhost:8000/api/v1)
+
+**Evidence**: [composer.json](composer.json) dev script, [vite.config.js](vite.config.js) server config
+
+### Container-Based Development
+
+```bash
+# Using Docker (assumed setup exists)
 docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan queue:listen'
 ```
 
-#### Code Changes Workflow
+---
 
-1. **Backend Changes**
+## Building for Production
+
+### Frontend Build
 ```bash
-# Make changes to PHP files
-# Run tests
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/phpunit'
-
-# Run code analysis
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/pint'
-```
-
-2. **Frontend Changes**
-```bash
-# Make changes to Vue files
-# Build for development
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run dev'
-
-# Build for production
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run build'
-```
-
-3. **Database Changes**
-```bash
-# Create new migration
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan make:migration create_example_table'
-
-# Run migrations
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate'
-```
-
-### Code Conventions and Standards
-
-#### PHP Code Standards
-
-**File Naming**:
-- Controllers: `UserController.php`
-- Models: `User.php`
-- Services: `UserService.php`
-- Requests: `StoreUserRequest.php`
-
-**Class Structure**:
-```php
-<?php
-
-namespace App\Http\Controllers\Api\Managements;
-
-use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
-
-class UserController extends Controller
-{
-    // Properties
-    protected UserService $userService;
-
-    // Constructor
-    public function __construct(UserService $userService)
-    {
-        $this->userService = $userService;
-    }
-
-    // Public methods
-    public function index(): JsonResponse
-    {
-        // Implementation
-    }
-
-    // Private/protected methods
-    private function formatResponse(array $data): array
-    {
-        // Implementation
-    }
-}
-```
-
-**Method Naming**:
-- Actions: `index()`, `store()`, `show()`, `update()`, `destroy()`
-- Business logic: `createUser()`, `updateUser()`, `banUser()`
-- Utilities: `formatUserData()`, `getRoleDisplayName()`
-
-#### TypeScript/JavaScript Standards
-
-**File Naming**:
-- Components: `UserList.vue`, `UserForm.vue`
-- Stores: `auth.ts`, `user.ts`
-- Types: `user.ts`, `api.ts`
-
-**Component Structure**:
-```vue
-<template>
-  <div class="user-list">
-    <!-- Template content -->
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useUserStore } from '@/stores/user'
-
-// Props
-interface Props {
-  users: User[]
-  loading: boolean
-}
-
-const props = defineProps<Props>()
-
-// Emits
-const emit = defineEmits<{
-  userSelected: [user: User]
-}>()
-
-// Reactive data
-const selectedUser = ref<User | null>(null)
-
-// Computed properties
-const hasUsers = computed(() => props.users.length > 0)
-
-// Methods
-const handleUserClick = (user: User) => {
-  selectedUser.value = user
-  emit('userSelected', user)
-}
-</script>
-
-<style scoped>
-.user-list {
-  /* Styles */
-}
-</style>
-```
-
-#### Database Standards
-
-**Table Naming**:
-- Users: `users`
-- Roles: `roles`
-- Permissions: `permissions`
-- Junction tables: `model_has_roles`, `role_has_permissions`
-
-**Column Naming**:
-- Primary keys: `id`
-- Foreign keys: `user_id`, `role_id`
-- Booleans: `is_active`, `is_banned`
-- Timestamps: `created_at`, `updated_at`
-
-### Testing Strategy
-
-#### Backend Testing
-
-**Unit Tests**:
-```bash
-# Run all tests
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/phpunit'
-
-# Run specific test class
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/phpunit tests/Unit/Services/UserServiceTest.php'
-
-# Run with coverage
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && ./vendor/bin/phpunit --coverage-html=reports/coverage'
-```
-
-**Test Structure**:
-```php
-<?php
-
-namespace Tests\Unit\Services;
-
-use Tests\TestCase;
-use App\Services\UserService;
-use App\Models\User;
-
-class UserServiceTest extends TestCase
-{
-    protected UserService $userService;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->userService = app(UserService::class);
-    }
-
-    public function test_can_create_user()
-    {
-        // Test implementation
-        $userData = [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => 'password123',
-            'role' => 'viewer'
-        ];
-
-        $user = $this->userService->createUser($userData);
-
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertEquals('Test User', $user->name);
-    }
-}
-```
-
-#### Frontend Testing
-
-**Component Testing**:
-```typescript
-// UserList.test.ts
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
-import UserList from '@/components/UserList.vue'
-
-describe('UserList', () => {
-  it('renders user list correctly', () => {
-    const users = [
-      { id: 1, name: 'John Doe', email: 'john@example.com' }
-    ]
-
-    const wrapper = mount(UserList, {
-      props: { users, loading: false }
-    })
-
-    expect(wrapper.text()).toContain('John Doe')
-  })
-})
-```
-
-### Debugging and Troubleshooting
-
-#### Common Issues and Solutions
-
-**Database Connection Issues**:
-```bash
-# Check database connectivity
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan tinker'
-Psy Shell v0.12.0 (PHP 8.2.30) by Justin Hileman
->>> DB::connection()->getPdo()
-```
-
-**Permission Issues**:
-```bash
-# Clear permission cache
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan cache:clear'
-
-# Check user permissions in tinker
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan tinker'
->>> $user = App\Models\User::find(1)
->>> $user->getAllPermissions()
-```
-
-**Frontend Build Issues**:
-```bash
-# Clear node_modules and reinstall
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && rm -rf node_modules package-lock.json'
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm install'
-
-# Check build logs
-docker exec php_dev_nodejs_20 sh -c 'cd php8.2/laravel/dashboard1 && npm run build'
-```
-
-**Container Issues**:
-```bash
-# Check container status
-docker ps
-
-# View container logs
-docker logs php_dev_php8.2
-docker logs php_dev_nginx
-docker logs php_dev_nodejs_20
-
-# Restart containers
-docker-compose restart
-```
-
-#### Logging and Monitoring
-
-**Laravel Logging**:
-```php
-// In controllers/services
-Log::info('User created', [
-    'user_id' => $user->id,
-    'email' => $user->email,
-    'created_by' => $request->user()->id
-]);
-
-// Check logs
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && tail -f storage/logs/laravel.log'
-```
-
-**Frontend Logging**:
-```typescript
-// Development logging
-console.log('User data:', userData)
-
-// Production logging (consider a logging service)
-if (process.env.NODE_ENV === 'development') {
-  console.log('Debug info:', debugData)
-}
-```
-
-### Deployment Process
-
-#### Production Build Process
-
-1. **Environment Setup**
-```bash
-# Production .env configuration
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://yourdomain.com
-
-# Database configuration
-DB_CONNECTION=mysql
-DB_HOST=production-db-host
-DB_DATABASE=production_db
-DB_USERNAME=production_user
-DB_PASSWORD=secure_password
-```
-
-2. **Build Assets**
-```bash
-# Install dependencies
-composer install --optimize-autoloader --no-dev
-npm ci
-
-# Build frontend
 npm run build
+```
 
-# Optimize Laravel
+**Output**: Compiled assets in `public/build/`
+**Configuration**: [vite.config.js](vite.config.js)
+
+### Backend Setup
+```bash
+# Install with no dev dependencies
+composer install --no-dev
+
+# Optimize autoloader
+composer dump-autoload --optimize
+
+# Run migrations
+php artisan migrate --force
+
+# Clear caches
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
 
-3. **Database Migration**
-```bash
-php artisan migrate --force
-php artisan db:seed --class=ProductionSeeder
+### Environment Variables (Production)
+```
+APP_ENV=production
+APP_DEBUG=false
+DB_CONNECTION=mysql (or sqlite for production)
+DB_HOST=...
+DB_NAME=...
+DB_USERNAME=...
+DB_PASSWORD=...
+CACHE_DRIVER=redis (or file)
+QUEUE_CONNECTION=database (or redis)
 ```
 
-4. **File Permissions**
-```bash
-chmod -R 755 storage
-chmod -R 755 bootstrap/cache
-chown -R www-data:www-data storage
-chown -R www-data:www-data bootstrap/cache
+---
+
+## Project Structure Reference
+
+### Frontend (`resources/js/vue3_dashboard_admin/`)
+
+**Key Directories**:
+
+```
+app.ts                 # Application entry point
+App.vue               # Root Vue component
+├── components/       # Reusable Vue components
+├── composables/      # Vue 3 composables (composition API)
+├── config/          # Frontend configuration
+│   └── apiRoutes.ts # API endpoint definitions
+├── layouts/         # Layout wrapper components
+├── mocks/           # Mock data for development
+├── router/          # Vue Router configuration
+├── stores/          # Pinia stores (state management)
+│   └── auth.ts      # Authentication store
+├── types/           # TypeScript type definitions
+├── utils/           # Utility functions
+└── views/           # Routed page components
 ```
 
-#### Deployment Checklist
+### Backend Structure
 
-- [ ] Environment variables configured
-- [ ] Database connection established
-- [ ] SSL certificate installed
-- [ ] File permissions set correctly
-- [ ] Application key generated
-- [ ] Assets compiled and optimized
-- [ ] Database migrations run
-- [ ] Queue workers configured
-- [ ] Monitoring and logging set up
-- [ ] Backup strategy implemented
+**[app/Http/Controllers/Api/](app/Http/Controllers/Api/)**:
+- `AuthController.php` - Login/logout/me
+- `Managements/UserController.php` - User CRUD
+- `Managements/RoleController.php` - Role CRUD
+- `Managements/PermissionController.php` - Permission listing
+- `Managements/CategoryController.php` - Category CRUD
+- `Managements/GalleryController.php` - Gallery CRUD
+- `Managements/TagController.php` - Tag options
 
-### Performance Optimization
+**[app/Services/](app/Services/)**:
+- `AuthService.php` - Authentication logic
+- `UserService.php` - User business logic (filtering, creation, updates)
+- `RoleService.php` - Role management
+- `PermissionService.php` - Permission queries
+- `CategoryService.php` - Category hierarchy
+- `GalleryService.php` - Gallery creation, image processing
+- `ProtectionService.php` - Account/role protection
+- `UserBanHistoryService.php` - Ban tracking
+- `PermissionService.php` - Permission categorization
 
-#### Backend Optimization
+**[app/Http/Requests/](app/Http/Requests/)**:
+- Form Request validation classes
+- Auto-validate incoming data before controller
 
-**Database Query Optimization**:
+**[app/Models/](app/Models/)**:
+- Eloquent models with relationships
+- business scope methods (`scopeActive()`, etc.)
+
+---
+
+## Code Organization Patterns
+
+### Service Layer Pattern
+**When** you need to implement business logic:
+
 ```php
-// Use eager loading
-$users = User::with('roles')->paginate(15);
-
-// Select only needed columns
-$users = User::select(['id', 'name', 'email'])->get();
-
-// Use database indexes for WHERE clauses
-Schema::table('users', function (Blueprint $table) {
-    $table->index(['email', 'is_banned']);
-});
-```
-
-**Caching Strategy**:
-```php
-// Cache user permissions
-Cache::remember("user.{$userId}.permissions", 3600, function () use ($userId) {
-    return User::find($userId)->getAllPermissions();
-});
-
-// Cache role data
-Cache::remember('roles.all', 3600, function () {
-    return Role::with('permissions')->get();
-});
-```
-
-#### Frontend Optimization
-
-**Bundle Splitting**:
-```typescript
-// Automatic code splitting with Vue Router
-const routes = [
-  {
-    path: '/users',
-    component: () => import('@/views/admin/user/Index.vue')
-  }
-]
-```
-
-**Image Optimization**:
-```vue
-<template>
-  <!-- Use WebP with fallbacks -->
-  <picture>
-    <source :srcset="user.profile_image_webp" type="image/webp">
-    <img :src="user.profile_image" alt="Profile">
-  </picture>
-</template>
-```
-
-### Security Best Practices
-
-#### Input Validation
-```php
-// Use Form Request classes
-class StoreUserRequest extends FormRequest
+// In controller:
+public function store(StoreUserRequest $request): JsonResponse
 {
-    public function rules(): array
-    {
+    $validated = $request->validated();
+    $userData = $this->userService->createUser($validated);
+    return response()->json([...], 201);
+}
+
+// In service:
+public function createUser(array $data): array
+{
+    // Validation, password hashing, role assignment, caching
+    // Return formatted data
+}
+```
+
+### Model Relationships
+**Always eager-load** relationships to avoid N+1 queries:
+
+```php
+// Good
+$users = User::with('roles', 'permissions')->get();
+
+// Bad (N+1 queries)
+$users = User::all();
+foreach ($users as $user) {
+    $roles = $user->roles; // Query per user!
+}
+```
+
+### Caching Strategy
+**For expensive queries**, use version-based cache:
+
+```php
+use App\Traits\CanVersionCache;
+
+class UserService {
+    use CanVersionCache;
+    
+    public function getFilteredUsers($filters = []) {
+        $cacheKey = $this->getVersionedKey('users', $filters);
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) return $cached;
+        
+        // Expensive query
+        $result = User::with('roles')->get();
+        
+        Cache::put($cacheKey, $result, 3600);
+        return $result;
+    }
+    
+    public function createUser($data) {
+        // Create user...
+        
+        // Invalidate all variations
+        $this->invalidateScopeCache('users');
+        
+        return $formatted;
+    }
+}
+```
+
+### Error Handling
+**Always return appropriate HTTP status codes**:
+
+```php
+try {
+    $data = $this->validate($request->input());
+    return response()->json(['user' => $data], 200);
+} catch (ValidationException $e) {
+    return response()->json(['errors' => $e->errors()], 422);
+} catch (AuthenticationException $e) {
+    return response()->json(['message' => $e->getMessage()], 401);
+} catch (Exception $e) {
+    Log::error('Operation failed', ['error' => $e->getMessage()]);
+    return response()->json(['message' => 'Server error'], 500);
+}
+```
+
+---
+
+## Adding New Features
+
+### Feature: New User Role
+
+#### 1. Create Permission (Seed or Migration)
+
+```php
+// database/seeders/PermissionSeeder.php
+Permission::create(['name' => 'resource.view']);
+Permission::create(['name' => 'resource.add']);
+Permission::create(['name' => 'resource.edit']);
+Permission::create(['name' => 'resource.delete']);
+```
+
+**Run**: `php artisan db:seed --class=PermissionSeeder`
+
+#### 2. Create Role and Assign Permissions
+
+```php
+// In database seeder or tinker
+$role = Role::create(['name' => 'resource_manager']);
+$permissions = Permission::whereIn('name', [
+    'resource.view',
+    'resource.add',
+    'resource.edit'
+])->pluck('id');
+$role->syncPermissions($permissions);
+```
+
+#### 3. Create or Update Controller
+
+```php
+// app/Http/Controllers/Api/Managements/ResourceController.php
+class ResourceController extends Controller {
+    public function index(Request $request): JsonResponse {
+        // Implementation
+    }
+    
+    public function store(StoreResourceRequest $request): JsonResponse {
+        // Implementation
+    }
+}
+```
+
+#### 4. Create Form Request Validation
+
+```php
+// app/Http/Requests/Resource/StoreResourceRequest.php
+class StoreResourceRequest extends FormRequest {
+    public function authorize(): bool {
+        return true; // Middleware handles permission check
+    }
+    
+    public function rules(): array {
         return [
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
         ];
     }
 }
 ```
 
-#### Authentication Security
-```php
-// Use Sanctum middleware
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Protected routes
-});
+#### 5. Register Routes
 
-// Rate limiting
-Route::middleware(['throttle:api'])->group(function () {
-    // Rate limited routes
+```php
+// routes/api.php
+Route::middleware(['auth:sanctum', 'check.user.status'])->group(function () {
+    Route::get('resources', [ResourceController::class, 'index'])->middleware('permission:resource.view');
+    Route::post('resources', [ResourceController::class, 'store'])->middleware('permission:resource.add');
+    Route::put('resources/{id}', [ResourceController::class, 'update'])->middleware('permission:resource.edit');
+    Route::delete('resources/{id}', [ResourceController::class, 'destroy'])->middleware('permission:resource.delete');
 });
 ```
 
-#### Authorization Checks
+#### 6. Create Service Layer
+
 ```php
-// Check permissions in controllers
-public function update(User $user): JsonResponse
-{
-    $this->authorize('update', $user);
-    // Update logic
+// app/Services/ResourceService.php
+class ResourceService {
+    use CanVersionCache;
+    
+    private const CACHE_SCOPE = 'resources';
+    
+    public function getAllResources(array $filters = []): array {
+        $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, $filters);
+        $cached = Cache::get($cacheKey);
+        if ($cached) return $cached;
+        
+        // Query logic
+        $resources = Resource::filter($filters)->get();
+        
+        Cache::put($cacheKey, $resources->toArray(), 3600);
+        return $resources->toArray();
+    }
 }
 ```
 
-### Contributing Guidelines
+#### 7. Add Vue Components
 
-#### Code Review Process
-1. Create feature branch from `main`
-2. Implement changes with tests
-3. Run code quality checks
-4. Submit pull request
-5. Code review and approval
-6. Merge to `main`
+```vue
+<!-- resources/js/vue3_dashboard_admin/views/ResourceList.vue -->
+<template>
+  <div class="container">
+    <h1>Resources</h1>
+    <!-- Resource table, filters, pagination -->
+  </div>
+</template>
 
-#### Commit Message Standards
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { apiRoutes } from '@/config/apiRoutes';
+
+const authStore = useAuthStore();
+const resources = ref([]);
+
+const fetchResources = async () => {
+  try {
+    const response = await fetch(apiRoutes.resources.list, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    });
+    const data = await response.json();
+    resources.value = data.data;
+  } catch (error) {
+    console.error('Failed to fetch resources', error);
+  }
+};
+
+onMounted(() => {
+  fetchResources();
+});
+</script>
 ```
-feat: add user ban functionality
-fix: resolve permission check bug
-docs: update API documentation
-style: format code with Pint
-refactor: extract user validation logic
-test: add user service unit tests
+
+#### 8. Add Route to Router
+
+```typescript
+// resources/js/vue3_dashboard_admin/router/index.ts
+const routes = [
+  {
+    path: '/resources',
+    component: () => import('@/views/ResourceList.vue'),
+    meta: { requiresAuth: true }
+  },
+  // ...
+];
 ```
 
-#### Branch Naming
-- Features: `feature/user-ban-system`
-- Bug fixes: `fix/permission-validation`
-- Documentation: `docs/api-reference`
+---
 
-### Troubleshooting Guide
+## Testing
 
-#### Build Issues
+### Running Tests
 ```bash
-# Clear all caches
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan cache:clear'
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan config:clear'
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan route:clear'
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan view:clear'
+# Run all tests
+npm run test  # OR: ./vendor/bin/phpunit
 
-# Rebuild containers
-docker-compose down
-docker-compose up --build
+# Run specific test file
+./vendor/bin/phpunit tests/Feature/UserControllerTest.php
+
+# Run with coverage
+./vendor/bin/phpunit --coverage-html reports/
 ```
 
-#### Database Issues
+**Evidence**: [phpunit.xml](phpunit.xml), [composer.json](composer.json) test script
+
+### Writing Tests
+```php
+// tests/Feature/UserControllerTest.php
+namespace Tests\Feature;
+
+use Tests\TestCase;
+use App\Models\User;
+
+class UserControllerTest extends TestCase
+{
+    public function test_can_list_users()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('admin');
+        
+        $response = $this->actingAs($user)->getJson('/api/v1/users');
+        
+        $response->assertStatus(200)
+                 ->assertJsonStructure(['data', 'meta']);
+    }
+}
+```
+
+---
+
+## Debugging
+
+### Laravel Tinker (REPL)
 ```bash
-# Reset database
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate:fresh'
+php artisan tinker
 
-# Check migration status
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan migrate:status'
+# Inside tinker:
+> $user = User::find(1);
+> $user->roles->pluck('name');
+> Cache::flush();
 ```
 
-#### Permission Issues
+### Logs
 ```bash
-# Reset permissions
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan db:seed --class=PermissionSeeder'
+# Follow real-time logs (via Pail)
+php artisan pail --timeout=0
 
-# Clear permission cache
-docker exec php_dev_php8.2 sh -c 'cd laravel/dashboard1 && php artisan cache:clear'
+# Or read from file
+tail -f storage/logs/laravel.log
 ```
 
-This development guide provides comprehensive instructions for setting up, developing, testing, and deploying the Laravel User Management Dashboard. Follow these guidelines to maintain code quality and ensure smooth development workflows.</content>
-<parameter name="filePath">/home/itboms/Developments/php/apps/php8.2/laravel/dashboard1/docs/project_knowledges/06-DEVELOPMENT-GUIDE.md
+### Debugging with Debugbar
+- Already included in laravel/laravel
+- Visible at bottom of every page in dev mode
+- Shows queries, timing, cache hits, etc.
+
+### IDE Support (VSCode)
+- Install extensions:
+  - Laravel Extension Pack
+  - Intelephense (PHP)
+  - ESLint (JavaScript)
+  - Vetur or Vue Language Features (Vue)
+
+---
+
+## Common Commands
+
+### Laravel Artisan
+```bash
+# Database
+php artisan migrate                 # Run migrations
+php artisan migrate:rollback        # Rollback last batch
+php artisan migrate:refresh         # Rollback & re-run
+php artisan db:seed                 # Run seeders
+php artisan db:seed --class=PermissionSeeder
+
+# Cache
+php artisan cache:clear
+php artisan config:cache
+php artisan config:clear
+php artisan route:cache
+php artisan view:cache
+
+# Code Generation
+php artisan make:controller UserController
+php artisan make:model Gallery -m  # With migration
+php artisan make:request StoreUserRequest
+php artisan make:service UserService
+
+# Queue
+php artisan queue:failed            # View failed jobs
+php artisan queue:retry 1           # Retry job ID 1
+php artisan queue:listen            # Start listening
+
+# Maintenance
+php artisan down                    # Put app in maintenance
+php artisan up                      # Bring app back up
+```
+
+### Composer
+```bash
+composer dumpautoload --optimize    # Optimize autoloader
+composer require package-name       # Install package
+composer remove package-name        # Remove package
+composer update                     # Update dependencies
+```
+
+### Frontend/npm
+```bash
+npm install                         # Install dependencies
+npm run dev                         # Start dev server (Vite)
+npm run build                       # Production build
+npm run build:watch                 # Watch mode (if available)
+npm test                           # Run tests (if configured)
+npm run lint                       # Run linter (if configured)
+```
+
+---
+
+## Environment Variables
+
+**Key Configuration** (in `.env`):
+
+```env
+# Application
+APP_NAME="Laravel Dashboard"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost
+
+# Database
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+
+# Cache
+CACHE_DRIVER=file
+
+# Session
+SESSION_DRIVER=file
+
+# Queue
+QUEUE_CONNECTION=sync
+
+# Mail
+MAIL_DRIVER=smtp
+MAIL_HOST=mailhog
+MAIL_PORT=1025
+
+# Authentication
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,localhost:5174
+
+# File Upload Disk
+FILESYSTEM_DISK=public
+```
+
+---
+
+## Git Workflow
+
+**Feature Development**:
+```bash
+# Create feature branch
+git checkout -b feature/add-notifications
+
+# Make changes, commit
+git add .
+git commit -m "feat: add notification system"
+
+# Push and create PR
+git push origin feature/add-notifications
+
+# After review & approval, merge to main
+git checkout main
+git pull
+git merge feature/add-notifications
+git push
+```
+
+**Commit Message Convention** (Conventional Commits):
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation
+- `refactor:` - Code refactoring
+- `test:` - Tests only
+- `chore:` - Dependencies, tooling
+
+---
+
+## Performance Tips
+
+### Database Optimization
+1. **Use Indexes**: Already applied; check migrations
+2. **Eager Load**: `with()` relationships
+3. **Select Specific Columns**: `select(['id', 'name', ...])`
+4. **Pagination**: Always paginate large result sets
+5. **Query Caching**: Use version-based cache for read-heavy operations
+
+### Frontend Optimization
+1. **Code Splitting**: Lazy-load route components
+   ```typescript
+   const ResourceList = () => import('@/views/ResourceList.vue');
+   ```
+
+2. **Image Optimization**: Already done (WebP conversion on backend)
+
+3. **Bundle Analysis**:
+   ```bash
+   npm run build -- --analyze  # If Vite analyzer installed
+   ```
+
+### API Performance
+1. **Response Compression**: Enable gzip in web server
+2. **CORS Caching**: Set appropriate Cache-Control headers
+3. **Pagination**: Limits data transfer per request
+
+---
+
+## Security Checklist
+
+- ✅ **HTTPS in Production**: Must use SSL/TLS
+- ✅ **Environment Variables**: Never commit `.env`
+- ✅ **Password Hashing**: Model cast uses bcrypt
+- ✅ **Authentication**: Sanctum token-based
+- ✅ **Authorization**: Spatie permission-based
+- ✅ **CSRF Protection**: Built-in Laravel (for web routes)
+- ✅ **SQL Injection**: Use Eloquent ORM (parameterized)
+- ✅ **XSS Prevention**: Sanitize input, Vue auto-escapes
+- ✅ **Rate Limiting**: Login throttled 5/15min
+- ✅ **API Throttling**: Configure global if needed
+  ```php
+  // config/api.php
+  'throttle' => 'api',
+  ```
+- ✅ **Protected Accounts**: ProtectionService prevents admin deletion
+- ⚠️ **File Upload Size Limits**: Configure in `.env` or nginx
+  ```env
+  APP_MAX_UPLOAD_SIZE=10M
+  ```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Problem**: `SQLSTATE[HY000]: General error: 1 Database is locked`
+- **Cause**: SQLite concurrent writes
+- **Solution**: 
+  - Use MySQL in production
+  - Or increase SQLite timeout: `DB_BUSY_TIMEOUT=5000`
+
+**Problem**: `Could not find package ...` during `npm install`
+- **Solution**: Clear cache and retry
+  ```bash
+  npm cache clean --force
+  npm install
+  ```
+
+**Problem**: Vue components not hot-reloading
+- **Solution**: Check Vite dev server is running on port 5174
+  ```bash
+  npm run dev
+  ```
+
+**Problem**: Database migrations not running
+- **Solution**: Check DB connection in `.env`
+  ```bash
+  php artisan migrate --verbose
+  ```
+
+**Problem**: Permission denied when accessing storage files
+- **Solution**: Run permissions command
+  ```bash
+  chmod -R 775 storage bootstrap
+  php artisan storage:link
+  ```
+
+---
+
+## Deployment Checklist
+
+- [ ] Set `APP_ENV=production` and `APP_DEBUG=false`
+- [ ] Run `php artisan migrate --force`
+- [ ] Run `php artisan config:cache`, `route:cache`, `view:cache`
+- [ ] Set up HTTPS/SSL certificate
+- [ ] Configure web server (Nginx/Apache)
+- [ ] Set up log rotation: `storage/logs/`
+- [ ] Configure backup strategy for database
+- [ ] Set up storage symlink: `php artisan storage:link`
+- [ ] Configure queue worker (supervisor/systemd)
+- [ ] Enable opcode caching (OPcache in PHP)
+- [ ] Set up monitoring/error tracking (Sentry, etc.)
+- [ ] Configure CDN for static assets if needed
+- [ ] Test authentication and authorization
+- [ ] Test file uploads and image processing
+- [ ] Load test API endpoints
+
+---
+
+## UNKNOWN / NOT FOUND IN CODE
+- CI/CD pipeline configuration (GitHub Actions, GitLab CI, etc.)
+- API documentation generation (Swagger/OpenAPI)
+- Performance monitoring setup
+- Error tracking service integration
+- Database backup automation
+- SSL certificate renewal process
