@@ -88,6 +88,7 @@ const { post, put } = useApi()
 const loading = ref(false)
 const errorMessages = ref<string[]>([])
 const profileImage = ref<File | null>(null)
+const profileImageCropData = ref<any>(null)
 const existingImageUrl = ref<string>('')
 
 // Form data
@@ -123,8 +124,9 @@ const populateFormData = (user: any) => {
 }
 
 // Handle image selection
-const handleImageSelected = (file: File) => {
+const handleImageSelected = (file: File, cropData?: any) => {
   profileImage.value = file
+  profileImageCropData.value = cropData
 }
 
 // Validate form
@@ -214,6 +216,22 @@ const handleSubmit = async () => {
     // Add profile image if selected
     if (profileImage.value) {
       submitData.append('profile_image', profileImage.value)
+
+      // Add crop coordinates if available (coordinates are in source pixels)
+      if (profileImageCropData.value?.cropSelection) {
+        const crop = profileImageCropData.value.cropSelection
+        submitData.append('crop_canvas_width', String(crop.canvasWidth))
+        submitData.append('crop_canvas_height', String(crop.canvasHeight))
+        submitData.append('crop_x', String(crop.x))
+        submitData.append('crop_y', String(crop.y))
+        submitData.append('crop_width', String(crop.width))
+        submitData.append('crop_height', String(crop.height))
+      }
+      if (profileImageCropData.value?.originalImageSize) {
+        const orig = profileImageCropData.value.originalImageSize
+        submitData.append('orig_width', String(orig.width))
+        submitData.append('orig_height', String(orig.height))
+      }
     }
 
     // Determine API endpoint and method

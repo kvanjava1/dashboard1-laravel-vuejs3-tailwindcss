@@ -118,7 +118,7 @@ interface Props {
 
 interface Emits {
   (e: 'update:modelValue', value: File | null): void
-  (e: 'image-selected', file: File): void
+  (e: 'image-selected', file: File, cropData?: any): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -138,6 +138,12 @@ const selectedFile = ref<File | null>(null)
 const previewImage = ref<string>('')
 const cropperImage = ref<string>('')
 const showCropper = ref(false)
+
+// Original image size for coordinate mapping
+const originalImageSize = ref<{ width: number; height: number } | null>(null)
+
+// Crop coordinates (source-relative)
+const cropCoordinates = ref<{ x: number; y: number; width: number; height: number; canvasWidth: number; canvasHeight: number } | null>(null)
 
 // Computed
 const hasImage = computed(() => !!previewImage.value)
@@ -179,33 +185,47 @@ const handleFileSelect = (event: Event) => {
     showCropper.value = true
   }
   reader.readAsDataURL(file)
+
+  // Capture original image natural size for coordinate mapping
+  const img = new Image()
+  img.onload = () => {
+    originalImageSize.value = { width: img.naturalWidth, height: img.naturalHeight }
+  }
+  img.src = URL.createObjectURL(file)
 }
 
 const applyCrop = async () => {
   if (!cropperRef.value) return
 
-  const { canvas } = cropperRef.value.getResult()
-  if (!canvas) return
+  const result = cropperRef.value.getResult()
+  if (!result || !result.canvas) return
 
-  // Convert canvas to blob
-  canvas.toBlob((blob: Blob) => {
-    if (!blob) return
+  // Capture crop coordinates (should be relative to source image)
+  const coords = (result as any).coordinates || null
+  // Store crop as source-relative coordinates
+  cropCoordinates.value = {
+    x: coords ? coords.left : 0,
+    y: coords ? coords.top : 0,
+    width: coords ? coords.width : (originalImageSize.value?.width || 300),
+    height: coords ? coords.height : (originalImageSize.value?.height || 300),
+    canvasWidth: originalImageSize.value?.width || 300,
+    canvasHeight: originalImageSize.value?.height || 300
+  }
 
-    // Create file from blob
-    const croppedFile = new File([blob], 'cropped-image.jpg', {
-      type: 'image/jpeg',
-      lastModified: Date.now()
-    })
+  // Create preview from canvas (for immediate UI feedback)
+  previewImage.value = result.canvas.toDataURL('image/jpeg', 0.9)
 
-    selectedFile.value = croppedFile
-    previewImage.value = canvas.toDataURL('image/jpeg')
+  // Keep the original file - server will do the cropping
+  // selectedFile.value remains the original uploaded file
 
-    emit('update:modelValue', croppedFile)
-    emit('image-selected', croppedFile)
+  emit('update:modelValue', selectedFile.value)
+  emit('image-selected', selectedFile.value!, {
+    cropSelection: cropCoordinates.value,
+    originalImageSize: originalImageSize.value
+  })
 
-    showCropper.value = false
-    cropperImage.value = ''
-  }, 'image/jpeg', 0.9)
+  showCropper.value = false
+  cropperImage.value = ''
 }
 
 const cancelCrop = () => {

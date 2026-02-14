@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Services\ProtectionService;
 use App\Services\UserBanHistoryService;
 use App\Traits\CanVersionCache;
+use Intervention\Image\ImageManagerStatic as Image;
 
 class UserService
 {
@@ -231,7 +232,22 @@ class UserService
             }
 
             if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
-                $imagePath = $this->storeProfileImage($data['profile_image']);
+                // Include crop coordinates so service can crop from original
+                $crop = null;
+                if (isset($data['crop_x']) && isset($data['crop_y']) && isset($data['crop_width']) && isset($data['crop_height'])) {
+                    $crop = [
+                        'canvas_width' => intval($data['crop_canvas_width'] ?? 0),
+                        'canvas_height' => intval($data['crop_canvas_height'] ?? 0),
+                        'x' => intval($data['crop_x']),
+                        'y' => intval($data['crop_y']),
+                        'width' => intval($data['crop_width']),
+                        'height' => intval($data['crop_height']),
+                        'orig_width' => intval($data['orig_width'] ?? 0),
+                        'orig_height' => intval($data['orig_height'] ?? 0),
+                    ];
+                }
+
+                $imagePath = $this->storeProfileImage($data['profile_image'], $crop);
                 $user->update(['profile_image' => $imagePath]);
             }
 
@@ -294,7 +310,23 @@ class UserService
                 if ($user->profile_image) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
-                $imagePath = $this->storeProfileImage($data['profile_image']);
+
+                // Include crop coordinates so service can crop from original
+                $crop = null;
+                if (isset($data['crop_x']) && isset($data['crop_y']) && isset($data['crop_width']) && isset($data['crop_height'])) {
+                    $crop = [
+                        'canvas_width' => intval($data['crop_canvas_width'] ?? 0),
+                        'canvas_height' => intval($data['crop_canvas_height'] ?? 0),
+                        'x' => intval($data['crop_x']),
+                        'y' => intval($data['crop_y']),
+                        'width' => intval($data['crop_width']),
+                        'height' => intval($data['crop_height']),
+                        'orig_width' => intval($data['orig_width'] ?? 0),
+                        'orig_height' => intval($data['orig_height'] ?? 0),
+                    ];
+                }
+
+                $imagePath = $this->storeProfileImage($data['profile_image'], $crop);
                 $user->update(['profile_image' => $imagePath]);
             }
 
@@ -509,7 +541,7 @@ class UserService
     /**
      * Store profile image with custom path pattern
      */
-    private function storeProfileImage(\Illuminate\Http\UploadedFile $file): string
+    private function storeProfileImage(\Illuminate\Http\UploadedFile $file, ?array $crop = null): string
     {
         $uniqueName = uniqid() . '_' . time() . '.webp';
         $year = date('Y');
@@ -520,29 +552,39 @@ class UserService
         $fullPath = "{$directory}/{$uniqueName}";
 
         Storage::disk('public')->makeDirectory($directory);
-        $imageContent = $this->convertToWebp($file);
-        Storage::disk('public')->put($fullPath, $imageContent);
 
-        return $fullPath;
-    }
+        // Process image with Intervention Image
+        $img = Image::make($file->getRealPath());
 
-    /**
-     * Convert uploaded image to WebP format
-     */
-    private function convertToWebp(\Illuminate\Http\UploadedFile $file): string
-    {
-        $imageContent = file_get_contents($file->getRealPath());
-        if (function_exists('imagewebp') && function_exists('imagecreatefromstring')) {
-            $image = imagecreatefromstring($imageContent);
-            if ($image !== false) {
-                ob_start();
-                imagewebp($image, null, 80);
-                $webpContent = ob_get_clean();
-                imagedestroy($image);
-                return $webpContent;
+        // If crop coordinates provided, use them directly (they are in source pixels)
+        if (is_array($crop) && !empty($crop['width']) && !empty($crop['height'])) {
+            $cx = intval($crop['x']);
+            $cy = intval($crop['y']);
+            $cw = intval($crop['width']);
+            $ch = intval($crop['height']);
+
+            // Clamp to image bounds
+            $cx = max(0, min($cx, $img->width() - 1));
+            $cy = max(0, min($cy, $img->height() - 1));
+            $cw = max(1, min($cw, $img->width() - $cx));
+            $ch = max(1, min($ch, $img->height() - $cy));
+
+            try {
+                $img->crop($cw, $ch, $cx, $cy);
+            } catch (\Exception $e) {
+                Log::warning('Failed to crop profile image with provided coordinates', ['error' => $e->getMessage(), 'crop' => $crop]);
             }
         }
-        return $imageContent;
+
+        // Resize to 300x300 pixels, maintaining aspect ratio and cropping if needed
+        $img->fit(300, 300);
+
+        // Convert to WebP format with 90% quality
+        $webpContent = (string) $img->encode('webp', 90);
+
+        Storage::disk('public')->put($fullPath, $webpContent);
+
+        return $fullPath;
     }
 
     private function getBanStatusText(User $user): string
