@@ -196,7 +196,7 @@ class GalleryService
             ]);
             $createdMedia[] = $media1200;
 
-            // 400x400 thumbnail
+            // 400x400 thumbnail - also marked as cover variant
             $size400 = Storage::disk('public')->size($path400);
             $media400 = Media::create([
                 'gallery_id' => $gallery->id,
@@ -206,7 +206,7 @@ class GalleryService
                 'size' => $size400,
                 'alt_text' => $gallery->title,
                 'sort_order' => 0,
-                'is_cover' => false,
+                'is_cover' => true,
             ]);
             $createdMedia[] = $media400;
 
