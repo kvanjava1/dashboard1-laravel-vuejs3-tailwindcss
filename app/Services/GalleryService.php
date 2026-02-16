@@ -126,6 +126,23 @@ class GalleryService
     }
 
     /**
+     * Soft-delete a gallery (keep media rows & files). Returns true on success.
+     */
+    public function deleteGallery(int $galleryId): bool
+    {
+        return DB::transaction(function () use ($galleryId) {
+            $gallery = Gallery::with('media')->findOrFail($galleryId);
+
+            // Soft delete the gallery (Gallery model uses SoftDeletes)
+            $gallery->delete();
+
+            Log::info('Gallery soft-deleted', ['gallery_id' => $galleryId, 'slug' => $gallery->slug]);
+
+            return true;
+        });
+    }
+
+    /**
      * Process the cover into multiple sizes and store, returns Media model
      */
     private function processAndStoreCover(Gallery $gallery, \Illuminate\Http\UploadedFile $file, ?array $crop = null): Media

@@ -55,7 +55,7 @@
 
                 <!-- View Toggle -->
                 <div class="flex justify-between items-center mb-4">
-                    <div class="text-sm text-gray-600">
+                    <div v-if="showingText" class="text-sm text-gray-600">
                         {{ showingText }}
                     </div>
                 </div>
@@ -286,14 +286,14 @@ const totalPages = computed(() => {
 const showingText = computed(() => {
     if (useServer.value) {
         const total = serverTotal.value
-        if (total === 0) return 'No galleries'
+        if (total === 0) return ''
         const start = (serverCurrentPage.value - 1) * serverPerPage.value + 1
         const end = Math.min(serverCurrentPage.value * serverPerPage.value, total)
         return `Showing ${start}-${end} of ${total} galleries`
     }
 
     const total = filteredGalleries.value.length
-    if (total === 0) return 'No galleries'
+    if (total === 0) return ''
     const start = (currentPage.value - 1) * itemsPerPage.value + 1
     const end = Math.min(currentPage.value * itemsPerPage.value, total)
     return `Showing ${start}-${end} of ${total} galleries`

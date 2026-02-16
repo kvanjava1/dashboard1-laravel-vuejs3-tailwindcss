@@ -250,6 +250,15 @@ class GalleryController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented'], 501);
+        try {
+            $this->galleryService->deleteGallery($id);
+
+            return response()->json(['message' => 'Gallery deleted successfully']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Gallery not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete gallery', ['error' => $e->getMessage(), 'id' => $id]);
+            return response()->json(['message' => 'Failed to delete gallery', 'error' => $e->getMessage()], 500);
+        }
     }
 }
