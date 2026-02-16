@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -38,13 +39,9 @@ class AuthController extends Controller
                 'user' => $result['user'],
             ], 200);
         } catch (\Illuminate\Auth\AuthenticationException $e) {
-            return response()->json([
-                'message' => $e->getMessage() ?? 'Authentication failed',
-            ], 401);
+            return response()->json(['message' => 'Authentication failed'], 401);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => $e->getMessage() ?? 'Authentication failed',
-            ], $e->getCode() ?: 500);
+            return response()->json(['message' => 'Authentication failed'], $e->getCode() ?: 500);
         }
     }
 
@@ -63,10 +60,17 @@ class AuthController extends Controller
                 ]
             );
 
+            Log::info('User logout', [
+                'user_id' => $request->user()?->id ?? null,
+                'ip' => $request->ip(),
+                'agent' => $request->userAgent(),
+            ]);
+
             return response()->json([
                 'message' => 'Logged out successfully',
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Logout failed', ['exception' => $e, 'user_id' => $request->user()?->id ?? null]);
             return response()->json([
                 'message' => 'Logout failed',
             ], 500);
@@ -81,10 +85,17 @@ class AuthController extends Controller
         try {
             $user = $this->authService->getCurrentUser($request->user());
 
+            Log::info('Fetched current user', [
+                'user_id' => $request->user()?->id ?? null,
+                'ip' => $request->ip(),
+                'agent' => $request->userAgent(),
+            ]);
+
             return response()->json([
                 'user' => $user,
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to fetch user', ['exception' => $e, 'user_id' => $request->user()?->id ?? null]);
             return response()->json([
                 'message' => 'Failed to fetch user',
             ], 500);

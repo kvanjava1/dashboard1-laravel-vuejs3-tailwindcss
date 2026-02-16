@@ -24,7 +24,7 @@ class PermissionService
             return $formattedPermissions->toArray();
         } catch (\Exception $e) {
             Log::error('Failed to retrieve permissions', [
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -61,7 +61,7 @@ class PermissionService
             return $grouped;
         } catch (\Exception $e) {
             Log::error('Failed to retrieve grouped permissions', [
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }

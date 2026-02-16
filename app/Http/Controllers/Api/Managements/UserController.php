@@ -69,15 +69,12 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to retrieve users', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'filters' => $request->all(),
                 'user_id' => $request->user()->id ?? null
             ]);
 
-            return response()->json([
-                'message' => 'Failed to retrieve users',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve users'], 500);
         }
     }
 
@@ -112,15 +109,12 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to create user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'email' => $request->input('email'),
                 'user_id' => $request->user()->id ?? null
             ]);
 
-            return response()->json([
-                'message' => 'Failed to create user',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to create user'], 500);
         }
     }
 
@@ -140,15 +134,12 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to retrieve user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'requested_by' => request()->user()->id ?? null
             ]);
 
-            return response()->json([
-                'message' => 'Failed to retrieve user',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve user'], 500);
         }
     }
 
@@ -172,17 +163,14 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to update user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'updated_by' => $request->user()->id ?? null
             ]);
 
-            $statusCode = $e->getMessage() === 'Super admin users cannot be edited' ? 403 : 500;
+            $statusCode = $e->getCode() === 403 ? 403 : 500;
 
-            return response()->json([
-                'message' => 'Failed to update user',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to update user'], $statusCode);
         }
     }
 
@@ -209,20 +197,14 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to ban user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'performed_by' => $request->user()->id ?? null
             ]);
 
-            $statusCode = 500;
-            if (str_contains($e->getMessage(), 'protected account')) {
-                $statusCode = 403;
-            }
+            $statusCode = $e->getCode() === 403 ? 403 : 500;
 
-            return response()->json([
-                'message' => 'Failed to ban user',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to ban user'], $statusCode);
         }
     }
 
@@ -248,15 +230,12 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to unban user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'performed_by' => $request->user()->id ?? null
             ]);
 
-            return response()->json([
-                'message' => 'Failed to unban user',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to unban user'], 500);
         }
     }
 
@@ -275,15 +254,12 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to get user ban history', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'requested_by' => request()->user()->id ?? null
             ]);
 
-            return response()->json([
-                'message' => 'Failed to get user ban history',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to get user ban history'], 500);
         }
     }
 
@@ -303,22 +279,14 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to delete user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'user_id' => $id,
                 'deleted_by' => $request->user()->id ?? null
             ]);
 
-            $statusCode = 500;
-            if ($e->getMessage() === 'Cannot delete super admin users') {
-                $statusCode = 403;
-            } elseif ($e->getMessage() === 'Cannot delete your own account') {
-                $statusCode = 403;
-            }
+            $statusCode = $e->getCode() === 403 ? 403 : 500;
 
-            return response()->json([
-                'message' => 'Failed to delete user',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to delete user'], $statusCode);
         }
     }
 

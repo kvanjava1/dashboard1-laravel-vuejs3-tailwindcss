@@ -72,7 +72,7 @@ class CategoryService
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve categories', ['error' => $e->getMessage()]);
+            Log::error('Failed to retrieve categories', ['exception' => $e]);
             throw $e;
         }
     }
@@ -105,7 +105,7 @@ class CategoryService
             return $this->formatCategory($category);
 
         } catch (\Exception $e) {
-            Log::error('Failed to create category', ['error' => $e->getMessage(), 'data' => $data]);
+            Log::error('Failed to create category', ['exception' => $e, 'data' => $data]);
             throw $e;
         }
     }
@@ -154,7 +154,7 @@ class CategoryService
             return $this->formatCategory($category);
 
         } catch (\Exception $e) {
-            Log::error('Failed to update category', ['id' => $id, 'error' => $e->getMessage()]);
+            Log::error('Failed to update category', ['id' => $id, 'exception' => $e]);
             throw $e;
         }
     }
@@ -174,7 +174,7 @@ class CategoryService
             return true;
 
         } catch (\Exception $e) {
-            Log::error('Failed to delete category', ['id' => $id, 'error' => $e->getMessage()]);
+            Log::error('Failed to delete category', ['id' => $id, 'exception' => $e]);
             throw $e;
         }
     }
@@ -218,7 +218,7 @@ class CategoryService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('Failed to get category', ['id' => $id, 'error' => $e->getMessage()]);
+            Log::error('Failed to get category', ['id' => $id, 'exception' => $e]);
             throw $e;
         }
     }
@@ -268,7 +268,7 @@ class CategoryService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve category options', ['error' => $e->getMessage()]);
+            Log::error('Failed to retrieve category options', ['exception' => $e]);
             throw $e;
         }
     }

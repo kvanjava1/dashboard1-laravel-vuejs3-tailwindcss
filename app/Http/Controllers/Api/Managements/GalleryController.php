@@ -128,11 +128,7 @@ class GalleryController extends Controller
                 'gallery' => $gallery,
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Failed to create gallery', ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => 'Failed to create gallery',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to create gallery'], 500);
         }
     }
 
@@ -161,7 +157,8 @@ class GalleryController extends Controller
 
             return response()->json(['message' => 'Gallery retrieved successfully', 'gallery' => $payload]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve gallery', 'error' => $e->getMessage()], 404);
+            Log::error('Failed to retrieve gallery', ['exception' => $e, 'gallery_id' => $id]);
+            return response()->json(['message' => 'Failed to retrieve gallery'], 404);
         }
     }
 
@@ -211,11 +208,8 @@ class GalleryController extends Controller
                 'gallery' => $gallery,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to update gallery', ['error' => $e->getMessage(), 'id' => $id]);
-            return response()->json([
-                'message' => 'Failed to update gallery',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error('Failed to update gallery', ['exception' => $e, 'id' => $id]);
+            return response()->json(['message' => 'Failed to update gallery'], 500);
         }
     }
 
@@ -244,7 +238,8 @@ class GalleryController extends Controller
 
             return response()->json(['message' => 'Cover updated', 'media' => $mediaList]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to set cover', 'error' => $e->getMessage()], 400);
+            Log::warning('Failed to set gallery cover', ['exception' => $e, 'gallery_id' => $galleryId ?? null]);
+            return response()->json(['message' => 'Failed to set cover'], 400);
         }
     }
 
@@ -257,8 +252,8 @@ class GalleryController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Gallery not found'], 404);
         } catch (\Exception $e) {
-            Log::error('Failed to delete gallery', ['error' => $e->getMessage(), 'id' => $id]);
-            return response()->json(['message' => 'Failed to delete gallery', 'error' => $e->getMessage()], 500);
+            Log::error('Failed to delete gallery', ['exception' => $e, 'id' => $id]);
+            return response()->json(['message' => 'Failed to delete gallery'], 500);
         }
     }
 }

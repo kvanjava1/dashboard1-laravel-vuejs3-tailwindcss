@@ -29,10 +29,7 @@ class PermissionController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve permissions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve permissions'], 500);
         }
     }
 
@@ -50,10 +47,7 @@ class PermissionController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve grouped permissions',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve grouped permissions'], 500);
         }
     }
 }

@@ -46,10 +46,7 @@ class RoleController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve roles',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve roles'], 500);
         }
     }
 
@@ -67,10 +64,7 @@ class RoleController extends Controller
             ], 200);
             
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve role options',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to retrieve role options'], 500);
         }
     }
 
@@ -88,10 +82,7 @@ class RoleController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to create role',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to create role'], 500);
         }
     }
 
@@ -111,10 +102,7 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             $statusCode = $e->getCode() === 404 ? 404 : 500;
 
-            return response()->json([
-                'message' => 'Failed to retrieve role',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to retrieve role'], $statusCode);
         }
     }
 
@@ -134,10 +122,7 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             $statusCode = $e->getCode() === 404 ? 404 : 500;
 
-            return response()->json([
-                'message' => 'Failed to update role',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to update role'], $statusCode);
         }
     }
 
@@ -164,10 +149,7 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             $statusCode = $e->getCode() === 403 ? 403 : ($e->getCode() === 404 ? 404 : 500);
 
-            return response()->json([
-                'message' => 'Failed to delete role',
-                'error' => $e->getMessage(),
-            ], $statusCode);
+            return response()->json(['message' => 'Failed to delete role'], $statusCode);
         }
     }
 

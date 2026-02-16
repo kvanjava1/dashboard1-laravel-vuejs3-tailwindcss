@@ -43,7 +43,7 @@ class UserBanHistoryService
                 'user_id' => $userId,
                 'action' => $action,
                 'reason' => $reason,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -98,7 +98,7 @@ class UserBanHistoryService
         } catch (\Exception $e) {
             Log::error('Failed to get user ban history', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }

@@ -168,7 +168,7 @@ class UserService
                 'page' => $page,
                 'per_page' => $perPage,
                 'filters' => $filters,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -196,7 +196,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to retrieve user', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -267,7 +267,7 @@ class UserService
 
         } catch (\Exception $e) {
             Log::error('Failed to create/restore user', [
-                'error' => $e->getMessage(),
+                'exception' => $e,
                 'email' => $data['email']
             ]);
             throw $e;
@@ -370,7 +370,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to update user', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -410,7 +410,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to delete user', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -453,7 +453,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to ban user', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -486,7 +486,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to unban user', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -502,7 +502,7 @@ class UserService
         } catch (\Exception $e) {
             Log::error('Failed to get user ban history', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -591,7 +591,7 @@ class UserService
             try {
                 $img->crop($cw, $ch, $cx, $cy);
             } catch (\Exception $e) {
-                Log::warning('Failed to crop profile image with provided coordinates', ['error' => $e->getMessage(), 'crop' => $crop]);
+                Log::warning('Failed to crop profile image with provided coordinates', ['exception' => $e, 'crop' => $crop]);
             }
         }
 

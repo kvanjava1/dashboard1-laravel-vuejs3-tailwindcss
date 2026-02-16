@@ -59,7 +59,7 @@ class RoleService
             return $result;
         } catch (\Exception $e) {
             Log::error('Failed to retrieve roles', [
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -136,7 +136,7 @@ class RoleService
                 'page' => $page,
                 'per_page' => $perPage,
                 'filters' => $filters,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -174,7 +174,7 @@ class RoleService
         } catch (\Exception $e) {
             Log::error('Failed to retrieve role', [
                 'role_id' => $roleId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -212,7 +212,7 @@ class RoleService
         } catch (\Exception $e) {
             Log::error('Failed to create role', [
                 'role_name' => $data['name'] ?? null,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -260,7 +260,7 @@ class RoleService
         } catch (\Exception $e) {
             Log::error('Failed to update role', [
                 'role_id' => $roleId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -303,7 +303,7 @@ class RoleService
         } catch (\Exception $e) {
             Log::error('Failed to delete role', [
                 'role_id' => $roleId,
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }
@@ -339,7 +339,7 @@ class RoleService
             return $result;
         } catch (\Exception $e) {
             Log::error('Failed to retrieve role options', [
-                'error' => $e->getMessage()
+                'exception' => $e
             ]);
             throw $e;
         }

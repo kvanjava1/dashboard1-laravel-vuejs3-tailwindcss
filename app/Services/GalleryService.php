@@ -172,7 +172,7 @@ class GalleryService
                 Storage::disk('public')->putFileAs(self::BASE_PATH . "/{$slug}/originals/{$datePath}", $file, "{$unique}_original.{$origExt}");
             } catch (\Exception $e) {
                 // non-fatal: log and continue
-                Log::warning('Failed to store original upload', ['error' => $e->getMessage()]);
+                Log::warning('Failed to store original upload', ['exception' => $e]);
             }
 
             // Load original image
@@ -215,7 +215,7 @@ class GalleryService
                     try {
                         $img->crop($cw, $ch, $cx, $cy);
                     } catch (\Exception $e) {
-                        Log::warning('Failed to crop original with provided coordinates', ['error' => $e->getMessage(), 'crop' => $crop]);
+                        Log::warning('Failed to crop original with provided coordinates', ['exception' => $e, 'crop' => $crop]);
                     }
                 }
             }
@@ -253,7 +253,7 @@ class GalleryService
                     ]);
                 }
             } catch (\Exception $e) {
-                Log::warning('Failed to create media record for original', ['error' => $e->getMessage()]);
+                Log::warning('Failed to create media record for original', ['exception' => $e]);
             }
 
             // 1200x900 — primary cover
@@ -287,7 +287,7 @@ class GalleryService
             // Return the primary cover media (1200x900)
             return $media1200;
         } catch (\Exception $e) {
-            Log::error('Failed to process cover image', ['error' => $e->getMessage()]);
+            Log::error('Failed to process cover image', ['exception' => $e]);
             throw $e;
         }
     }
