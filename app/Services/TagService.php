@@ -23,6 +23,9 @@ class TagService
                 $query->where('name', 'LIKE', "%{$q}%");
             }
 
+            // clamp limit (defensive) to avoid abusive values
+            $limit = max(1, min(100, (int) $limit));
+
             $tags = $query->orderBy('name')->limit($limit)->get(['id', 'name'])->toArray();
 
             return $tags;

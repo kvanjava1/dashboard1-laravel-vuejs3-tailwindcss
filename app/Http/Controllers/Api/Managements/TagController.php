@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api\Managements;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tag\OptionsTagRequest;
 use App\Services\TagService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class TagController extends Controller
 {
@@ -19,11 +20,14 @@ class TagController extends Controller
      * Return tag suggestions for autocomplete.
      * Query param: q (string), limit: optional
      */
-    public function options(Request $request)
+    public function options(OptionsTagRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+
         try {
-            $q = $request->input('q', '');
-            $limit = intval($request->input('limit', 10));
+            $q = $validated['q'] ?? '';
+            $limit = intval($validated['limit'] ?? 10);
+            $limit = max(1, min(100, $limit));
 
             $tags = $this->tagService->getTagOptions($q, $limit);
 
