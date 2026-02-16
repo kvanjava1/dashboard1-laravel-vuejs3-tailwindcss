@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'check.user.status' => \App\Http\Middleware\CheckUserStatus::class,
+            // Request context middleware (adds request_id/user_id/ip to Log context)
+            'request.context' => \App\Http\Middleware\RequestContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

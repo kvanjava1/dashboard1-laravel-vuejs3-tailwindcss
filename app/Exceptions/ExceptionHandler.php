@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Support\Facades\Log;
 
 class ExceptionHandler
 {
@@ -61,9 +62,18 @@ class ExceptionHandler
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $statusCode = $statusCode >= 100 && $statusCode < 600 ? $statusCode : 500;
 
+                // Centralized logging for uncaught exceptions (include request context)
+                Log::error('Unhandled exception', [
+                    'exception' => $e,
+                    'path' => $request->path(),
+                    'method' => $request->method(),
+                    'ip' => $request->ip(),
+                    'user_id' => $request->user()?->id ?? null,
+                    'request_id' => $request->header('X-Request-Id') ?? null,
+                ]);
+
                 return response()->json([
-                    'message' => 'An error occurred',
-                    'error' => app()->environment('local') ? $e->getMessage() : 'Internal server error',
+                    'message' => 'An error occurred'
                 ], $statusCode);
             }
         });
