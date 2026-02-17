@@ -268,16 +268,24 @@ class GalleryService
      */
     public function deleteGallery(int $galleryId): bool
     {
-        return DB::transaction(function () use ($galleryId) {
-            $gallery = Gallery::with('media')->findOrFail($galleryId);
+        try {
+            return DB::transaction(function () use ($galleryId) {
+                $gallery = Gallery::with('media')->findOrFail($galleryId);
 
-            // Soft delete the gallery (Gallery model uses SoftDeletes)
-            $gallery->delete();
+                // Soft delete the gallery (Gallery model uses SoftDeletes)
+                $gallery->delete();
 
-            Log::info('Gallery soft-deleted', ['gallery_id' => $galleryId, 'slug' => $gallery->slug]);
+                // Clear versioned cache for galleries
+                $this->clearVersionedCache(self::CACHE_SCOPE);
 
-            return true;
-        });
+                Log::info('Gallery soft-deleted', ['gallery_id' => $galleryId, 'slug' => $gallery->slug]);
+
+                return true;
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to delete gallery', ['gallery_id' => $galleryId, 'exception' => $e]);
+            throw $e;
+        }
     }
 
     /**
@@ -286,38 +294,55 @@ class GalleryService
      */
     public function paginateGalleries(array $params = []): array
     {
-        $perPage = isset($params['per_page']) ? max(1, min(100, (int) $params['per_page'])) : 15;
-        $page = isset($params['page']) ? max(1, (int) $params['page']) : 1;
+        try {
+            $perPage = isset($params['per_page']) ? max(1, min(100, (int) $params['per_page'])) : 15;
+            $page = isset($params['page']) ? max(1, (int) $params['page']) : 1;
 
-        $query = Gallery::with(['tags:id,name,slug', 'cover', 'media']);
+            // Build cache key using versioned-key helper
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, array_merge(['perPage' => $perPage, 'page' => $page], $params));
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
 
-        if (!empty($params['search'])) {
-            $term = $params['search'];
-            $query->where(function ($q) use ($term) {
-                $q->where('title', 'LIKE', "%{$term}%")
-                    ->orWhere('description', 'LIKE', "%{$term}%");
-            });
+            $query = Gallery::with(['tags:id,name,slug', 'cover', 'media']);
+
+            if (!empty($params['search'])) {
+                $term = $params['search'];
+                $query->where(function ($q) use ($term) {
+                    $q->where('title', 'LIKE', "%{$term}%")
+                        ->orWhere('description', 'LIKE', "%{$term}%");
+                });
+            }
+
+            if (!empty($params['category_id'])) {
+                $query->where('category_id', $params['category_id']);
+            }
+
+            $paginated = $query->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            $galleries = $paginated->getCollection()
+                ->map(function ($gallery) {
+                    return $this->mapGalleryToApi($gallery);
+                })->toArray();
+
+            $result = [
+                'galleries' => $galleries,
+                'total' => $paginated->total(),
+                'per_page' => $paginated->perPage(),
+                'current_page' => $paginated->currentPage(),
+                'total_pages' => $paginated->lastPage(),
+            ];
+
+            // Store in cache
+            Cache::put($cacheKey, $result, self::CACHE_TTL);
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Failed to paginate galleries', ['params' => $params, 'exception' => $e]);
+            throw $e;
         }
-
-        if (!empty($params['category_id'])) {
-            $query->where('category_id', $params['category_id']);
-        }
-
-        $paginated = $query->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
-
-        $galleries = $paginated->getCollection()
-            ->map(function ($gallery) {
-                return $this->mapGalleryToApi($gallery);
-            })->toArray();
-
-        return [
-            'galleries' => $galleries,
-            'total' => $paginated->total(),
-            'per_page' => $paginated->perPage(),
-            'current_page' => $paginated->currentPage(),
-            'total_pages' => $paginated->lastPage(),
-        ];
     }
 
     /**
@@ -325,28 +350,41 @@ class GalleryService
      */
     public function getGalleryById(int $id): array
     {
-        $gallery = Gallery::with(['tags:id,name,slug', 'media'])->findOrFail($id);
+        try {
+            $cacheKey = $this->getVersionedKey(self::CACHE_SCOPE, ['id' => $id]);
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
 
-        $payload = $gallery->toArray();
+            $gallery = Gallery::with(['tags:id,name,slug', 'media'])->findOrFail($id);
 
-        // normalize media entries with public URLs and canonical fields
-        $payload['media'] = $gallery->media
-            ->map(function ($m) {
-                return [
-                    'id' => $m->id,
-                    'filename' => $m->filename,
-                    'url' => $m->url,
-                    'extension' => $m->extension,
-                    'mime_type' => $m->mime_type,
-                    'size' => $m->size,
-                    'is_cover' => (bool) ($m->is_cover ?? false),
-                    'uploaded_at' => $m->uploaded_at,
-                ];
-            })->toArray();
+            $payload = $gallery->toArray();
 
-        $payload['cover'] = $gallery->cover ? ['id' => $gallery->cover->id, 'url' => $gallery->cover->url] : null;
+            // normalize media entries with public URLs and canonical fields
+            $payload['media'] = $gallery->media
+                ->map(function ($m) {
+                    return [
+                        'id' => $m->id,
+                        'filename' => $m->filename,
+                        'url' => $m->url,
+                        'extension' => $m->extension,
+                        'mime_type' => $m->mime_type,
+                        'size' => $m->size,
+                        'is_cover' => (bool) ($m->is_cover ?? false),
+                        'uploaded_at' => $m->uploaded_at,
+                    ];
+                })->toArray();
 
-        return $payload;
+            $payload['cover'] = $gallery->cover ? ['id' => $gallery->cover->id, 'url' => $gallery->cover->url] : null;
+
+            Cache::put($cacheKey, $payload, self::CACHE_TTL);
+
+            return $payload;
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve gallery by id', ['id' => $id, 'exception' => $e]);
+            throw $e;
+        }
     }
 
     /**
@@ -364,6 +402,9 @@ class GalleryService
         // set chosen media as the selected cover (keep variant flags unchanged)
         $media->is_used_as_cover = true;
         $media->save();
+
+        // Clear gallery cache since media/cover changed
+        $this->clearVersionedCache(self::CACHE_SCOPE);
 
         // return updated media list
         $mediaList = $gallery->fresh('media')->media->map(function ($m) {
