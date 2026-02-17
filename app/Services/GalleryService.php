@@ -10,12 +10,20 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManagerStatic as Image;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\UploadedFile;
+use App\Http\Requests\Gallery\StoreGalleryRequest;
+use App\Http\Requests\Gallery\UpdateGalleryRequest;
+use App\Traits\CanVersionCache;
 
 class GalleryService
 {
+    use CanVersionCache;
+
     // Storage base folder
     private const BASE_PATH = 'uploads/gallery';
+    private const CACHE_SCOPE = 'galleries';
+    private const CACHE_TTL = 3600; // 1 hour
 
     public function __construct()
     {
@@ -24,9 +32,9 @@ class GalleryService
     }
 
     /**
-     * Create a gallery with processed cover image and tags.
+     * Core: create a gallery from a plain data array (business logic).
      */
-    public function createGallery(array $data, ?UploadedFile $coverFile = null): array
+    public function processCreateGallery(array $data, ?UploadedFile $coverFile = null): array
     {
         return DB::transaction(function () use ($data, $coverFile) {
             // Generate unique slug
@@ -66,15 +74,138 @@ class GalleryService
 
             $gallery->load(['tags:id,name,slug', 'cover']);
 
+            // Clear gallery cache after creation
+            $this->clearVersionedCache(self::CACHE_SCOPE);
+
             return $gallery->toArray();
         });
     }
 
     /**
-     * Update an existing gallery. If a new cover is provided it will replace the current cover
-     * (existing media cover flags are cleared). Tags are synced if present in the payload.
+     * Accept a validated StoreGalleryRequest, normalize inputs and create the gallery.
      */
-    public function updateGallery(int $galleryId, array $data, ?UploadedFile $coverFile = null): array
+    /**
+     * Request adapter: create a gallery from a StoreGalleryRequest.
+     * Controller should call this (`createGallery`) when handling HTTP requests.
+     */
+    public function createGallery(StoreGalleryRequest $request): array
+    {
+        $validated = $request->validated();
+
+        // Normalize tags (accept JSON string or array)
+        $tags = [];
+        if ($request->has('tags')) {
+            $tags = $request->input('tags');
+            if (is_string($tags)) {
+                $json = json_decode($tags, true);
+                if (is_array($json)) {
+                    $tags = $json;
+                }
+            }
+        }
+
+        $data = [
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'category_id' => $validated['category_id'],
+            'status' => $validated['status'],
+            'visibility' => $validated['visibility'],
+            'tags' => $tags,
+        ];
+
+        // Optional crop parameters (map to internal `crop` structure)
+        if (
+            $request->has('crop_x') &&
+            $request->has('crop_y') &&
+            $request->has('crop_width') &&
+            $request->has('crop_height')
+        ) {
+            $data['crop'] = [
+                'canvas_width' => intval($request->input('crop_canvas_width', 0)),
+                'canvas_height' => intval($request->input('crop_canvas_height', 0)),
+                'x' => intval($request->input('crop_x')),
+                'y' => intval($request->input('crop_y')),
+                'width' => intval($request->input('crop_width')),
+                'height' => intval($request->input('crop_height')),
+                'orig_width' => intval($request->input('orig_width', 0)),
+                'orig_height' => intval($request->input('orig_height', 0)),
+            ];
+        }
+
+        $cover = $request->file('cover');
+
+        return $this->processCreateGallery($data, $cover);
+    }
+
+
+
+    /**
+     * HTTP adapter: update a gallery from an UpdateGalleryRequest.
+     * Controller should call this (`updateGallery`) when handling HTTP requests.
+     */
+    public function updateGallery(UpdateGalleryRequest $request, int $galleryId): array
+    {
+        $validated = $request->validated();
+
+        $data = [];
+        if (isset($validated['title'])) {
+            $data['title'] = $validated['title'];
+        }
+        if (array_key_exists('description', $validated)) {
+            $data['description'] = $validated['description'] ?? null;
+        }
+        if (isset($validated['category_id'])) {
+            $data['category_id'] = $validated['category_id'];
+        }
+        if (isset($validated['status'])) {
+            $data['status'] = $validated['status'];
+        }
+        if (isset($validated['visibility'])) {
+            $data['visibility'] = $validated['visibility'];
+        }
+
+        // Normalize tags if provided
+        if ($request->has('tags')) {
+            $tags = $request->input('tags');
+            if (is_string($tags)) {
+                $json = json_decode($tags, true);
+                if (is_array($json)) {
+                    $tags = $json;
+                }
+            }
+            if (is_array($tags)) {
+                $data['tags'] = $tags;
+            }
+        }
+
+        // Optional crop
+        if (
+            $request->has('crop_x') &&
+            $request->has('crop_y') &&
+            $request->has('crop_width') &&
+            $request->has('crop_height')
+        ) {
+            $data['crop'] = [
+                'canvas_width' => intval($request->input('crop_canvas_width', 0)),
+                'canvas_height' => intval($request->input('crop_canvas_height', 0)),
+                'x' => intval($request->input('crop_x')),
+                'y' => intval($request->input('crop_y')),
+                'width' => intval($request->input('crop_width')),
+                'height' => intval($request->input('crop_height')),
+                'orig_width' => intval($request->input('orig_width', 0)),
+                'orig_height' => intval($request->input('orig_height', 0)),
+            ];
+        }
+
+        $cover = $request->file('cover');
+
+        return $this->processUpdateGallery($galleryId, $data, $cover);
+    }
+    /**
+     * Update an existing gallery from an array of data (core business logic).
+     * If a new cover is provided it will replace the current cover (existing media cover flags are cleared).
+     */
+    public function processUpdateGallery(int $galleryId, array $data, ?UploadedFile $coverFile = null): array
     {
         return DB::transaction(function () use ($galleryId, $data, $coverFile) {
             $gallery = Gallery::findOrFail($galleryId);
@@ -111,9 +242,14 @@ class GalleryService
 
             $gallery->load(['tags:id,name,slug', 'cover', 'media']);
 
+            // Clear gallery cache after update
+            $this->clearVersionedCache(self::CACHE_SCOPE);
+
             return $gallery->toArray();
         });
     }
+
+
 
     private function generateUniqueSlug(string $title): string
     {
@@ -144,6 +280,146 @@ class GalleryService
         });
     }
 
+    /**
+     * Paginate and return galleries with applied filters and mapped API shape.
+     * This centralizes list logic so controllers remain thin.
+     */
+    public function paginateGalleries(array $params = []): array
+    {
+        $perPage = isset($params['per_page']) ? max(1, min(100, (int) $params['per_page'])) : 15;
+        $page = isset($params['page']) ? max(1, (int) $params['page']) : 1;
+
+        $query = Gallery::with(['tags:id,name,slug', 'cover', 'media']);
+
+        if (!empty($params['search'])) {
+            $term = $params['search'];
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'LIKE', "%{$term}%")
+                    ->orWhere('description', 'LIKE', "%{$term}%");
+            });
+        }
+
+        if (!empty($params['category_id'])) {
+            $query->where('category_id', $params['category_id']);
+        }
+
+        $paginated = $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $galleries = $paginated->getCollection()
+            ->map(function ($gallery) {
+                return $this->mapGalleryToApi($gallery);
+            })->toArray();
+
+        return [
+            'galleries' => $galleries,
+            'total' => $paginated->total(),
+            'per_page' => $paginated->perPage(),
+            'current_page' => $paginated->currentPage(),
+            'total_pages' => $paginated->lastPage(),
+        ];
+    }
+
+    /**
+     * Return a single gallery payload normalized for API consumers.
+     */
+    public function getGalleryById(int $id): array
+    {
+        $gallery = Gallery::with(['tags:id,name,slug', 'media'])->findOrFail($id);
+
+        $payload = $gallery->toArray();
+
+        // normalize media entries with public URLs and canonical fields
+        $payload['media'] = $gallery->media
+            ->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'filename' => $m->filename,
+                    'url' => $m->url,
+                    'extension' => $m->extension,
+                    'mime_type' => $m->mime_type,
+                    'size' => $m->size,
+                    'is_cover' => (bool) ($m->is_cover ?? false),
+                    'uploaded_at' => $m->uploaded_at,
+                ];
+            })->toArray();
+
+        $payload['cover'] = $gallery->cover ? ['id' => $gallery->cover->id, 'url' => $gallery->cover->url] : null;
+
+        return $payload;
+    }
+
+    /**
+     * Set a specific media item as the gallery's selected cover and return updated media list.
+     */
+    public function setCoverMedia(int $galleryId, int $mediaId): array
+    {
+        $gallery = Gallery::with('media')->findOrFail($galleryId);
+
+        $media = Media::where('gallery_id', $galleryId)->where('id', $mediaId)->firstOrFail();
+
+        // unset selected-cover flags for this gallery
+        Media::where('gallery_id', $galleryId)->update(['is_used_as_cover' => false]);
+
+        // set chosen media as the selected cover (keep variant flags unchanged)
+        $media->is_used_as_cover = true;
+        $media->save();
+
+        // return updated media list
+        $mediaList = $gallery->fresh('media')->media->map(function ($m) {
+            return [
+                'id' => $m->id,
+                'filename' => $m->filename,
+                'url' => $m->url,
+                'is_cover' => (bool) ($m->is_cover ?? false),
+            ];
+        })->toArray();
+
+        return $mediaList;
+    }
+
+    /**
+     * Map an Eloquent Gallery model into API-friendly array (used by pagination helper).
+     */
+    private function mapGalleryToApi(Gallery $g): array
+    {
+        return [
+            'id' => $g->id,
+            'title' => $g->title,
+            'slug' => $g->slug,
+            'description' => $g->description,
+            'category_id' => $g->category_id,
+            'is_active' => $g->is_active,
+            'is_public' => $g->is_public,
+            'item_count' => $g->item_count,
+            'cover' => $g->cover ? ['id' => $g->cover->id, 'url' => $g->cover->url] : null,
+            'media' => $g->media->map(function ($m) {
+                return $this->mapMediaToApi($m);
+            })->toArray(),
+            'tags' => $g->tags->map(function ($t) {
+                return ['id' => $t->id, 'name' => $t->name];
+            })->toArray(),
+            'created_at' => $g->created_at,
+            'updated_at' => $g->updated_at,
+        ];
+    }
+
+    private function mapMediaToApi($m): array
+    {
+        return [
+            'id' => $m->id,
+            'filename' => $m->filename,
+            'url' => $m->url,
+            'extension' => $m->extension,
+            'mime_type' => $m->mime_type,
+            'size' => $m->size,
+            // backward-compatible API field `is_cover` now reflects the selected cover (is_used_as_cover)
+            'is_cover' => (bool) ($m->is_used_as_cover ?? false),
+            // expose variant flag separately so clients can know which rows are cover variants
+            'is_cover_variant' => (bool) ($m->is_cover ?? false),
+            'uploaded_at' => $m->uploaded_at,
+        ];
+    }
     /**
      * Process the cover into multiple sizes and store, returns Media model
      */

@@ -395,7 +395,7 @@ async function loadGalleries() {
         serverCurrentPage.value = result.current_page || 1
         serverTotalPages.value = result.total_pages || 1
 
-        // map API gallery model to UI shape
+        // map API gallery model to UI shape (include tags, slug, updatedAt so Quick View can reuse list object)
         galleries.value = (result.galleries || []).map((g: any) => {
             const media = Array.isArray(g.media) ? g.media : []
             // Prefer the explicit `is_used_as_cover` flag when present, otherwise fall back to `is_cover` for compatibility
@@ -409,7 +409,10 @@ async function loadGalleries() {
                 coverImage: primary ? (primary.url || primary) : '',
                 media: media,
                 status: g.is_active ? 'active' : 'inactive',
-                createdAt: g.created_at
+                createdAt: g.created_at,
+                updatedAt: g.updated_at || null,
+                slug: g.slug || '',
+                tags: Array.isArray(g.tags) ? g.tags.map((t: any) => (t.name || t)) : []
             }
         })
     } catch (err: any) {

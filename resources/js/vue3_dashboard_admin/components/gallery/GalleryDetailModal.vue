@@ -65,9 +65,34 @@
                                     <p class="text-sm font-medium text-gray-500 mb-1">Category</p>
                                     <p class="text-gray-900 font-semibold">{{ gallery.category }}</p>
                                 </div>
+
                                 <div>
                                     <p class="text-sm font-medium text-gray-500 mb-1">Created Date</p>
-                                    <p class="text-gray-900 font-semibold">{{ gallery.createdAt }}</p>
+                                    <p class="text-gray-900 font-semibold">{{ formatDateTime(gallery.createdAt) }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 mb-1">Updated Date</p>
+                                    <p class="text-gray-900 font-semibold">{{ formatDateTime(gallery.updatedAt || gallery.updated_at) }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 mb-1">Slug</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-gray-900 font-mono text-sm truncate">{{ gallery.slug }}</p>
+                                        <button v-if="gallery.slug" @click="copySlug" class="p-1 rounded-md hover:bg-gray-100 transition-colors" title="Copy slug">
+                                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <p class="text-sm font-medium text-gray-500 mb-1">Tags</p>
+                                    <div class="flex flex-wrap gap-2 mt-2">
+                                        <span v-for="(t, idx) in (gallery.tags || [])" :key="idx" class="px-3 py-1.5 rounded-full text-sm font-bold border border-border-light text-slate-700 bg-white">
+                                            {{ t }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -78,7 +103,7 @@
                         <Button variant="outline" @click="close">
                             Close
                         </Button>
-                        <Button variant="primary" left-icon="edit" @click="editGallery">
+                        <Button v-if="canEditGallery" variant="primary" left-icon="edit" @click="editGallery">
                             Edit Gallery
                         </Button>
                     </div>
@@ -90,8 +115,11 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import Button from '../ui/Button.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
+import { useAuthStore } from '@/stores/auth'
+import { showToast } from '@/composables/useSweetAlert'
 
 interface Props {
     modelValue: boolean
@@ -105,15 +133,42 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const close = () => {
     emit('update:modelValue', false)
 }
 
+const canEditGallery = computed(() => authStore.hasPermission('gallery_management.edit'))
+
 const editGallery = () => {
-    if (props.gallery) {
+    if (props.gallery && canEditGallery.value) {
         router.push({ name: 'gallery_management.edit', params: { id: props.gallery.id } })
         close()
+    } else {
+        showToast({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this gallery.' })
+    }
+}
+
+function formatDateTime(dateString: string): string {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+const copySlug = async () => {
+    try {
+        if (!props.gallery?.slug) return
+        await navigator.clipboard.writeText(String(props.gallery.slug))
+        await showToast({ icon: 'success', title: 'Copied', text: 'Slug copied to clipboard' })
+    } catch (e) {
+        await showToast({ icon: 'error', title: 'Error', text: 'Failed to copy slug' })
     }
 }
 
