@@ -476,11 +476,11 @@ class GalleryService
 
             // Prepare paths
             $path1200 = self::BASE_PATH . "/{$slug}/covers/1200x900/{$datePath}/{$filenameBase}";
-            $path400 = self::BASE_PATH . "/{$slug}/covers/400x400/{$datePath}/{$filenameBase}";
+            $path400 = self::BASE_PATH . "/{$slug}/covers/400x300/{$datePath}/{$filenameBase}";
 
             // Create directories
             Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/covers/1200x900/{$datePath}");
-            Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/covers/400x400/{$datePath}");
+            Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/covers/400x300/{$datePath}");
             Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/originals/{$datePath}");
 
             // Persist the original upload so we can reprocess later (keeps original extension)
@@ -546,7 +546,8 @@ class GalleryService
             Storage::disk('public')->put($path1200, $webp1200);
 
             $img400 = clone $img;
-            $img400->fit(400, 400);
+            // Use 4:3 thumbnail to keep composition consistent with primary cover
+            $img400->fit(400, 300);
             $webp400 = (string) $img400->encode('webp', 90);
             Storage::disk('public')->put($path400, $webp400);
 
@@ -592,7 +593,7 @@ class GalleryService
             ]);
             $createdMedia[] = $media1200;
 
-            // 400x400 thumbnail - also marked as cover variant
+            // 400x300 thumbnail - also marked as cover variant (preserve 4:3 composition)
             $size400 = Storage::disk('public')->size($path400);
             $media400 = Media::create([
                 'gallery_id' => $gallery->id,

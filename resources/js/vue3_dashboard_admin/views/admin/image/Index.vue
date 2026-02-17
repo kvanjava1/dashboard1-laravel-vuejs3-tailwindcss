@@ -43,21 +43,24 @@
                 <!-- Filters -->
                 <div class="mb-6">
                     <div class="flex items-center justify-between">
-                        <!-- Search Bar -->
+                        <!-- Search Bar (gallery-style quick search) -->
                         <div class="flex-1 max-w-md">
-                            <div class="relative">
+                            <div class="relative w-full">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                                </div>
                                 <input
-                                    v-model="currentFilters.search"
+                                    v-model="searchInput"
                                     type="text"
-                                    placeholder="Search images..."
-                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                    @keydown.enter="loadImages"
+                                    placeholder="Search images by name, gallery, or description..."
+                                    class="block w-full pl-11 pr-4 py-3 bg-white border border-border-light text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner-light"
+                                    :style="{ borderRadius: 'var(--radius-input)' }"
+                                    @keydown.enter="handleSearch"
                                 />
-                                <span
-                                    class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                                >
-                                    search
-                                </span>
+                            </div>
+
+                            <div class="mt-4">
+                                <ActiveFiltersIndicator :has-active-filters="hasActiveFilters" @reset="handleResetFilters" />
                             </div>
                         </div>
                     </div>
@@ -74,11 +77,11 @@
                         @click="viewImage(image)"
                     >
                         <!-- Image -->
-                        <div class="aspect-video bg-gray-200 relative">
+                        <div class="aspect-video bg-gray-200 relative overflow-hidden">
                             <img
                                 :src="image.url"
                                 :alt="image.altText || image.name"
-                                class="w-full h-full object-cover"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 will-change-transform"
                             />
                             <div class="absolute top-2 right-2">
                                 <span
@@ -86,6 +89,13 @@
                                 >
                                     {{ image.size }}
                                 </span>
+                            </div>
+
+                            <!-- Hover overlay (matches gallery behavior) -->
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <Button variant="primary" size="sm" left-icon="visibility" @click.stop="viewImage(image)" class="transform scale-90 group-hover:scale-100 transition-transform">
+                                    View
+                                </Button>
                             </div>
                         </div>
 
@@ -147,30 +157,8 @@
             </ContentBoxBody>
         </ContentBox>
 
-        <!-- Image View Modal -->
-        <BaseModal v-model="showViewModal" title="View Image" size="xl">
-            <div v-if="selectedImage" class="text-center">
-                <img
-                    :src="selectedImage.url"
-                    :alt="selectedImage.altText || selectedImage.name"
-                    class="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
-                />
-                <div class="mt-4 space-y-2">
-                    <h3 class="text-lg font-semibold">
-                        {{ selectedImage.name }}
-                    </h3>
-                    <p class="text-sm text-gray-600">
-                        Gallery: {{ selectedImage.gallery || "No gallery" }}
-                    </p>
-                    <p class="text-sm text-gray-500">
-                        Uploaded: {{ selectedImage.uploadDate }}
-                    </p>
-                    <p class="text-sm text-gray-500">
-                        Size: {{ selectedImage.size }}
-                    </p>
-                </div>
-            </div>
-        </BaseModal>
+        <!-- Image Quick View (gallery-style) -->
+        <ImageDetailModal v-model="showViewModal" :image="selectedImage" @deleted="loadImages" />
 
         <!-- Advanced Filter Modal -->
         <ImageAdvancedFilterModal
@@ -202,7 +190,9 @@ import ActionDropdownItem from "../../../components/ui/ActionDropdownItem.vue";
 import EmptyState from "../../../components/ui/EmptyState.vue";
 import BaseModal from "../../../components/ui/BaseModal.vue";
 import ImageAdvancedFilterModal from "../../../components/image/ImageAdvancedFilterModal.vue";
+import ImageDetailModal from "../../../components/image/ImageDetailModal.vue";
 import Pagination from "../../../components/ui/Pagination.vue";
+import ActiveFiltersIndicator from "../../../components/ui/ActiveFiltersIndicator.vue";
 import { useMediaData } from "@/composables/image/useMediaData";
 import { useGalleryData } from "@/composables/gallery/useGalleryData";
 import { useCategoryData } from "@/composables/category/useCategoryData";
@@ -214,7 +204,7 @@ const showViewModal = ref(false);
 const showAdvancedFilter = ref(false);
 const selectedImage = ref<any>(null);
 
-const { fetchMedia, deleteMedia } = useMediaData();
+const { fetchMedia, fetchMediaById, deleteMedia } = useMediaData();
 const { fetchGalleries } = useGalleryData();
 const { fetchCategoryOptions } = useCategoryData();
 
@@ -229,6 +219,28 @@ const currentFilters = reactive({
     size_range: "",
 });
 
+// Quick-search input (separate from currentFilters.search until user triggers search)
+const searchInput = ref(currentFilters.search);
+
+const hasActiveFilters = computed(() => {
+    return (
+        (currentFilters.search || '').toString().trim() !== '' ||
+        currentFilters.category !== '' ||
+        currentFilters.gallery !== '' ||
+        currentFilters.date_from !== '' ||
+        currentFilters.date_to !== '' ||
+        currentFilters.file_type !== '' ||
+        currentFilters.size_range !== ''
+    );
+});
+
+const handleSearch = async () => {
+    currentFilters.search = (searchInput.value || '').toString();
+    currentPage.value = 1;
+    await loadImages();
+};
+
+// currentFilters declared earlier (moved up)
 const categories = ref<any[]>([]);
 const galleries = ref<any[]>([]);
 const images = ref<any[]>([]);
@@ -257,6 +269,7 @@ const handleApplyFilters = (filters: typeof currentFilters) => {
 };
 
 const handleResetFilters = () => {
+    searchInput.value = '';
     Object.assign(currentFilters, {
         search: "",
         category: "",
@@ -320,9 +333,15 @@ const loadImages = async () => {
     }
 };
 
-const viewImage = (image: any) => {
-    selectedImage.value = image;
-    showViewModal.value = true;
+const viewImage = async (image: any) => {
+    try {
+        // fetch full media record for the detail modal (modal expects full media shape)
+        const full = await fetchMediaById(image.id);
+        selectedImage.value = full || image;
+        showViewModal.value = true;
+    } catch (err: any) {
+        await showToast({ icon: 'error', title: 'Error', text: err.message || 'Failed to load image details' });
+    }
 };
 
 const editImage = (image: any) => {

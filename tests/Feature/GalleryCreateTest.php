@@ -52,17 +52,17 @@ class GalleryCreateTest extends TestCase
         $gallery = Gallery::where('title', 'My Test Gallery')->first();
         $this->assertNotNull($gallery);
 
-        // Media records should be created for original + variants (original, 1200x900, 400x400)
+        // Media records should be created for original + variants (original, 1200x900, 400x300)
         $this->assertDatabaseCount('media', 3);
 
         $filenames = Media::where('gallery_id', $gallery->id)->pluck('filename')->toArray();
         $this->assertNotEmpty($filenames);
 
-        // Ensure both 1200x900 and 400x400 variants exist on disk
+        // Ensure both 1200x900 and 400x300 variants exist on disk
         $has1200 = collect($filenames)->contains(fn($f) => str_contains($f, '/1200x900/'));
-        $has400 = collect($filenames)->contains(fn($f) => str_contains($f, '/400x400/'));
+        $has400 = collect($filenames)->contains(fn($f) => str_contains($f, '/400x300/'));
         $this->assertTrue($has1200, 'Expected 1200x900 variant to be saved');
-        $this->assertTrue($has400, 'Expected 400x400 variant to be saved');
+        $this->assertTrue($has400, 'Expected 400x300 variant to be saved');
 
         foreach ($filenames as $fname) {
             Storage::disk('public')->assertExists($fname);
@@ -194,8 +194,8 @@ class GalleryCreateTest extends TestCase
         $gallery = Gallery::where('title', 'Cropped Gallery')->first();
         $this->assertNotNull($gallery);
 
-        // Find the 400x400 media row for this gallery
-        $media400 = Media::where('gallery_id', $gallery->id)->where('filename', 'like', '%/400x400/%')->first();
+        // Find the 400x300 media row for this gallery
+        $media400 = Media::where('gallery_id', $gallery->id)->where('filename', 'like', '%/400x300/%')->first();
         $this->assertNotNull($media400);
 
         $thumbPath = $media400->filename;
@@ -203,10 +203,10 @@ class GalleryCreateTest extends TestCase
 
         $thumb = \Intervention\Image\ImageManagerStatic::make(Storage::disk('public')->get($thumbPath));
         $this->assertEquals(400, $thumb->width());
-        $this->assertEquals(400, $thumb->height());
+        $this->assertEquals(300, $thumb->height());
 
         // Center pixel of thumbnail should come from the left-half of the original (red)
-        $color = $thumb->pickColor(200, 200, 'array');
+        $color = $thumb->pickColor(200, 150, 'array');
         $this->assertGreaterThan(200, $color[0]); // R is high
         $this->assertLessThan(100, $color[1]); // G is low
         $this->assertLessThan(100, $color[2]); // B is low

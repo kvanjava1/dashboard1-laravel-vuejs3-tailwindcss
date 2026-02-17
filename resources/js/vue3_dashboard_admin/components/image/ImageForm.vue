@@ -112,7 +112,7 @@
                             <img
                                 :src="imagePreview || image?.url"
                                 alt="Preview"
-                                class="max-w-full max-h-48 mx-auto rounded-lg shadow-md"
+                                class="max-w-full max-h-48 mx-auto rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 will-change-transform"
                             />
                             <div class="flex justify-center gap-2">
                                 <ActionButton

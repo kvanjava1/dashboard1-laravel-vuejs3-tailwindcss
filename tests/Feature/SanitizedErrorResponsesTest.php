@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Illuminate\Http\UploadedFile;
 use App\Models\User;
 use App\Models\CategoryType;
 use App\Models\Category;
@@ -32,6 +33,7 @@ class SanitizedErrorResponsesTest extends TestCase
             'category_id' => $category->id,
             'status' => 'active',
             'visibility' => 'public',
+            'cover' => UploadedFile::fake()->image('cover.jpg', 1600, 1200),
         ]);
 
         $response->assertStatus(500);

@@ -86,33 +86,34 @@ class GalleryUpdateTest extends TestCase
 
         $gallery = $gallery->fresh();
 
-        // Find the 400x400 media row for this gallery
+        // Find the media rows for this gallery and ensure variants exist
         $mediaRows = Media::where('gallery_id', $gallery->id)->get();
         $this->assertGreaterThanOrEqual(3, $mediaRows->count(), 'Expected media rows to exist for gallery');
 
-        $media400 = $mediaRows->first(fn($m) => str_contains($m->filename, '/400x400/'));
-        $filenames = $mediaRows->pluck('filename')->toArray();
-        $this->assertNotNull($media400, 'Expected a 400x400 thumbnail after update — found: ' . implode(', ', $filenames));
+        // Select the current primary 1200x900 cover (is_used_as_cover = true) to ensure we inspect the updated variant
+        $media1200 = $mediaRows->first(fn($m) => str_contains($m->filename, '/1200x900/') && ($m->is_used_as_cover ?? false));
+        $this->assertNotNull($media1200, 'Expected a 1200x900 variant after update');
+        $img1200 = \Intervention\Image\ImageManagerStatic::make(Storage::disk('public')->get($media1200->filename));
+        $this->assertEquals(1200, $img1200->width());
+        $this->assertEquals(900, $img1200->height());
+
+        // Find the 400x300 thumbnail that matches the primary 1200x900 variant (same unique base filename)
+        $expected400Path = str_replace('/1200x900/', '/400x300/', $media1200->filename);
+        $media400 = Media::where('gallery_id', $gallery->id)->where('filename', $expected400Path)->first();
+        $this->assertNotNull($media400, 'Expected a matching 400x300 thumbnail after update — checked filenames: ' . implode(', ', $mediaRows->pluck('filename')->toArray()));
 
         $thumbPath = $media400->filename;
         Storage::disk('public')->assertExists($thumbPath);
 
         $thumb = \Intervention\Image\ImageManagerStatic::make(Storage::disk('public')->get($thumbPath));
         $this->assertEquals(400, $thumb->width());
-        $this->assertEquals(400, $thumb->height());
-
-        // Also inspect the 1200x900 primary variant to ensure center is red
-        $media1200 = $mediaRows->first(fn($m) => str_contains($m->filename, '/1200x900/'));
-        $this->assertNotNull($media1200, 'Expected a 1200x900 variant after update');
-        $img1200 = \Intervention\Image\ImageManagerStatic::make(Storage::disk('public')->get($media1200->filename));
-        $this->assertEquals(1200, $img1200->width());
-        $this->assertEquals(900, $img1200->height());
+        $this->assertEquals(300, $thumb->height());
 
         $center1200 = $img1200->pickColor(600, 450, 'array');
         $this->assertGreaterThan(200, $center1200[0], 'Center of 1200x900 should be red (client pre-crop)');
 
         // Center pixel of thumbnail should come from the left-half (red)
-        $color = $thumb->pickColor(200, 200, 'array');
+        $color = $thumb->pickColor(200, 150, 'array');
         $this->assertGreaterThan(200, $color[0]); // R is high
         $this->assertLessThan(100, $color[1]); // G is low
         $this->assertLessThan(100, $color[2]); // B is low
