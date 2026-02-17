@@ -31,6 +31,55 @@ export const useApi = () => {
       headers,
     });
 
+    // Handle rate limiting (429) centrally with a friendly message + metadata (include Retry-After when available)
+    if (response.status === 429) {
+      // Try to extract structured body if present
+      let message = 'Too many requests — please try again in a moment.';
+      let body: any = null;
+      try {
+        body = await response.clone().json().catch(() => null);
+        if (body && body.message) {
+          message = body.message;
+        }
+      } catch (e) {
+        // ignore parsing errors
+      }
+
+      const retryHeader = response.headers.get('Retry-After') || response.headers.get('retry-after');
+      // Resolve retryAfter in seconds where possible (prefer body.retry_after)
+      let retryAfterSeconds: number | null = null;
+
+      if (body && (body.retry_after || body.retryAfter)) {
+        const ra = body.retry_after ?? body.retryAfter;
+        const n = Number(ra);
+        if (!isNaN(n)) retryAfterSeconds = Math.max(0, Math.floor(n));
+      } else if (retryHeader) {
+        const n = parseInt(retryHeader, 10);
+        if (!isNaN(n)) {
+          retryAfterSeconds = Math.max(0, n);
+        } else {
+          const dateMs = Date.parse(retryHeader);
+          if (!isNaN(dateMs)) {
+            retryAfterSeconds = Math.max(0, Math.ceil((dateMs - Date.now()) / 1000));
+          }
+        }
+      }
+
+      // Prefer message that contains retry info when available
+      if (retryAfterSeconds !== null) {
+        message = `Too many requests — please retry after ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'}.`;
+      } else if (body && body.retry_after) {
+        message = body.message || `Too many requests — retry after ${body.retry_after}.`;
+      }
+
+      const err: any = new Error(message);
+      err.status = 429;
+      err.code = 'RATE_LIMIT';
+      err.retryAfter = retryAfterSeconds; // number of seconds or null
+      err.retryAfterRaw = retryHeader ?? (body?.retry_after ?? null);
+      throw err;
+    }
+
     // If unauthorized, clear auth
     if (response.status === 401) {
       await authStore.logout();

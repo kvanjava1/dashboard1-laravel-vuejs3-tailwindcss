@@ -202,6 +202,13 @@ const galleries = ref<any[]>([])
 const useServer = ref(false)
 const loading = ref(false)
 
+// Rate-limit state (seconds-based expiry timestamp)
+const rateLimitedUntil = ref<number | null>(null)
+const rateLimitRemaining = computed(() => {
+    if (!rateLimitedUntil.value) return 0
+    return Math.max(0, Math.ceil((rateLimitedUntil.value - Date.now()) / 1000))
+})
+
 const { fetchGalleries, deleteGallery } = useGalleryData()
 
 onMounted(async () => {
@@ -344,6 +351,12 @@ const handleResetFilters = () => {
 }
 
 const refreshGalleries = async () => {
+    // If rate-limited, show remaining time and prevent refresh
+    if (rateLimitedUntil.value && rateLimitedUntil.value > Date.now()) {
+        await showToast({ icon: 'error', title: 'Rate limited', text: `Please retry after ${rateLimitRemaining.value} second${rateLimitRemaining.value === 1 ? '' : 's'}` })
+        return
+    }
+
     if (useServer.value) {
         await loadGalleries()
         await showToast({ icon: 'success', title: 'Refreshed', text: 'Gallery list has been refreshed', timer: 1200 })
@@ -378,14 +391,8 @@ async function loadGalleries() {
         if (currentFilters.search) params.search = currentFilters.search
         if (currentFilters.category) params.category_id = currentFilters.category
 
-        const result = await fetchGalleries(params).catch(() => null)
-        if (!result) {
-            useServer.value = false
-            galleries.value = []
-            serverTotal.value = 0
-            await showToast({ icon: 'error', title: 'Error', text: 'Failed to load galleries from server' })
-            return
-        }
+        // Call server — let exceptions bubble to the outer catch so we can inspect rate-limit metadata
+        const result = await fetchGalleries(params)
 
         useServer.value = true
 
@@ -419,6 +426,23 @@ async function loadGalleries() {
         useServer.value = false
         galleries.value = []
         console.error('Failed to load galleries:', err)
+
+        // If rate-limited, record expiry and show explicit message
+        if (err && (err.status === 429 || err.code === 'RATE_LIMIT')) {
+            const seconds = typeof err.retryAfter === 'number' && err.retryAfter > 0 ? err.retryAfter : null
+            if (seconds) {
+                rateLimitedUntil.value = Date.now() + seconds * 1000
+                // clear after expiry so UI updates
+                setTimeout(() => {
+                    rateLimitedUntil.value = null
+                }, seconds * 1000 + 500)
+            }
+
+            await showToast({ icon: 'error', title: 'Rate limited', text: err.message || 'Too many requests' })
+            loading.value = false
+            return
+        }
+
         await showToast({ icon: 'error', title: 'Error', text: err?.message || 'Failed to load galleries' })
     } finally {
         loading.value = false

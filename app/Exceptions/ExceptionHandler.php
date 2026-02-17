@@ -5,6 +5,8 @@ namespace App\Exceptions;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
@@ -62,6 +64,54 @@ class ExceptionHandler
                     'message' => 'Resource not found',
                     'error' => 'The requested resource could not be found.',
                 ], 404);
+            }
+        });
+
+        // Handle HTTP 429 - Throttling / Too Many Requests
+        $exceptions->render(function (ThrottleRequestsException $e, $request) {
+            if ($request->is('api/*')) {
+                $retryAfter = null;
+                if (method_exists($e, 'getHeaders')) {
+                    $headers = $e->getHeaders();
+                    $retryAfter = $headers['Retry-After'] ?? $headers['retry-after'] ?? null;
+                }
+
+                $payload = [
+                    'message' => 'Too many requests',
+                    'error' => 'Rate limit exceeded. Please try again later.',
+                ];
+
+                if ($retryAfter !== null) {
+                    $payload['retry_after'] = is_numeric($retryAfter) ? (int) $retryAfter : $retryAfter;
+                }
+
+                $headers = $retryAfter !== null ? ['Retry-After' => (string) $retryAfter] : [];
+
+                return response()->json($payload, 429, $headers);
+            }
+        });
+
+        // Also handle Symfony's TooManyRequestsHttpException if thrown directly
+        $exceptions->render(function (TooManyRequestsHttpException $e, $request) {
+            if ($request->is('api/*')) {
+                $retryAfter = null;
+                if (method_exists($e, 'getHeaders')) {
+                    $headers = $e->getHeaders();
+                    $retryAfter = $headers['Retry-After'] ?? $headers['retry-after'] ?? null;
+                }
+
+                $payload = [
+                    'message' => 'Too many requests',
+                    'error' => 'Rate limit exceeded. Please try again later.',
+                ];
+
+                if ($retryAfter !== null) {
+                    $payload['retry_after'] = is_numeric($retryAfter) ? (int) $retryAfter : $retryAfter;
+                }
+
+                $headers = $retryAfter !== null ? ['Retry-After' => (string) $retryAfter] : [];
+
+                return response()->json($payload, 429, $headers);
             }
         });
 
