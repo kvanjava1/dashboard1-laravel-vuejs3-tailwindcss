@@ -168,7 +168,6 @@ import GalleryAdvancedFilterModal from '../../../components/gallery/GalleryAdvan
 import GalleryDetailModal from '../../../components/gallery/GalleryDetailModal.vue'
 import StatusBadge from '../../../components/ui/StatusBadge.vue'
 import Pagination from '../../../components/ui/Pagination.vue'
-import { galleryMocks } from '@/mocks/gallery/galleryMocks'
 import { useCategoryData } from '@/composables/category/useCategoryData'
 import { useGalleryData } from '@/composables/gallery/useGalleryData'
 import { debounce } from '@/utils/debounce'
@@ -381,10 +380,10 @@ async function loadGalleries() {
 
         const result = await fetchGalleries(params).catch(() => null)
         if (!result) {
-            // fallback to mocks
             useServer.value = false
-            galleries.value = galleryMocks
+            galleries.value = []
             serverTotal.value = 0
+            await showToast({ icon: 'error', title: 'Error', text: 'Failed to load galleries from server' })
             return
         }
 
@@ -415,8 +414,9 @@ async function loadGalleries() {
         })
     } catch (err: any) {
         useServer.value = false
-        galleries.value = galleryMocks
+        galleries.value = []
         console.error('Failed to load galleries:', err)
+        await showToast({ icon: 'error', title: 'Error', text: err?.message || 'Failed to load galleries' })
     } finally {
         loading.value = false
     }

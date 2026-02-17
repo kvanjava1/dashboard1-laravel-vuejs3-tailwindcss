@@ -213,7 +213,6 @@ import 'vue-advanced-cropper/dist/style.css'
 import { showToast } from '@/composables/useSweetAlert'
 import { useGalleryData } from '@/composables/gallery/useGalleryData'
 import { debounce } from '@/utils/debounce'
-import { galleryCategoryMocks } from '@/mocks/gallery/categoryMocks'
 
 interface Props {
     mode: 'create' | 'edit'
