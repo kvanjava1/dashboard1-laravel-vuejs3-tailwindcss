@@ -86,9 +86,9 @@
                     </div>
                 </router-link>
 
-                <!-- Categories Menu (UI preview - no permissions yet) -->
+                <!-- Categories Menu (permission-controlled) -->
                 <router-link
-                    v-if="authStore.isAuthenticated"
+                    v-if="authStore.hasPermission('category_management.view')"
                     to="/category_management/index"
                     class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
                     :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
@@ -100,7 +100,7 @@
                 </router-link>
 
                 <!-- Images Management Menu -->
-                <div class="menu-item">
+                <div v-if="showImagesMenu" class="menu-item">
                     <div class="flex items-center justify-between px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 cursor-pointer"
                         :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                         @click="toggleMenu('images-menu')">
@@ -113,7 +113,7 @@
                     </div>
 
                     <div :id="'images-menu'" :class="['submenu', { 'open': openMenus['images-menu'] }]">
-                        <router-link to="/gallery_management/index"
+                        <router-link v-if="authStore.hasPermission('gallery_management.view')" to="/gallery_management/index"
                             class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
                             :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                             @click="closeMobileSidebar"
@@ -122,7 +122,7 @@
                             <p class="text-sm font-medium">Gallery</p>
                         </router-link>
 
-                        <router-link to="/image_management/index"
+                        <router-link v-if="authStore.hasPermission('image_management.view')" to="/image_management/index"
                             class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:bg-surface-dark hover:text-white transition-all duration-200 group active:bg-surface-darker active:text-primary-light active:scale-95 menu-indent-1"
                             :style="{ borderRadius: 'var(--radius-sidebar-item)' }"
                             @click="closeMobileSidebar"
@@ -320,6 +320,11 @@ const openMenus = reactive<Record<string, boolean>>({
     'analytics-menu': false,
     'settings-menu': false,
     'images-menu': false
+})
+
+// Controls visibility for Images menu (show when user can view gallery or images)
+const showImagesMenu = computed(() => {
+    return authStore.hasPermission('gallery_management.view') || authStore.hasPermission('image_management.view')
 })
 
 // User data from auth store
