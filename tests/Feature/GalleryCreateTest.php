@@ -245,15 +245,18 @@ class GalleryCreateTest extends TestCase
         $mediaRows = Media::where('gallery_id', $gallery->id)->get();
         $this->assertCount(3, $mediaRows);
 
-        $currentCover = $mediaRows->firstWhere('is_cover', true);
+        // selected-cover flag should be set on one row
+        $currentCover = $mediaRows->firstWhere('is_used_as_cover', true);
         $this->assertNotNull($currentCover);
 
-        $other = $mediaRows->firstWhere('is_cover', false);
+        $other = $mediaRows->firstWhere('is_used_as_cover', false);
         $this->assertNotNull($other);
 
-        // The service flags the 1200x900 variant as the gallery cover — ensure that's set
+        // The service flags the 1200x900 variant as the selected gallery cover — ensure that's set
         $media1200 = $mediaRows->first(fn($m) => str_contains($m->filename, '/1200x900/'));
         $this->assertNotNull($media1200);
+        $this->assertTrue((bool) $media1200->is_used_as_cover);
+        // and it remains a cover variant
         $this->assertTrue((bool) $media1200->is_cover);
     }
 }

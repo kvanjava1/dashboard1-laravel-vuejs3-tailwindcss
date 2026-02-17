@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Services\ProtectionService;
 use App\Services\PermissionService;
 use App\Traits\CanVersionCache;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RoleService
 {
@@ -286,7 +287,7 @@ class RoleService
             // Check if role has assigned users
             $userCount = $role->users()->count();
             if ($userCount > 0) {
-                throw new \Exception("Cannot delete role. It has {$userCount} assigned users.", 409);
+                throw new HttpException(409, "Cannot delete role. It has {$userCount} assigned users.");
             }
 
             $roleName = $role->name;

@@ -20,17 +20,12 @@ class PermissionController extends Controller
      */
     public function index(): JsonResponse
     {
-        try {
-            $permissions = $this->permissionService->getAllPermissions();
+        $permissions = $this->permissionService->getAllPermissions();
 
-            return response()->json([
-                'message' => 'Permissions retrieved successfully',
-                'permissions' => $permissions,
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve permissions'], 500);
-        }
+        return response()->json([
+            'message' => 'Permissions retrieved successfully',
+            'permissions' => $permissions,
+        ], 200);
     }
 
     /**
@@ -38,16 +33,11 @@ class PermissionController extends Controller
      */
     public function grouped(): JsonResponse
     {
-        try {
-            $groupedPermissions = $this->permissionService->getPermissionsGrouped();
+        $groupedPermissions = $this->permissionService->getPermissionsGrouped();
 
-            return response()->json([
-                'message' => 'Grouped permissions retrieved successfully',
-                'permissions' => $groupedPermissions,
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve grouped permissions'], 500);
-        }
+        return response()->json([
+            'message' => 'Grouped permissions retrieved successfully',
+            'permissions' => $groupedPermissions,
+        ], 200);
     }
 }

@@ -4,6 +4,12 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Throwable;
 
 class ExceptionHandler
 {
@@ -12,7 +18,7 @@ class ExceptionHandler
      */
     public static function configure(Exceptions $exceptions): void
     {
-        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e, $request) {
+        $exceptions->render(function (MethodNotAllowedHttpException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => 'Method not allowed',
@@ -21,16 +27,18 @@ class ExceptionHandler
             }
         });
 
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+        $exceptions->render(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
+                // Use the exception message when it's a controlled/auth-related message
+                $clientMessage = $e->getMessage() ?: 'Unauthenticated';
+
                 return response()->json([
-                    'message' => 'Unauthenticated',
-                    'error' => 'Authentication is required to access this resource.',
+                    'message' => $clientMessage,
                 ], 401);
             }
         });
 
-        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
+        $exceptions->render(function (AuthorizationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => 'Forbidden',
@@ -39,7 +47,7 @@ class ExceptionHandler
             }
         });
 
-        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, $request) {
+        $exceptions->render(function (ValidationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => 'Validation failed',
@@ -48,7 +56,7 @@ class ExceptionHandler
             }
         });
 
-        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
+        $exceptions->render(function (ModelNotFoundException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => 'Resource not found',
@@ -57,7 +65,7 @@ class ExceptionHandler
             }
         });
 
-        $exceptions->render(function (\Throwable $e, $request) {
+        $exceptions->render(function (Throwable $e, $request) {
             if ($request->is('api/*')) {
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $statusCode = $statusCode >= 100 && $statusCode < 600 ? $statusCode : 500;

@@ -399,7 +399,8 @@ async function loadGalleries() {
         // map API gallery model to UI shape
         galleries.value = (result.galleries || []).map((g: any) => {
             const media = Array.isArray(g.media) ? g.media : []
-            const primary = media.find((m: any) => m.is_cover) || (g.cover ? g.cover : null)
+            // Prefer the explicit `is_used_as_cover` flag when present, otherwise fall back to `is_cover` for compatibility
+            const primary = media.find((m: any) => (m.is_used_as_cover || m.is_cover)) || (g.cover ? g.cover : null)
             return {
                 id: g.id,
                 title: g.title,

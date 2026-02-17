@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManagerStatic as Image;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\UploadedFile;
 
 class GalleryService
 {
@@ -25,7 +26,7 @@ class GalleryService
     /**
      * Create a gallery with processed cover image and tags.
      */
-    public function createGallery(array $data, ?\Illuminate\Http\UploadedFile $coverFile = null): array
+    public function createGallery(array $data, ?UploadedFile $coverFile = null): array
     {
         return DB::transaction(function () use ($data, $coverFile) {
             // Generate unique slug
@@ -73,7 +74,7 @@ class GalleryService
      * Update an existing gallery. If a new cover is provided it will replace the current cover
      * (existing media cover flags are cleared). Tags are synced if present in the payload.
      */
-    public function updateGallery(int $galleryId, array $data, ?\Illuminate\Http\UploadedFile $coverFile = null): array
+    public function updateGallery(int $galleryId, array $data, ?UploadedFile $coverFile = null): array
     {
         return DB::transaction(function () use ($galleryId, $data, $coverFile) {
             $gallery = Gallery::findOrFail($galleryId);
@@ -102,7 +103,8 @@ class GalleryService
 
             // If a new cover file is provided, clear existing cover flags and store new variants
             if ($coverFile) {
-                Media::where('gallery_id', $gallery->id)->update(['is_cover' => false]);
+                // clear the currently selected cover and replace with the newly-uploaded cover
+                Media::where('gallery_id', $gallery->id)->update(['is_used_as_cover' => false]);
                 $crop = $data['crop'] ?? null;
                 $this->processAndStoreCover($gallery, $coverFile, $crop);
             }
@@ -145,7 +147,7 @@ class GalleryService
     /**
      * Process the cover into multiple sizes and store, returns Media model
      */
-    private function processAndStoreCover(Gallery $gallery, \Illuminate\Http\UploadedFile $file, ?array $crop = null): Media
+    private function processAndStoreCover(Gallery $gallery, UploadedFile $file, ?array $crop = null): Media
     {
         try {
             $datePath = now()->format('Y/m/d');
@@ -266,7 +268,10 @@ class GalleryService
                 'size' => $size1200,
                 'alt_text' => $gallery->title,
                 'sort_order' => 0,
+                // this is a cover *variant*
                 'is_cover' => true,
+                // mark the primary variant as the selected gallery cover
+                'is_used_as_cover' => true,
             ]);
             $createdMedia[] = $media1200;
 

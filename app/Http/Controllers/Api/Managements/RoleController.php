@@ -24,30 +24,25 @@ class RoleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $perPage = $request->get('per_page', 15);
-            $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
 
-            // Validate pagination parameters
-            $perPage = max(1, min((int)$perPage, 100)); // Max 100 per page
-            $page = max(1, (int)$page);
+        // Validate pagination parameters
+        $perPage = max(1, min((int)$perPage, 100)); // Max 100 per page
+        $page = max(1, (int)$page);
 
-            // Get filter parameters
-            $filters = [
-                'search' => $request->get('search'),
-                'permissions' => $request->get('permissions', default: []),
-            ];
+        // Get filter parameters
+        $filters = [
+            'search' => $request->get('search'),
+            'permissions' => $request->get('permissions', default: []),
+        ];
 
-            $result = $this->roleService->getFilteredPaginatedRoles($perPage, $page, $filters);
+        $result = $this->roleService->getFilteredPaginatedRoles($perPage, $page, $filters);
 
-            return response()->json([
-                'message' => 'Roles retrieved successfully',
-                ...$result,
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve roles'], 500);
-        }
+        return response()->json([
+            'message' => 'Roles retrieved successfully',
+            ...$result,
+        ], 200);
     }
 
     /**
@@ -55,17 +50,12 @@ class RoleController extends Controller
      */
     public function options(): JsonResponse
     {
-        try {
-            $roles = $this->roleService->getRoleOptions();
-            
-            return response()->json([
-                'message' => 'Role options retrieved successfully',
-                'roles' => $roles,
-            ], 200);
-            
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve role options'], 500);
-        }
+        $roles = $this->roleService->getRoleOptions();
+        
+        return response()->json([
+            'message' => 'Role options retrieved successfully',
+            'roles' => $roles,
+        ], 200);
     }
 
     /**
@@ -73,17 +63,12 @@ class RoleController extends Controller
      */
     public function store(StoreRoleRequest $request): JsonResponse
     {
-        try {
-            $role = $this->roleService->createRole($request->validated());
+        $role = $this->roleService->createRole($request->validated());
 
-            return response()->json([
-                'message' => 'Role created successfully',
-                'role' => $role,
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to create role'], 500);
-        }
+        return response()->json([
+            'message' => 'Role created successfully',
+            'role' => $role,
+        ], 201);
     }
 
     /**
@@ -91,19 +76,12 @@ class RoleController extends Controller
      */
     public function show(int $roleId): JsonResponse
     {
-        try {
-            $role = $this->roleService->getRoleById($roleId);
+        $role = $this->roleService->getRoleById($roleId);
 
-            return response()->json([
-                'message' => 'Role retrieved successfully',
-                'role' => $role,
-            ], 200);
-
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() === 404 ? 404 : 500;
-
-            return response()->json(['message' => 'Failed to retrieve role'], $statusCode);
-        }
+        return response()->json([
+            'message' => 'Role retrieved successfully',
+            'role' => $role,
+        ], 200);
     }
 
     /**
@@ -111,19 +89,12 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, int $roleId): JsonResponse
     {
-        try {
-            $role = $this->roleService->updateRole($roleId, $request->validated());
+        $role = $this->roleService->updateRole($roleId, $request->validated());
 
-            return response()->json([
-                'message' => 'Role updated successfully',
-                'role' => $role,
-            ], 200);
-
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() === 404 ? 404 : 500;
-
-            return response()->json(['message' => 'Failed to update role'], $statusCode);
-        }
+        return response()->json([
+            'message' => 'Role updated successfully',
+            'role' => $role,
+        ], 200);
     }
 
     /**
@@ -131,26 +102,19 @@ class RoleController extends Controller
      */
     public function destroy(int $roleId): JsonResponse
     {
-        try {
-            // Prevent deletion of super admin role
-            $role = $this->roleService->findRole($roleId);
-            if ($role && $role->name === 'super_admin') {
-                return response()->json([
-                    'message' => 'Cannot delete super admin role',
-                ], 403);
-            }
-
-            $this->roleService->deleteRole($roleId);
-
+        // Prevent deletion of super admin role
+        $role = $this->roleService->findRole($roleId);
+        if ($role && $role->name === 'super_admin') {
             return response()->json([
-                'message' => 'Role deleted successfully',
-            ], 200);
-
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() === 403 ? 403 : ($e->getCode() === 404 ? 404 : 500);
-
-            return response()->json(['message' => 'Failed to delete role'], $statusCode);
+                'message' => 'Cannot delete super admin role',
+            ], 403);
         }
+
+        $this->roleService->deleteRole($roleId);
+
+        return response()->json([
+            'message' => 'Role deleted successfully',
+        ], 200);
     }
 
     /**

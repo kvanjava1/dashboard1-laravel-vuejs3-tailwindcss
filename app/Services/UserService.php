@@ -11,6 +11,8 @@ use App\Services\ProtectionService;
 use App\Services\UserBanHistoryService;
 use App\Traits\CanVersionCache;
 use Intervention\Image\ImageManagerStatic as Image;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Http\UploadedFile;
 
 class UserService
 {
@@ -231,7 +233,7 @@ class UserService
                 ]);
             }
 
-            if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($data['profile_image']) && $data['profile_image'] instanceof UploadedFile) {
                 // Include crop coordinates so service can crop from original
                 $crop = null;
                 if (isset($data['crop_x']) && isset($data['crop_y']) && isset($data['crop_width']) && isset($data['crop_height'])) {
@@ -320,7 +322,7 @@ class UserService
                 $user->update($updateData);
             }
 
-            if (isset($data['profile_image']) && $data['profile_image'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($data['profile_image']) && $data['profile_image'] instanceof UploadedFile) {
                 if ($user->profile_image) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
@@ -393,7 +395,7 @@ class UserService
             }
 
             if ($user->id === $deletedBy) {
-                throw new \Exception('Cannot delete your own account', 403);
+                throw new HttpException(403, 'Cannot delete your own account');
             }
 
             if ($user->profile_image) {
@@ -560,7 +562,7 @@ class UserService
     /**
      * Store profile image with custom path pattern
      */
-    private function storeProfileImage(\Illuminate\Http\UploadedFile $file, ?array $crop = null): string
+    private function storeProfileImage(UploadedFile $file, ?array $crop = null): string
     {
         $uniqueName = uniqid() . '_' . time() . '.webp';
         $year = date('Y');

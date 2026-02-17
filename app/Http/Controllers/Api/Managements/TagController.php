@@ -24,16 +24,12 @@ class TagController extends Controller
     {
         $validated = $request->validated();
 
-        try {
-            $q = $validated['q'] ?? '';
-            $limit = intval($validated['limit'] ?? 10);
-            $limit = max(1, min(100, $limit));
+        $q = $validated['q'] ?? '';
+        $limit = intval($validated['limit'] ?? 10);
+        $limit = max(1, min(100, $limit));
 
-            $tags = $this->tagService->getTagOptions($q, $limit);
+        $tags = $this->tagService->getTagOptions($q, $limit);
 
-            return response()->json(['message' => 'Tags retrieved', 'data' => $tags], 200);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to retrieve tags'], 500);
-        }
+        return response()->json(['message' => 'Tags retrieved', 'data' => $tags], 200);
     }
 }

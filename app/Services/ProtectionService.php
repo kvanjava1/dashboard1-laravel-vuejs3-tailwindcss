@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ProtectionService
 {
@@ -209,7 +210,7 @@ class ProtectionService
 
         if ($this->config['behavior']['throw_exceptions'] ?? true) {
             $code = $this->config['behavior']['exception_code'] ?? 403;
-            throw new \Exception($fullMessage, $code);
+            throw new HttpException($code, $fullMessage);
         }
     }
 

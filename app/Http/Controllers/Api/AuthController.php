@@ -23,26 +23,20 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        try {
-            $result = $this->authService->authenticate(
-                $request->validated(),
-                [
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'user_id' => $request->user()?->id ?? null,
-                ]
-            );
+        $result = $this->authService->authenticate(
+            $request->validated(),
+            [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'user_id' => $request->user()?->id ?? null,
+            ]
+        );
 
-            return response()->json([
-                'message' => 'Login successful',
-                'token' => $result['token'],
-                'user' => $result['user'],
-            ], 200);
-        } catch (\Illuminate\Auth\AuthenticationException $e) {
-            return response()->json(['message' => 'Authentication failed'], 401);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Authentication failed'], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'message' => 'Login successful',
+            'token' => $result['token'],
+            'user' => $result['user'],
+        ], 200);
     }
 
     /**
@@ -50,31 +44,24 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        try {
-            $this->authService->logout(
-                $request->user(),
-                [
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'user_id' => $request->user()?->id ?? null,
-                ]
-            );
-
-            Log::info('User logout', [
-                'user_id' => $request->user()?->id ?? null,
+        $this->authService->logout(
+            $request->user(),
+            [
                 'ip' => $request->ip(),
-                'agent' => $request->userAgent(),
-            ]);
+                'user_agent' => $request->userAgent(),
+                'user_id' => $request->user()?->id ?? null,
+            ]
+        );
 
-            return response()->json([
-                'message' => 'Logged out successfully',
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Logout failed', ['exception' => $e, 'user_id' => $request->user()?->id ?? null]);
-            return response()->json([
-                'message' => 'Logout failed',
-            ], 500);
-        }
+        Log::info('User logout', [
+            'user_id' => $request->user()?->id ?? null,
+            'ip' => $request->ip(),
+            'agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'message' => 'Logged out successfully',
+        ], 200);
     }
 
     /**
@@ -82,23 +69,16 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        try {
-            $user = $this->authService->getCurrentUser($request->user());
+        $user = $this->authService->getCurrentUser($request->user());
 
-            Log::info('Fetched current user', [
-                'user_id' => $request->user()?->id ?? null,
-                'ip' => $request->ip(),
-                'agent' => $request->userAgent(),
-            ]);
+        Log::info('Fetched current user', [
+            'user_id' => $request->user()?->id ?? null,
+            'ip' => $request->ip(),
+            'agent' => $request->userAgent(),
+        ]);
 
-            return response()->json([
-                'user' => $user,
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch user', ['exception' => $e, 'user_id' => $request->user()?->id ?? null]);
-            return response()->json([
-                'message' => 'Failed to fetch user',
-            ], 500);
-        }
+        return response()->json([
+            'user' => $user,
+        ], 200);
     }
 }

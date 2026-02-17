@@ -40,8 +40,8 @@ class Gallery extends Model
 
     public function cover(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        // The "cover" is the media row flagged as is_cover for this gallery
-        return $this->hasOne(Media::class)->where('is_cover', true);
+        // The "cover" is the media row selected as the gallery cover (is_used_as_cover)
+        return $this->hasOne(Media::class)->where('is_used_as_cover', true);
     }
 
     /**

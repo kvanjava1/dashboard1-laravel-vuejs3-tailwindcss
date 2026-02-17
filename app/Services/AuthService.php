@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Services\UserService;
+use Illuminate\Auth\AuthenticationException;
 
 class AuthService
 {
@@ -22,14 +23,14 @@ class AuthService
      * @param array $credentials
      * @param array $meta ['ip' => string, 'user_agent' => string]
      * @return array
-     * @throws \Illuminate\Auth\AuthenticationException
+     * @throws AuthenticationException
      */
     public function authenticate(array $credentials, array $meta): array
     {
         // Attempt to authenticate the user
         if (!Auth::attempt($credentials)) {
             Log::warning('Failed login attempt', ['email' => $credentials['email']]);
-            throw new \Illuminate\Auth\AuthenticationException('Invalid email or password');
+            throw new AuthenticationException('Invalid email or password');
         }
 
         $user = Auth::user();
@@ -41,7 +42,7 @@ class AuthService
                 'email' => $user->email,
                 'ip' => $meta['ip'] ?? null,
             ]);
-            throw new \Illuminate\Auth\AuthenticationException('Your account is not active. Please contact administrator.');
+            throw new AuthenticationException('Your account is not active. Please contact administrator.');
         }
 
         // Check if user is banned
@@ -51,7 +52,7 @@ class AuthService
                 'email' => $user->email,
                 'ip' => $meta['ip'] ?? null,
             ]);
-            throw new \Illuminate\Auth\AuthenticationException('Your account has been banned. Please contact administrator.');
+            throw new AuthenticationException('Your account has been banned. Please contact administrator.');
         }
 
         // Generate Sanctum token

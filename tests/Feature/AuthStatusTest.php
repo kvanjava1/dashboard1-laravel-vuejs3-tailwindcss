@@ -58,6 +58,23 @@ class AuthStatusTest extends TestCase
                 ]);
     }
 
+    public function test_invalid_credentials_return_specific_message(): void
+    {
+        $user = User::factory()->create([
+            'password' => bcrypt('password'),
+        ]);
+
+        $response = $this->postJson('/api/v1/login', [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJson([
+                'message' => 'Invalid email or password',
+            ]);
+    }
+
     /**
      * Test that middleware blocks inactive users from accessing protected routes
      */
