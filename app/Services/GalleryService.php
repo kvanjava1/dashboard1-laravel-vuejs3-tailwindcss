@@ -20,8 +20,8 @@ class GalleryService
 {
     use CanVersionCache;
 
-    // Storage base folder
-    private const BASE_PATH = 'uploads/gallery';
+    // Storage base folder for gallery cover images
+    private const BASE_COVER_PATH = 'upload/images/cover';
     private const CACHE_SCOPE = 'galleries';
     private const CACHE_TTL = 3600; // 1 hour
 
@@ -62,7 +62,8 @@ class GalleryService
                 $tagIds = [];
                 foreach ($data['tags'] as $tagName) {
                     $name = trim($tagName);
-                    if (!$name) continue;
+                    if (!$name)
+                        continue;
                     $slugTag = Str::slug($name);
                     $tag = Tag::firstOrCreate(['slug' => $slugTag], ['name' => $name, 'slug' => $slugTag]);
                     $tagIds[] = $tag->id;
@@ -211,11 +212,16 @@ class GalleryService
             $gallery = Gallery::findOrFail($galleryId);
 
             // Update mutable fields (do not change slug to preserve URLs)
-            if (isset($data['title'])) $gallery->title = $data['title'];
-            if (array_key_exists('description', $data)) $gallery->description = $data['description'] ?? null;
-            if (isset($data['category_id'])) $gallery->category_id = $data['category_id'];
-            if (isset($data['status'])) $gallery->is_active = ($data['status'] === 'active');
-            if (isset($data['visibility'])) $gallery->is_public = ($data['visibility'] === 'public');
+            if (isset($data['title']))
+                $gallery->title = $data['title'];
+            if (array_key_exists('description', $data))
+                $gallery->description = $data['description'] ?? null;
+            if (isset($data['category_id']))
+                $gallery->category_id = $data['category_id'];
+            if (isset($data['status']))
+                $gallery->is_active = ($data['status'] === 'active');
+            if (isset($data['visibility']))
+                $gallery->is_public = ($data['visibility'] === 'public');
 
             $gallery->save();
 
@@ -224,7 +230,8 @@ class GalleryService
                 $tagIds = [];
                 foreach ($data['tags'] as $tagName) {
                     $name = trim($tagName);
-                    if (!$name) continue;
+                    if (!$name)
+                        continue;
                     $slugTag = Str::slug($name);
                     $tag = Tag::firstOrCreate(['slug' => $slugTag], ['name' => $name, 'slug' => $slugTag]);
                     $tagIds[] = $tag->id;
@@ -462,35 +469,44 @@ class GalleryService
         ];
     }
     /**
-     * Process the cover into multiple sizes and store, returns Media model
+     * Process the cover into multiple sizes and store, returns Media model.
+     *
+     * Storage structure:
+     *   upload/images/cover/1200x900/{Y/m/d}/{uuid}.webp
+     *   upload/images/cover/400x300/{Y/m/d}/{uuid}.webp
+     *   upload/images/cover/originals/{Y/m/d}/{uuid}_original.{ext}
+     *
+     * All 3 media rows share the same variant_code (UUID).
      */
     private function processAndStoreCover(Gallery $gallery, UploadedFile $file, ?array $crop = null): Media
     {
         try {
             $datePath = now()->format('Y/m/d');
-            $slug = $gallery->slug;
 
-            // Prepare filename base
-            $unique = uniqid();
-            $filenameBase = "{$unique}.webp";
+            // Generate UUID used for both filename and variant_code
+            $variantCode = Str::uuid()->toString();
+            $filenameBase = "{$variantCode}.webp";
 
-            // Prepare paths
-            $path1200 = self::BASE_PATH . "/{$slug}/covers/1200x900/{$datePath}/{$filenameBase}";
-            $path400 = self::BASE_PATH . "/{$slug}/covers/400x300/{$datePath}/{$filenameBase}";
+            // Prepare paths — flat structure, no gallery slug in path
+            $path1200 = self::BASE_COVER_PATH . "/1200x900/{$datePath}/{$filenameBase}";
+            $path400 = self::BASE_COVER_PATH . "/400x300/{$datePath}/{$filenameBase}";
 
             // Create directories
-            Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/covers/1200x900/{$datePath}");
-            Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/covers/400x300/{$datePath}");
-            Storage::disk('public')->makeDirectory(self::BASE_PATH . "/{$slug}/originals/{$datePath}");
+            Storage::disk('public')->makeDirectory(self::BASE_COVER_PATH . "/1200x900/{$datePath}");
+            Storage::disk('public')->makeDirectory(self::BASE_COVER_PATH . "/400x300/{$datePath}");
+            Storage::disk('public')->makeDirectory(self::BASE_COVER_PATH . "/originals/{$datePath}");
 
             // Persist the original upload so we can reprocess later (keeps original extension)
+            $origPath = null;
+            $origExt = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)) ?: 'jpg';
             try {
-                $origExt = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION)) ?: 'jpg';
-                $origPath = self::BASE_PATH . "/{$slug}/originals/{$datePath}/{$unique}_original.{$origExt}";
-                // move/store original file
-                Storage::disk('public')->putFileAs(self::BASE_PATH . "/{$slug}/originals/{$datePath}", $file, "{$unique}_original.{$origExt}");
+                $origPath = self::BASE_COVER_PATH . "/originals/{$datePath}/{$variantCode}_original.{$origExt}";
+                Storage::disk('public')->putFileAs(
+                    self::BASE_COVER_PATH . "/originals/{$datePath}",
+                    $file,
+                    "{$variantCode}_original.{$origExt}"
+                );
             } catch (\Exception $e) {
-                // non-fatal: log and continue
                 Log::warning('Failed to store original upload', ['exception' => $e]);
             }
 
@@ -504,10 +520,6 @@ class GalleryService
                 $origW = intval($crop['orig_width'] ?? $img->width());
                 $origH = intval($crop['orig_height'] ?? $img->height());
 
-                // If the uploaded file DOES NOT match the provided original dimensions,
-                // it likely means the client already performed the crop and uploaded
-                // a pre-cropped/resized image. In that case we MUST NOT attempt to map
-                // the client coordinates back onto the uploaded image (would double-crop).
                 if ($img->width() !== $origW || $img->height() !== $origH) {
                     Log::info('Uploaded image dimensions differ from orig_width/orig_height; skipping server-side crop (assuming client pre-cropped).', [
                         'uploaded_w' => $img->width(),
@@ -516,7 +528,6 @@ class GalleryService
                         'orig_h' => $origH,
                     ]);
                 } else {
-                    // Calculate scale factors (avoid division by zero)
                     $scaleX = $canvasW > 0 ? ($origW / $canvasW) : 1;
                     $scaleY = $canvasH > 0 ? ($origH / $canvasH) : 1;
 
@@ -525,7 +536,6 @@ class GalleryService
                     $cw = max(1, intval(round(($crop['width'] ?? $canvasW) * $scaleX)));
                     $ch = max(1, intval(round(($crop['height'] ?? $canvasH) * $scaleY)));
 
-                    // Clamp
                     $cx = min($cx, $img->width() - 1);
                     $cy = min($cy, $img->height() - 1);
                     $cw = min($cw, $img->width() - $cx);
@@ -542,65 +552,61 @@ class GalleryService
             // Produce high-quality variants from (possibly cropped) original
             $img1200 = clone $img;
             $img1200->fit(1200, 900);
-            $webp1200 = (string) $img1200->encode('webp', 90);
-            Storage::disk('public')->put($path1200, $webp1200);
+            Storage::disk('public')->put($path1200, (string) $img1200->encode('webp', 90));
 
             $img400 = clone $img;
-            // Use 4:3 thumbnail to keep composition consistent with primary cover
             $img400->fit(400, 300);
-            $webp400 = (string) $img400->encode('webp', 90);
-            Storage::disk('public')->put($path400, $webp400);
+            Storage::disk('public')->put($path400, (string) $img400->encode('webp', 90));
 
-            // Persist media record pointing to primary (1200) file
-            $size = Storage::disk('public')->size($path1200);
-
-            // Create media records for original + variants and mark the primary (1200x900) as the gallery cover
+            // Create media records — all share the same variant_code
             $createdMedia = [];
 
             // Original (keep original extension)
-            try {
-                if (isset($origPath)) {
+            if ($origPath) {
+                try {
                     $origSize = Storage::disk('public')->exists($origPath) ? Storage::disk('public')->size($origPath) : 0;
                     $createdMedia[] = Media::create([
                         'gallery_id' => $gallery->id,
-                        'filename' => $origPath ?? null,
-                        'extension' => $origExt ?? 'jpg',
+                        'variant_code' => $variantCode,
+                        'variant_size' => 'original',
+                        'filename' => $origPath,
+                        'extension' => $origExt,
                         'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
                         'size' => $origSize,
                         'alt_text' => $gallery->title,
                         'sort_order' => 0,
                         'is_cover' => false,
                     ]);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to create media record for original', ['exception' => $e]);
                 }
-            } catch (\Exception $e) {
-                Log::warning('Failed to create media record for original', ['exception' => $e]);
             }
 
             // 1200x900 — primary cover
-            $size1200 = Storage::disk('public')->size($path1200);
             $media1200 = Media::create([
                 'gallery_id' => $gallery->id,
+                'variant_code' => $variantCode,
+                'variant_size' => '1200x900',
                 'filename' => $path1200,
                 'extension' => 'webp',
                 'mime_type' => 'image/webp',
-                'size' => $size1200,
+                'size' => Storage::disk('public')->size($path1200),
                 'alt_text' => $gallery->title,
                 'sort_order' => 0,
-                // this is a cover *variant*
                 'is_cover' => true,
-                // mark the primary variant as the selected gallery cover
                 'is_used_as_cover' => true,
             ]);
             $createdMedia[] = $media1200;
 
-            // 400x300 thumbnail - also marked as cover variant (preserve 4:3 composition)
-            $size400 = Storage::disk('public')->size($path400);
+            // 400x300 thumbnail — also a cover variant
             $media400 = Media::create([
                 'gallery_id' => $gallery->id,
+                'variant_code' => $variantCode,
+                'variant_size' => '400x300',
                 'filename' => $path400,
                 'extension' => 'webp',
                 'mime_type' => 'image/webp',
-                'size' => $size400,
+                'size' => Storage::disk('public')->size($path400),
                 'alt_text' => $gallery->title,
                 'sort_order' => 0,
                 'is_cover' => true,

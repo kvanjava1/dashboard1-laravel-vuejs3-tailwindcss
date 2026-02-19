@@ -15,8 +15,15 @@ use Intervention\Image\ImageManagerStatic as Image;
 
 class MediaService
 {
-    private const BASE_GALLERY_PATH = "uploads/gallery";
-    private const BASE_IMAGES_PATH = "uploads/images";
+    /**
+     * Base path for all regular (non-cover) images.
+     *
+     * Storage structure:
+     *   upload/images/1200x900/{Y/m/d}/{uuid}.webp
+     *   upload/images/400x300/{Y/m/d}/{uuid}.webp
+     *   upload/images/originals/{Y/m/d}/{uuid}_original.{ext}
+     */
+    private const BASE_IMAGES_PATH = "upload/images";
 
     public function __construct()
     {
@@ -25,6 +32,9 @@ class MediaService
         ]);
     }
 
+    /**
+     * Paginate media list (shows only 1200x900 non-cover variants).
+     */
     public function paginateMedia(array $params = []): array
     {
         $perPage = isset($params["per_page"])
@@ -35,7 +45,7 @@ class MediaService
         $query = Media::query()
             ->with(["gallery:id,title,category_id", "gallery.category:id,name"])
             ->where("is_cover", false)
-            ->where("filename", "like", "%/1200x900/%");
+            ->where("variant_size", "1200x900");
 
         if (!empty($params["search"])) {
             $term = $params["search"];
@@ -110,6 +120,9 @@ class MediaService
         ];
     }
 
+    /**
+     * Create a new media record from an HTTP request.
+     */
     public function createMedia(StoreMediaRequest $request): array
     {
         $validated = $request->validated();
@@ -138,6 +151,9 @@ class MediaService
         });
     }
 
+    /**
+     * Get a single media item with all its size variants.
+     */
     public function getMediaById(int $id): array
     {
         $media = Media::with([
@@ -145,8 +161,8 @@ class MediaService
             "gallery.category:id,name",
         ])->findOrFail($id);
 
-        $groupKey = $this->getGroupKey($media->filename);
-        $group = $this->loadGroupMedia($groupKey);
+        // Use variant_code to load all sibling variants
+        $group = $this->loadVariantGroup($media->variant_code);
 
         $primary = $this->mapMediaToApi($media);
         $variants = $this->mapVariants($group);
@@ -154,6 +170,9 @@ class MediaService
         return [...$primary, "variants" => $variants];
     }
 
+    /**
+     * Update a media item (alt_text, gallery, or replace file entirely).
+     */
     public function updateMedia(UpdateMediaRequest $request, int $id): array
     {
         $media = Media::findOrFail($id);
@@ -168,8 +187,8 @@ class MediaService
         $newGallery = $newGalleryId ? Gallery::findOrFail($newGalleryId) : null;
         $oldGallery = $oldGalleryId ? Gallery::findOrFail($oldGalleryId) : null;
 
-        $groupKey = $this->getGroupKey($media->filename);
-        $group = $this->loadGroupMedia($groupKey);
+        // Load all variant siblings via variant_code
+        $group = $this->loadVariantGroup($media->variant_code);
 
         $hasNewFile = $request->hasFile("file");
         $altText = $request->has("alt_text")
@@ -177,18 +196,9 @@ class MediaService
             : $media->alt_text;
         $crop = $this->extractCrop($request);
 
-        return DB::transaction(function () use (
-            $group,
-            $hasNewFile,
-            $request,
-            $newGallery,
-            $oldGallery,
-            $altText,
-            $crop,
-            $oldGalleryId,
-            $newGalleryId,
-        ) {
+        return DB::transaction(function () use ($group, $hasNewFile, $request, $newGallery, $oldGallery, $altText, $crop, $oldGalleryId, $newGalleryId, ) {
             if ($hasNewFile) {
+                // Delete old files and media rows, then create new ones
                 $this->deleteGroupFiles($group);
                 Media::whereIn("id", $group->pluck("id")->all())->delete();
 
@@ -207,9 +217,13 @@ class MediaService
                 return $this->processAndStoreMedia($data, $file, $newGallery);
             }
 
-            // Update alt text + gallery only
+            // No new file — update metadata only
+
+            // Update gallery_id for all variants (no file move needed — paths are gallery-independent)
             if ($oldGalleryId !== $newGalleryId) {
-                $this->moveGroupFiles($group, $oldGallery, $newGallery);
+                Media::whereIn("id", $group->pluck("id")->all())->update([
+                    "gallery_id" => $newGallery?->id,
+                ]);
 
                 if ($oldGalleryId) {
                     $oldGallery?->decrement("item_count");
@@ -217,12 +231,9 @@ class MediaService
                 if ($newGalleryId) {
                     $newGallery?->increment("item_count");
                 }
-
-                Media::whereIn("id", $group->pluck("id")->all())->update([
-                    "gallery_id" => $newGallery?->id,
-                ]);
             }
 
+            // Update alt_text for all variants
             if ($altText !== null) {
                 Media::whereIn("id", $group->pluck("id")->all())->update([
                     "alt_text" => $altText,
@@ -231,7 +242,7 @@ class MediaService
 
             $primary =
                 $group->first(function ($item) {
-                    return str_contains($item->filename, "/1200x900/");
+                    return $item->variant_size === '1200x900';
                 }) ?? $group->first();
             $primary = $primary
                 ? $primary->fresh([
@@ -244,14 +255,17 @@ class MediaService
         });
     }
 
+    /**
+     * Delete a media item and all its size variants.
+     */
     public function deleteMedia(int $id): bool
     {
         $media = Media::findOrFail($id);
         $galleryId = $media->gallery_id;
         $gallery = $galleryId ? Gallery::find($galleryId) : null;
 
-        $groupKey = $this->getGroupKey($media->filename);
-        $group = $this->loadGroupMedia($groupKey);
+        // Load all variant siblings via variant_code
+        $group = $this->loadVariantGroup($media->variant_code);
 
         return DB::transaction(function () use ($group, $gallery) {
             $this->deleteGroupFiles($group);
@@ -265,43 +279,51 @@ class MediaService
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    //  Private helpers
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Process an uploaded image into multiple sizes and store.
+     *
+     * Storage structure (all under upload/images/):
+     *   upload/images/1200x900/{Y/m/d}/{uuid}.webp
+     *   upload/images/400x300/{Y/m/d}/{uuid}.webp
+     *   upload/images/originals/{Y/m/d}/{uuid}_original.{ext}
+     *
+     * All 3 media rows share the same variant_code (UUID).
+     */
     private function processAndStoreMedia(
         array $data,
         UploadedFile $file,
         ?Gallery $gallery = null,
     ): array {
         $datePath = now()->format("Y/m/d");
-        $unique = Str::uuid()->toString();
+        $variantCode = Str::uuid()->toString();
+        $filenameBase = "{$variantCode}.webp";
 
-        $basePath = $this->getBasePath($gallery);
-        $filenameBase = "{$unique}.webp";
+        $basePath = self::BASE_IMAGES_PATH;
 
         $path1200 = "{$basePath}/1200x900/{$datePath}/{$filenameBase}";
-        $path400 = "{$basePath}/400x400/{$datePath}/{$filenameBase}";
+        $path400 = "{$basePath}/400x300/{$datePath}/{$filenameBase}";
 
-        Storage::disk("public")->makeDirectory(
-            "{$basePath}/1200x900/{$datePath}",
-        );
-        Storage::disk("public")->makeDirectory(
-            "{$basePath}/400x400/{$datePath}",
-        );
-        Storage::disk("public")->makeDirectory(
-            "{$basePath}/originals/{$datePath}",
-        );
+        // Create directories
+        Storage::disk("public")->makeDirectory("{$basePath}/1200x900/{$datePath}");
+        Storage::disk("public")->makeDirectory("{$basePath}/400x300/{$datePath}");
+        Storage::disk("public")->makeDirectory("{$basePath}/originals/{$datePath}");
 
+        // Store original file
         $origPath = null;
-        $origExt =
-            strtolower(
-                pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION),
-            ) ?:
-            "jpg";
+        $origExt = strtolower(
+            pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION),
+        ) ?: "jpg";
 
         try {
-            $origPath = "{$basePath}/originals/{$datePath}/{$unique}_original.{$origExt}";
+            $origPath = "{$basePath}/originals/{$datePath}/{$variantCode}_original.{$origExt}";
             Storage::disk("public")->putFileAs(
                 "{$basePath}/originals/{$datePath}",
                 $file,
-                "{$unique}_original.{$origExt}",
+                "{$variantCode}_original.{$origExt}",
             );
         } catch (\Exception $e) {
             Log::warning("Failed to store original upload", [
@@ -309,9 +331,11 @@ class MediaService
             ]);
         }
 
+        // Load and optionally crop
         $img = Image::make($file->getRealPath());
         $this->applyCrop($img, $data["crop"] ?? null);
 
+        // Generate 1200x900 variant
         $img1200 = clone $img;
         $img1200->fit(1200, 900);
         Storage::disk("public")->put(
@@ -319,18 +343,22 @@ class MediaService
             (string) $img1200->encode("webp", 90),
         );
 
+        // Generate 400x300 variant
         $img400 = clone $img;
-        $img400->fit(400, 400);
+        $img400->fit(400, 300);
         Storage::disk("public")->put(
             $path400,
             (string) $img400->encode("webp", 90),
         );
 
+        // Create media records — all share the same variant_code
         $records = [];
 
         if ($origPath) {
             $records[] = Media::create([
                 "gallery_id" => $gallery?->id,
+                "variant_code" => $variantCode,
+                "variant_size" => "original",
                 "filename" => $origPath,
                 "extension" => $origExt,
                 "mime_type" =>
@@ -347,6 +375,8 @@ class MediaService
 
         $records[] = Media::create([
             "gallery_id" => $gallery?->id,
+            "variant_code" => $variantCode,
+            "variant_size" => "1200x900",
             "filename" => $path1200,
             "extension" => "webp",
             "mime_type" => "image/webp",
@@ -359,6 +389,8 @@ class MediaService
 
         $records[] = Media::create([
             "gallery_id" => $gallery?->id,
+            "variant_code" => $variantCode,
+            "variant_size" => "400x300",
             "filename" => $path400,
             "extension" => "webp",
             "mime_type" => "image/webp",
@@ -383,6 +415,9 @@ class MediaService
             : [];
     }
 
+    /**
+     * Extract crop parameters from a request (if provided).
+     */
     private function extractCrop($request): ?array
     {
         if (
@@ -410,6 +445,9 @@ class MediaService
         return null;
     }
 
+    /**
+     * Apply crop coordinates to an Intervention Image instance.
+     */
     private function applyCrop($img, ?array $crop): void
     {
         if (
@@ -461,55 +499,22 @@ class MediaService
         }
     }
 
-    private function getBasePath(?Gallery $gallery): string
+    /**
+     * Load all media rows that share the same variant_code.
+     * This replaces the old fragile filename-based grouping.
+     */
+    private function loadVariantGroup(?string $variantCode)
     {
-        if ($gallery) {
-            return self::BASE_GALLERY_PATH . "/" . $gallery->slug;
+        if (!$variantCode) {
+            return collect();
         }
 
-        return self::BASE_IMAGES_PATH;
+        return Media::where("variant_code", $variantCode)->get();
     }
 
-    private function getGroupKey(string $filename): string
-    {
-        $base = pathinfo($filename, PATHINFO_FILENAME);
-        return Str::replaceLast("_original", "", $base);
-    }
-
-    private function loadGroupMedia(string $groupKey)
-    {
-        return Media::query()
-            ->where("filename", "like", "%/{$groupKey}.webp")
-            ->orWhere("filename", "like", "%/{$groupKey}_original.%")
-            ->get();
-    }
-
-    private function moveGroupFiles(
-        $group,
-        ?Gallery $oldGallery,
-        ?Gallery $newGallery,
-    ): void {
-        $oldPrefix = $this->getBasePath($oldGallery);
-        $newPrefix = $this->getBasePath($newGallery);
-
-        foreach ($group as $media) {
-            $oldPath = $media->filename;
-            if (!Str::startsWith($oldPath, $oldPrefix)) {
-                continue;
-            }
-            $newPath = Str::replaceFirst($oldPrefix, $newPrefix, $oldPath);
-
-            if (Storage::disk("public")->exists($oldPath)) {
-                Storage::disk("public")->makeDirectory(dirname($newPath));
-                Storage::disk("public")->move($oldPath, $newPath);
-            }
-
-            $media->filename = $newPath;
-            $media->gallery_id = $newGallery?->id;
-            $media->save();
-        }
-    }
-
+    /**
+     * Delete files from storage for all media in a group.
+     */
     private function deleteGroupFiles($group): void
     {
         foreach ($group as $media) {
@@ -519,6 +524,9 @@ class MediaService
         }
     }
 
+    /**
+     * Map a Media model to a standardized API response array.
+     */
     private function mapMediaToApi(Media $m): array
     {
         $filename = basename($m->filename);
@@ -538,15 +546,18 @@ class MediaService
                 : null,
             "category" =>
                 $m->gallery && $m->gallery->category
-                    ? [
-                        "id" => $m->gallery->category->id,
-                        "name" => $m->gallery->category->name,
-                    ]
-                    : null,
+                ? [
+                    "id" => $m->gallery->category->id,
+                    "name" => $m->gallery->category->name,
+                ]
+                : null,
             "uploaded_at" => $m->uploaded_at,
         ];
     }
 
+    /**
+     * Map a group of variants into a structured response.
+     */
     private function mapVariants($group): array
     {
         $variants = [
@@ -556,19 +567,19 @@ class MediaService
         ];
 
         foreach ($group as $m) {
-            if (str_contains($m->filename, "/originals/")) {
+            if ($m->variant_size === 'original') {
                 $variants["original"] = [
                     "id" => $m->id,
                     "url" => $m->url,
                     "filename" => $m->filename,
                 ];
-            } elseif (str_contains($m->filename, "/1200x900/")) {
+            } elseif ($m->variant_size === '1200x900') {
                 $variants["size_1200"] = [
                     "id" => $m->id,
                     "url" => $m->url,
                     "filename" => $m->filename,
                 ];
-            } elseif (str_contains($m->filename, "/400x400/")) {
+            } elseif ($m->variant_size === '400x300') {
                 $variants["size_400"] = [
                     "id" => $m->id,
                     "url" => $m->url,

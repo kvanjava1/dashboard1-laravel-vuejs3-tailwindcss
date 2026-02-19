@@ -12,6 +12,8 @@ class Media extends Model
 
     protected $fillable = [
         'gallery_id',
+        'variant_code',
+        'variant_size',
         'filename',
         'extension',
         'mime_type',
