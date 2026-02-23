@@ -104,8 +104,8 @@ interface Props {
         search: string
         category: string
         status: string
-        min_items: string
-        max_items: string
+        min_items: string | number
+        max_items: string | number
         date_from: string
         date_to: string
     }
